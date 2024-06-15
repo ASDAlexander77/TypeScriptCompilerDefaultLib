@@ -11,7 +11,7 @@ fi
 SRC=.
 OUTPUT=.
 
-ROOT=../..
+ROOT=..
 GC_LIB_PATH=%ROOT%/TypeScriptCompiler/__build/gc/ninja/$BUILD
 LLVM_LIB_PATH=%ROOT%/TypeScriptCompiler/__build/llvm/ninja/$BUILD/lib
 TSC_LIB_PATH=%ROOT%/TypeScriptCompiler/__build/tsc/linux-ninja-gcc-$BUILD/lib
