@@ -23,5 +23,5 @@ mkdir lib
 $ROOT/TypeScriptCompiler/__build/tsc/linux-ninja-gcc-$BUILD/bin/tsc --emit=dll $SRC/src/lib.ts -o $OUTPUT/dll/liblib.so
 
 # Build Lib
-$ROOT/TypeScriptCompiler/__build/tsc/linux-ninja-gcc-$BUILD/bin/tsc --emit=obj --export=none $SRC/src/lib.ts -o $OUTPUT/lib/lib.obj
-llvm-lib $OUTPUT/lib/lib.obj
+$ROOT/TypeScriptCompiler/__build/tsc/linux-ninja-gcc-$BUILD/bin/tsc --emit=obj --export=none $SRC/src/lib.ts -o $OUTPUT/lib/lib.o
+llvm-lib $OUTPUT/lib/lib.o
