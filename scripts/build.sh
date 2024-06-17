@@ -24,4 +24,5 @@ $ROOT/TypeScriptCompiler/__build/tsc/linux-ninja-gcc-$BUILD/bin/tsc --emit=dll $
 
 # Build Lib
 $ROOT/TypeScriptCompiler/__build/tsc/linux-ninja-gcc-$BUILD/bin/tsc --emit=obj --export=none $SRC/src/lib.ts -o $OUTPUT/lib/lib.o
-llvm-lib $OUTPUT/lib/lib.o
+#ar rcs $OUTPUT/lib/lib.a $OUTPUT/lib/lib.o
+llvm-ar rcs $OUTPUT/lib/lib.a $OUTPUT/lib/lib.o
