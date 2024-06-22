@@ -20,8 +20,8 @@ set LLVM_LIB_PATH=%ROOT%\TypeScriptCompiler\__build\llvm\msbuild\%ARCH%\%BUILD%\
 set TSC_LIB_PATH=%ROOT%\TypeScriptCompiler\__build\tsc\windows-msbuild-%BUILD%\lib
 
 rem Build DLL
-%ROOT%\TypeScriptCompiler\__build\tsc\windows-msbuild-%BUILD%\bin\tsc.exe --emit=dll %SRC%\src\lib.ts -o %OUTPUT%\dll\lib.dll
+%ROOT%\TypeScriptCompiler\__build\tsc\windows-msbuild-%BUILD%\bin\tsc.exe --emit=dll %SRC%\src\lib.ts -o %OUTPUT%\dll\TypeScriptDefaultLib.dll
 
 rem Build Lib
 %ROOT%\TypeScriptCompiler\__build\tsc\windows-msbuild-%BUILD%\bin\tsc.exe --emit=obj --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\lib.obj
-%ROOT%\TypeScriptCompiler\3rdParty\llvm\%ARCH%\%LLVM_BUILD%\bin\llvm-lib.exe %OUTPUT%\lib\lib.obj
+%ROOT%\TypeScriptCompiler\3rdParty\llvm\%ARCH%\%LLVM_BUILD%\bin\llvm-lib.exe /out:%OUTPUT%\dll\TypeScriptDefaultLib.lib %OUTPUT%\lib\lib.obj
