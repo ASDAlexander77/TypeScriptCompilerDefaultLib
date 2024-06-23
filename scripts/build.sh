@@ -29,3 +29,10 @@ $BIN_PATH/tsc --emit=obj --export=none $SRC/src/lib.ts -o $OUTPUT/lib/lib.o
 #ar rcs $OUTPUT/lib/libTypeScriptDefaultLib.a $OUTPUT/lib/lib.o
 llvm-ar rcs $OUTPUT/lib/libTypeScriptDefaultLib.a $OUTPUT/lib/lib.o
 rm $OUTPUT/lib/lib.o
+
+# Copy
+BUILD_LIB_PATH=./__build/$BUILD/defaultlib
+mkdir $BUILD_LIB_PATH
+cp -r $SRC/dll $BUILD_LIB_PATH/dll/
+cp -r $SRC/lib $BUILD_LIB_PATH/lib/
+cp $SRC/src/* $BUILD_LIB_PATH/
