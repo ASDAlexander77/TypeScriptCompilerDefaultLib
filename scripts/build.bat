@@ -15,13 +15,19 @@ set SRC=.
 set OUTPUT=.
 
 set ROOT=..\..
-set GC_LIB_PATH=%ROOT%\TypeScriptCompiler\__build\gc\msbuild\%ARCH%\%BUILD%\Debug
-set LLVM_LIB_PATH=%ROOT%\TypeScriptCompiler\__build\llvm\msbuild\%ARCH%\%BUILD%\Debug\lib
-set TSC_LIB_PATH=%ROOT%\TypeScriptCompiler\__build\tsc\windows-msbuild-%BUILD%\lib
+set BUILD_PATH=%ROOT%\TypeScriptCompiler\__build
+set _3RD_PATH=%ROOT%\TypeScriptCompiler\3rdParty
+set GC_LIB_PATH=%BUILD_PATH%\gc\msbuild\%ARCH%\%BUILD%\Debug
+set LLVM_LIB_PATH=%BUILD_PATH%\llvm\msbuild\%ARCH%\%BUILD%\Debug\lib
+set TSC_LIB_PATH=%BUILD_PATH%\tsc\windows-msbuild-%BUILD%\lib
+
+mkdir dll
+mkdir lib
 
 rem Build DLL
-%ROOT%\TypeScriptCompiler\__build\tsc\windows-msbuild-%BUILD%\bin\tsc.exe --emit=dll %SRC%\src\lib.ts -o %OUTPUT%\dll\TypeScriptDefaultLib.dll
+%BUILD_PATH%\tsc\windows-msbuild-%BUILD%\bin\tsc.exe --emit=dll %SRC%\src\lib.ts -o %OUTPUT%\dll\TypeScriptDefaultLib.dll
 
 rem Build Lib
-%ROOT%\TypeScriptCompiler\__build\tsc\windows-msbuild-%BUILD%\bin\tsc.exe --emit=obj --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\lib.obj
-%ROOT%\TypeScriptCompiler\3rdParty\llvm\%ARCH%\%LLVM_BUILD%\bin\llvm-lib.exe /out:%OUTPUT%\dll\TypeScriptDefaultLib.lib %OUTPUT%\lib\lib.obj
+%BUILD_PATH%\tsc\windows-msbuild-%BUILD%\bin\tsc.exe --emit=obj --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\lib.obj
+%_3RD_PATH%\llvm\%ARCH%\%LLVM_BUILD%\bin\llvm-lib.exe /out:%OUTPUT%\lib\TypeScriptDefaultLib.lib %OUTPUT%\lib\lib.obj
+del %OUTPUT%\lib\lib.obj

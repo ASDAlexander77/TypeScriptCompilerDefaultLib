@@ -28,3 +28,4 @@ $BIN_PATH/tsc --emit=dll $SRC/src/lib.ts -o $OUTPUT/dll/libTypeScriptDefaultLib.
 $BIN_PATH/tsc --emit=obj --export=none $SRC/src/lib.ts -o $OUTPUT/lib/lib.o
 #ar rcs $OUTPUT/lib/libTypeScriptDefaultLib.a $OUTPUT/lib/lib.o
 llvm-ar rcs $OUTPUT/lib/libTypeScriptDefaultLib.a $OUTPUT/lib/lib.o
+rm $OUTPUT/lib/lib.o
