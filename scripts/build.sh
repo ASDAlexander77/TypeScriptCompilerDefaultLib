@@ -4,7 +4,7 @@
 
 BUILD=debug
 
-if [ -o release ] ; then
+if [ "$1" == "release" ] ; then
 	BUILD=release
 fi
 
