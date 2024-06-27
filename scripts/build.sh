@@ -4,7 +4,7 @@
 
 BUILD=debug
 
-if [ -o release ] ; then
+if [ "$1" == "release" ] ; then
 	BUILD=release
 fi
 
@@ -32,7 +32,7 @@ rm $OUTPUT/lib/lib.o
 
 # Copy
 BUILD_LIB_PATH=./__build/$BUILD/defaultlib
-mkdir $BUILD_LIB_PATH
+mkdir -p $BUILD_LIB_PATH
 cp -r $SRC/dll $BUILD_LIB_PATH/dll/
 cp -r $SRC/lib $BUILD_LIB_PATH/lib/
-cp $SRC/src/* $BUILD_LIB_PATH/
+cp -r $SRC/src/* $BUILD_LIB_PATH/
