@@ -17,9 +17,16 @@ set OUTPUT=.
 set ROOT=..\..
 set BUILD_PATH=%ROOT%\TypeScriptCompiler\__build
 set _3RD_PATH=%ROOT%\TypeScriptCompiler\3rdParty
-set GC_LIB_PATH=%BUILD_PATH%\gc\msbuild\%ARCH%\%BUILD%\Debug
-set LLVM_LIB_PATH=%BUILD_PATH%\llvm\msbuild\%ARCH%\%BUILD%\Debug\lib
-set TSC_LIB_PATH=%BUILD_PATH%\tsc\windows-msbuild-%BUILD%\lib
+
+if not "%GC_LIB_PATH%"=="" (
+	set GC_LIB_PATH=%BUILD_PATH%\gc\msbuild\%ARCH%\%BUILD%\Debug
+)
+if not "%LLVM_LIB_PATH%"=="" (
+	set LLVM_LIB_PATH=%BUILD_PATH%\llvm\msbuild\%ARCH%\%BUILD%\Debug\lib
+)
+if not "%TSC_LIB_PATH%"=="" (
+	set TSC_LIB_PATH=%BUILD_PATH%\tsc\windows-msbuild-%BUILD%\lib
+)
 
 mkdir dll
 mkdir lib
