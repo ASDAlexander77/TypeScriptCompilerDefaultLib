@@ -36,7 +36,8 @@ rem Build DLL
 
 rem Build Lib
 %BUILD_PATH%\tsc\windows-msbuild-%BUILD%\bin\tsc.exe --emit=obj --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\lib.obj
-%_3RD_PATH%\llvm\%ARCH%\%LLVM_BUILD%\bin\llvm-lib.exe /out:%OUTPUT%\lib\TypeScriptDefaultLib.lib %OUTPUT%\lib\lib.obj
+rem %_3RD_PATH%\llvm\%ARCH%\%LLVM_BUILD%\bin\llvm-lib.exe /out:%OUTPUT%\lib\TypeScriptDefaultLib.lib %OUTPUT%\lib\lib.obj
+lib.exe /out:%OUTPUT%\lib\TypeScriptDefaultLib.lib %OUTPUT%\lib\lib.obj
 del %OUTPUT%\lib\lib.obj
 
 set BUILD_LIB_PATH=.\__build\%BUILD%\defaultlib

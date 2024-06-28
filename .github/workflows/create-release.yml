@@ -5,11 +5,12 @@ on:
     # Sequence of patterns matched against refs/tags
     tags:
     - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+  on: workflow_dispatch
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
-  CACHE_VERSION: v7
+  CACHE_VERSION: v1
 
 jobs:
   build_on_windows:
@@ -51,6 +52,10 @@ jobs:
         continue-on-error: false
         run: & build.bat
         shell: pwsh
+	env:
+	  GC_LIB_PATH=compiler\tsc
+	  LLVM_LIB_PATH=compiler\tsc
+	  TSC_LIB_PATH=compiler\tsc
 
       - name: Create Zip of Windows Asset
         working-directory: ${{github.workspace}}/__build
