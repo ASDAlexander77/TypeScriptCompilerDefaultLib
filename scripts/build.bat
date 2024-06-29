@@ -17,9 +17,9 @@ set OUTPUT=.
 if "%TOOL_PATH%"=="" (
 	set BUILD_PATH=..\..\TypeScriptCompiler\__build\tsc\windows-msbuild-%BUILD%\bin
 	rem set _3RD_PATH=..\..\%ROOT%\TypeScriptCompiler\3rdParty\llvm\%ARCH%\%LLVM_BUILD%\bin
-) else {
+) else (
 	set BUILD_PATH=%TOOL_PATH%
-}
+)
 
 if "%GC_LIB_PATH%"=="" (
 	set GC_LIB_PATH=%BUILD_PATH%\gc\msbuild\%ARCH%\%BUILD%\Debug
