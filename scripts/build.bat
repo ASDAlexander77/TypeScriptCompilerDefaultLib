@@ -14,9 +14,12 @@ if not "%1"=="release" (
 set SRC=.
 set OUTPUT=.
 
-set ROOT=..\..
-set BUILD_PATH=%ROOT%\TypeScriptCompiler\__build
-set _3RD_PATH=%ROOT%\TypeScriptCompiler\3rdParty
+if "%TOOL_PATH%"=="" (
+	set BUILD_PATH=..\..\TypeScriptCompiler\__build\tsc\windows-msbuild-%BUILD%\bin
+	rem set _3RD_PATH=..\..\%ROOT%\TypeScriptCompiler\3rdParty\llvm\%ARCH%\%LLVM_BUILD%\bin
+) else {
+	set BUILD_PATH=%TOOL_PATH%
+}
 
 if "%GC_LIB_PATH%"=="" (
 	set GC_LIB_PATH=%BUILD_PATH%\gc\msbuild\%ARCH%\%BUILD%\Debug
@@ -32,11 +35,11 @@ mkdir dll
 mkdir lib
 
 rem Build DLL
-%BUILD_PATH%\tsc\windows-msbuild-%BUILD%\bin\tsc.exe --emit=dll %SRC%\src\lib.ts -o %OUTPUT%\dll\TypeScriptDefaultLib.dll
+%BUILD_PATH%\tsc.exe --emit=dll %SRC%\src\lib.ts -o %OUTPUT%\dll\TypeScriptDefaultLib.dll
 
 rem Build Lib
-%BUILD_PATH%\tsc\windows-msbuild-%BUILD%\bin\tsc.exe --emit=obj --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\lib.obj
-rem %_3RD_PATH%\llvm\%ARCH%\%LLVM_BUILD%\bin\llvm-lib.exe /out:%OUTPUT%\lib\TypeScriptDefaultLib.lib %OUTPUT%\lib\lib.obj
+%BUILD_PATH%\tsc.exe --emit=obj --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\lib.obj
+rem %_3RD_PATH%\llvm-lib.exe /out:%OUTPUT%\lib\TypeScriptDefaultLib.lib %OUTPUT%\lib\lib.obj
 
 for /f "usebackq tokens=*" %%i in (`vswhere -legacy -latest -property installationPath`) do (
   set VSPATH="%%i\Common7\Tools\VsDevCmd.bat"
