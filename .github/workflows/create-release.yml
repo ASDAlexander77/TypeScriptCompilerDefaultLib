@@ -50,12 +50,12 @@ jobs:
 
       - name: Build
         continue-on-error: false
-        run: "&" build.bat
+        run: "& build.bat"
         shell: pwsh
-	env:
-	  GC_LIB_PATH=compiler\tsc
-	  LLVM_LIB_PATH=compiler\tsc
-	  TSC_LIB_PATH=compiler\tsc
+        env:
+          GC_LIB_PATH: compiler\tsc
+          LLVM_LIB_PATH: compiler\tsc
+          TSC_LIB_PATH: compiler\tsc
 
       - name: Create Zip of Windows Asset
         working-directory: ${{github.workspace}}/__build
