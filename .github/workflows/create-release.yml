@@ -58,7 +58,7 @@ jobs:
         run: "& ./build.bat"
         shell: pwsh
         env:
-	  TOOL_PATH: .\compiler\tsc
+          TOOL_PATH: .\compiler\tsc
           GC_LIB_PATH: .\compiler\tsc
           LLVM_LIB_PATH: .\compiler\tsc
           TSC_LIB_PATH: .\compiler\tsc
