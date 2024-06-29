@@ -55,7 +55,7 @@ jobs:
 
       - name: Build
         continue-on-error: false
-        run: "& build.bat"
+        run: "& ./build.bat"
         shell: pwsh
         env:
           GC_LIB_PATH: compiler\tsc
