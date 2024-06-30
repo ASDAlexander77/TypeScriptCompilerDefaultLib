@@ -71,7 +71,7 @@ jobs:
       - name: Archive Zip of Windows Asset
         uses: actions/upload-artifact@v2
         with:
-          name: tsc-defaultlib-asset
+          name: tsc-windows-defaultlib-asset
           path: defaultlib.zip
           retention-days: 1          
 
@@ -101,7 +101,7 @@ jobs:
       - name: Download Release Asset from Store
         uses: actions/download-artifact@v2
         with:
-          name: tsc-windows-asset
+          name: tsc-windows-defaultlib-asset
 
       - name: Upload Release Asset (Windows)
         id: upload-release-asset 
