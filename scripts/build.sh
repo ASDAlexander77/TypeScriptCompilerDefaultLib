@@ -11,12 +11,26 @@ fi
 SRC=.
 OUTPUT=.
 
-ROOT=..
-BUILD_PATH=$ROOT/TypeScriptCompiler/__build
-BIN_PATH=$BUILD_PATH/tsc/linux-ninja-gcc-$BUILD/bin
-export GC_LIB_PATH=$BUILD_PATH/gc/ninja/$BUILD
-export LLVM_LIB_PATH=$BUILD_PATH/llvm/ninja/$BUILD/lib
-export TSC_LIB_PATH=$BUILD_PATH/tsc/linux-ninja-gcc-$BUILD/lib
+if [ -z "${TOOL_PATH}" ]; then
+	ROOT=..
+	BUILD_PATH=$ROOT/TypeScriptCompiler/__build
+	BIN_PATH=$BUILD_PATH/tsc/linux-ninja-gcc-$BUILD/bin
+else
+	BUILD_PATH=$TOOL_PATH
+	BIN_PATH=$TOOL_PATH
+fi
+
+if [ -z "${GC_LIB_PATH}" ]; then
+	export GC_LIB_PATH=$BUILD_PATH/gc/ninja/$BUILD
+fi
+
+if [ -z "${LLVM_LIB_PATH}" ]; then
+	export LLVM_LIB_PATH=$BUILD_PATH/llvm/ninja/$BUILD/lib
+fi
+
+if [ -z "${TSC_LIB_PATH}" ]; then
+	export TSC_LIB_PATH=$BUILD_PATH/tsc/linux-ninja-gcc-$BUILD/lib
+fi
 
 mkdir dll
 mkdir lib
