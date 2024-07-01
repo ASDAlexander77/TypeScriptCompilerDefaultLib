@@ -48,11 +48,6 @@ jobs:
         run: if (Test-Path -Path "tsc.zip") { Expand-Archive -Path "tsc.zip" -DestinationPath "compiler\tsc" -Force }
         shell: pwsh
 
-      - name: Dir
-        continue-on-error: false
-        run: dir
-        shell: pwsh
-
       - name: Build
         continue-on-error: false
         run: "& ./build.bat"
@@ -75,8 +70,120 @@ jobs:
           path: defaultlib.zip
           retention-days: 1          
 
+  build_on_linux:
+    name: Create/Upload Release Asset (Ubuntu 22.04)
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Build project # This would actually build your project, using zip for an example artifact
+        run: echo 'SELECTED_COLOR=green Build project (Windows)' >> "$GITHUB_OUTPUT"
+
+      - name: Retrieve version
+        run: echo "TAG_NAME=$(git describe --abbrev=0 --tags)" >> "$GITHUB_OUTPUT"
+        id: version
+        shell: bash
+
+      - name: Delete __Build TS folders
+        continue-on-error: true
+        run: rm -R ./__build
+        shell: sh
+
+      - name: Create __Build Folders
+        run: mkdir -p ./__build
+        shell: sh
+
+      - name: Download tsc
+        continue-on-error: true
+        shell: sh
+        run: curl --insecure -L https://github.com/ASDAlexander77/TypeScriptCompiler/releases/download/v0.0-pre-alpha45/tsc.tar.gz --output tsc.tar.gz
+
+      - name: UnZip tsc
+        continue-on-error: false
+        shell: sh
+        run: tar -xvzf tsc.tar.gz -C ./compiler/tsc        
+
+      - name: Build
+        continue-on-error: false
+        run: "./build.sh"
+        shell: bash
+        env:
+          TOOL_PATH: ./compiler/tsc
+          GC_LIB_PATH: ./compiler/tsc
+          LLVM_LIB_PATH: ./compiler/tsc
+          TSC_LIB_PATH: ./compiler/tsc
+
+      - name: Create Tar.GZ of Linux Asset
+        working-directory: ${{github.workspace}}/__build
+        shell: sh
+        run: tar -czvhf ../defaultlib.tar.gz ./*
+  
+      - name: Archive Tar.GZ of Linux Asset
+        uses: actions/upload-artifact@v2
+        with:
+          name: tsc-linux-defaultlib-asset
+          path: defaultlib.tar.gz
+          retention-days: 1   
+
+  build_on_linux_ub20:
+    name: Create/Upload Release Asset (Ubuntu 20.04)
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Build project # This would actually build your project, using zip for an example artifact
+        run: echo 'SELECTED_COLOR=green Build project (Windows)' >> "$GITHUB_OUTPUT"
+
+      - name: Retrieve version
+        run: echo "TAG_NAME=$(git describe --abbrev=0 --tags)" >> "$GITHUB_OUTPUT"
+        id: version
+        shell: bash
+
+      - name: Delete __Build TS folders
+        continue-on-error: true
+        run: rm -R ./__build
+        shell: sh
+
+      - name: Create __Build Folders
+        run: mkdir -p ./__build
+        shell: sh
+
+      - name: Download tsc
+        continue-on-error: true
+        shell: sh
+        run: curl --insecure -L https://github.com/ASDAlexander77/TypeScriptCompiler/releases/download/v0.0-pre-alpha45/tsc.tar.gz --output tsc.tar.gz
+
+      - name: UnZip tsc
+        continue-on-error: false
+        shell: sh
+        run: tar -xvzf tsc.tar.gz -C ./compiler/tsc        
+
+      - name: Build
+        continue-on-error: false
+        run: "./build.sh"
+        shell: bash
+        env:
+          TOOL_PATH: ./compiler/tsc
+          GC_LIB_PATH: ./compiler/tsc
+          LLVM_LIB_PATH: ./compiler/tsc
+          TSC_LIB_PATH: ./compiler/tsc
+
+      - name: Create Tar.GZ of Linux Asset
+        working-directory: ${{github.workspace}}/__build
+        shell: sh
+        run: tar -czvhf ../defaultlib-ub20.tar.gz ./*
+  
+      - name: Archive Tar.GZ of Linux Asset
+        uses: actions/upload-artifact@v2
+        with:
+          name: tsc-linux-defaultlib-asset-ub20
+          path: defaultlib-ub20.tar.gz
+          retention-days: 1   
+
   create_release:
-    needs: [build_on_windows]
+    needs: [build_on_windows, build_on_linux, build_on_linux_ub20]
     name: Create Release
     runs-on: ubuntu-latest
     steps:
@@ -113,3 +220,45 @@ jobs:
           asset_path: ./defaultlib.zip
           asset_name: defaultlib.zip
           asset_content_type: application/zip
+
+  deploy_linux_asset:
+    needs: create_release
+    name: Upload Release (Ubuntu 22.04)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Release Asset from Store
+        uses: actions/download-artifact@v2
+        with:
+          name: tsc-linux-defaultlib-asset
+
+      - name: Upload Release Asset (Ubuntu 22.04)
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          asset_path: ./defaultlib.tar.gz
+          asset_name: defaultlib.tar.gz
+          asset_content_type: application/tar+gzip
+
+  deploy_linux_asset_ub20:
+    needs: create_release
+    name: Upload Release (Ubuntu 20.04)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Release Asset from Store
+        uses: actions/download-artifact@v2
+        with:
+          name: tsc-linux-defaultlib-asset-ub20
+
+      - name: Upload Release Asset (Ubuntu 20.04)
+        id: upload-release-asset-ub20 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          asset_path: ./defaultlib-ub20.tar.gz
+          asset_name: defaultlib-ub20.tar.gz
+          asset_content_type: application/tar+gzip          
