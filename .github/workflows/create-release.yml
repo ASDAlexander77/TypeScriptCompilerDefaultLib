@@ -99,6 +99,11 @@ jobs:
         shell: sh
         run: curl --insecure -L https://github.com/ASDAlexander77/TypeScriptCompiler/releases/download/v0.0-pre-alpha45/tsc.tar.gz --output tsc.tar.gz
 
+      - name: Create folder compiler/tsc
+        continue-on-error: false
+        shell: sh
+        run: mkdir -p ./compiler/tsc        
+
       - name: UnZip tsc
         continue-on-error: false
         shell: sh
@@ -154,6 +159,11 @@ jobs:
         continue-on-error: true
         shell: sh
         run: curl --insecure -L https://github.com/ASDAlexander77/TypeScriptCompiler/releases/download/v0.0-pre-alpha45/tsc.tar.gz --output tsc.tar.gz
+
+      - name: Create folder compiler/tsc
+        continue-on-error: false
+        shell: sh
+        run: mkdir -p ./compiler/tsc        
 
       - name: UnZip tsc
         continue-on-error: false
