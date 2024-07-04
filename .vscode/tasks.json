@@ -1,0 +1,43 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build",
+            "type": "shell",
+            "windows": {
+                "command": "./build.bat"
+            },
+            "linux": {
+                "command": "./build.sh"
+            },
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            // Matches the 1st line in the output
+                            "regexp": "^([^\\s].*)$",
+                            "file": 1
+                        },
+                        {
+                            // Matches the 2nd and 3rd line in the output
+                            "regexp": "^\\s+(\\d+):(\\d+)\\s+(error|warning|info)\\s+(.*)\\s\\s+(.*)$",
+                            // File is carried through from above, so we define the rest of the groups
+                            "line": 1,
+                            "column": 2,
+                            "severity": 3,
+                            "message": 4,
+                            "code": 5,
+                            "loop": true
+                        }
+                    ]                
+                }
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}

@@ -1,50 +1,50 @@
 /// <reference path="native/lib.native.d.ts" />
 
-public export static class Number {
+export static class Number {
     /** The largest number that can be represented in JavaScript. Equal to approximately 1.79E+308. */
-    public export static MAX_VALUE = 5e-324;
+    public MAX_VALUE = 5e-324;
 
     /** The closest number to zero that can be represented in JavaScript. Equal to approximately 5.00E-324. */
-    public export static MIN_VALUE = 1.7976931348623157e+308;
+    public MIN_VALUE = 1.7976931348623157e+308;
 
     /**
      * A value that is not a number.
      * In equality comparisons, NaN does not equal any value, including itself. To test whether a value is equivalent to NaN, use the isNaN function.
      */
-    public export static NaN = 0.0/0.0;
+    public NaN = 0.0/0.0;
 
     /**
      * A value that is less than the largest negative number that can be represented in JavaScript.
      * JavaScript displays NEGATIVE_INFINITY values as -infinity.
      */
-    public export static NEGATIVE_INFINITY = -1.0/0.0;
+    public NEGATIVE_INFINITY = -1.0/0.0;
 
     /**
      * A value greater than the largest number that can be represented in JavaScript.
      * JavaScript displays POSITIVE_INFINITY values as infinity.
      */
-    public export static POSITIVE_INFINITY = 1.0/0.0;
+    public POSITIVE_INFINITY = 1.0/0.0;
 }
 
-public export static class Math {
+export static class Math {
     /** The mathematical constant e. This is Euler's number, the base of natural logarithms. */
-    public export static E = 2.718281828459045;
+    public E = 2.718281828459045;
     /** The natural logarithm of 10. */
-    public export static LN10 = 2.302585092994046;
+    public LN10 = 2.302585092994046;
     /** The natural logarithm of 2. */
-    public export static LN2 = 0.6931471805599453;
+    public LN2 = 0.6931471805599453;
     /** The base-2 logarithm of e. */
-    public export static LOG2E = 1.4426950408889634;
+    public LOG2E = 1.4426950408889634;
     /** The base-10 logarithm of e. */
-    public export static LOG10E = 0.4342944819032518;
+    public LOG10E = 0.4342944819032518;
     /** Pi. This is the ratio of the circumference of a circle to its diameter. */
-    public export public static PI = 3.141592653589793;
+    public PI = 3.141592653589793;
     /** The square root of 0.5, or, equivalently, one divided by the square root of 2. */
-    public export static SQRT1_2 = 0.7071067811865476;
+    public SQRT1_2 = 0.7071067811865476;
     /** The square root of 2. */
-    public export static SQRT2 = 1.4142135623730951;
+    public SQRT2 = 1.4142135623730951;
 
-    static constructor() {
+    constructor() {
         let ltime = 0;
         time(ltime);
         srand(ltime);
@@ -55,7 +55,7 @@ public export static class Math {
      * For example, the absolute value of -5 is the same as the absolute value of 5.
      * @param x A numeric expression for which the absolute value is needed.
      */
-    abs(x: number): number {
+    public abs(x: number): number {
         return fabs(x);
     }
 
@@ -63,7 +63,7 @@ public export static class Math {
      * Returns the arc cosine (or inverse cosine) of a number.
      * @param x A numeric expression.
      */
-    acos(x: number): number {
+    public acos(x: number): number {
         return acos(x);
     }
 
@@ -71,7 +71,7 @@ public export static class Math {
      * Returns the arcsine of a number.
      * @param x A numeric expression.
      */
-    asin(x: number): number {
+    public asin(x: number): number {
         return asin(x);
     }
 
@@ -79,7 +79,7 @@ public export static class Math {
      * Returns the arctangent of a number.
      * @param x A numeric expression for which the arctangent is needed.
      */
-    atan(x: number): number {
+    public atan(x: number): number {
         return atan(x);
     }
 
@@ -88,7 +88,7 @@ public export static class Math {
      * @param y A numeric expression representing the cartesian y-coordinate.
      * @param x A numeric expression representing the cartesian x-coordinate.
      */
-    atan2(y: number, x: number): number {
+    public atan2(y: number, x: number): number {
         return atan2(y, x);
     }
 
@@ -96,7 +96,7 @@ public export static class Math {
      * Returns the smallest integer greater than or equal to its numeric argument.
      * @param x A numeric expression.
      */
-    ceil(x: number): number {
+    public ceil(x: number): number {
         return ceil(x);
     }
 
@@ -104,7 +104,7 @@ public export static class Math {
      * Returns the cosine of a number.
      * @param x A numeric expression that contains an angle measured in radians.
      */
-    cos(x: number): number {
+    public cos(x: number): number {
         return cos(x);
     }
 
@@ -112,7 +112,7 @@ public export static class Math {
      * Returns e (the base of natural logarithms) raised to a power.
      * @param x A numeric expression representing the power of e.
      */
-    exp(x: number): number {
+    public exp(x: number): number {
         return exp(x);
     }
 
@@ -120,7 +120,7 @@ public export static class Math {
      * Returns the greatest integer less than or equal to its numeric argument.
      * @param x A numeric expression.
      */
-    floor(x: number): number {
+    public floor(x: number): number {
         return floor(x);
     }
 
@@ -128,7 +128,7 @@ public export static class Math {
      * Returns the natural logarithm (base e) of a number.
      * @param x A numeric expression.
      */
-    log(x: number): number {
+    public log(x: number): number {
         return log(x);
     }
 
@@ -136,7 +136,7 @@ public export static class Math {
      * Returns the larger of a set of supplied numeric expressions.
      * @param values Numeric expressions to be evaluated.
      */
-    max(...values: number[]): number {
+    public max(...values: number[]): number {
         let m = Number.MIN_VALUE;
         for (const v of values) if (v > m) m = v;
         return m;
@@ -146,7 +146,7 @@ public export static class Math {
      * Returns the smaller of a set of supplied numeric expressions.
      * @param values Numeric expressions to be evaluated.
      */
-    min(...values: number[]): number {
+    public min(...values: number[]): number {
         let m = Number.MAX_VALUE;
         for (const v of values) if (v < m) m = v;
         return m;
@@ -157,12 +157,12 @@ public export static class Math {
      * @param x The base value of the expression.
      * @param y The exponent value of the expression.
      */
-    pow(x: number, y: number): number {
+    public pow(x: number, y: number): number {
         return pow(x, y);
     }
 
     /** Returns a pseudorandom number between 0 and 1. */
-    random(): number {
+    public random(): number {
         return rand() / <number>2147483647;
     }
 
@@ -170,7 +170,7 @@ public export static class Math {
      * Returns a supplied numeric expression rounded to the nearest integer.
      * @param x The value to be rounded to the nearest integer.
      */
-    round(x: number): number {
+    public round(x: number): number {
         return round(x);
     }
 
@@ -178,7 +178,7 @@ public export static class Math {
      * Returns the sine of a number.
      * @param x A numeric expression that contains an angle measured in radians.
      */
-    sin(x: number): number {
+    public sin(x: number): number {
         return sin(x);
     }
 
@@ -186,7 +186,7 @@ public export static class Math {
      * Returns the square root of a number.
      * @param x A numeric expression.
      */
-    sqrt(x: number): number {
+    public sqrt(x: number): number {
         return sqrt(x);
     }
 
@@ -194,7 +194,7 @@ public export static class Math {
      * Returns the tangent of a number.
      * @param x A numeric expression that contains an angle measured in radians.
      */
-    tan(x: number): number {
+    public tan(x: number): number {
         return tan(x);
     }
 }
