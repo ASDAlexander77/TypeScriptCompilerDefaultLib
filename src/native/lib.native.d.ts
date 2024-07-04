@@ -1,1 +1,44 @@
-declare function fabs(n: number): number;
+type int = TypeOf<1>;
+
+// Time
+declare function time(destTime: Opaque);
+
+// Random
+declare function srand(seed: int);
+
+declare function rand(): int;
+
+// Math
+declare function fabs(x: number): number;
+
+declare function acos(x: number): number;
+
+declare function asin(x: number): number;
+
+declare function atan(x: number): number;
+
+declare function atan2(y: number, x: number): number;
+
+declare function ceil(x: number): number;
+
+declare function cos(x: number): number;
+
+declare function exp(x: number): number;
+
+declare function floor(x: number): number;
+
+declare function log(x: number): number;
+
+declare function min(x: number, y: number): number;
+
+declare function max(x: number, y: number): number;
+
+declare function pow(x: number, y: number): number;
+
+declare function round(x: number): number;
+
+declare function sin(x: number): number;
+
+declare function sqrt(x: number): number;
+
+declare function tan(x: number): number;
