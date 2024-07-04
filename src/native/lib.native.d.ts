@@ -1,7 +1,7 @@
 type int = TypeOf<1>;
 
 // Time
-declare function time(destTime: Opaque);
+declare function time(destTime: Reference<int>);
 
 // Random
 declare function srand(seed: int);
