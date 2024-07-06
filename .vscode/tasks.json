@@ -4,13 +4,15 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build",
+            "label": "Build Debug",
             "type": "shell",
             "windows": {
-                "command": "./build.bat"
+                "command": "./build.bat",
+                "args": ["debug"]
             },
             "linux": {
-                "command": "./build.sh"
+                "command": "./build.sh",
+                "args": ["debug"]
             },
             "problemMatcher":
             {
@@ -33,7 +35,46 @@
                         "loop": true
                     }
                 ]
+            }
+        },
+        {
+            "label": "Build Release",
+            "type": "shell",
+            "windows": {
+                "command": "./build.bat",
+                "args": ["release"]
             },
+            "linux": {
+                "command": "./build.sh",
+                "args": ["release"]
+            },
+            "problemMatcher":
+            {
+                "fileLocation": ["relative", "${workspaceFolder}"],                
+                "pattern": [
+                    {
+                        "regexp": "^([^\\s].*)\\s+:\\s+(error|warning|info)\\s+([^\\s].*):\\s+(.*)$",
+                        "file": 1,
+                        "severity": 2,
+                        "code": 3,
+                        "message": 4
+                    },
+                    {
+                        "regexp": "^\\s+(\\d+):(\\d+)\\s+(error|warning|info)\\s+(.*)\\s\\s+(.*)$",
+                        "line": 1,
+                        "column": 2,
+                        "severity": 3,
+                        "message": 4,
+                        "code": 5,
+                        "loop": true
+                    }
+                ]
+            }
+        },
+        {
+            "label": "Build",
+            "type": "shell",
+            "dependsOn": ["Build Release", "Build Debug"],
             "group": {
                 "kind": "build",
                 "isDefault": true
