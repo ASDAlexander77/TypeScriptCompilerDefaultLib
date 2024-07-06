@@ -1,5 +1,8 @@
 type int = TypeOf<1>;
 
+// IO
+declare function puts(s: string);
+
 // Time
 declare function time(destTime: Reference<int>);
 

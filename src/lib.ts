@@ -198,3 +198,27 @@ export static class Math {
         return tan(x);
     }
 }
+
+export static class console {
+    public assert(condition?: boolean, ...data: string[]): void
+    {
+        assert(condition || false, data.length > 0 ? data[0] : "");
+    }
+
+    public log(...data: string[]): void
+    {
+        if (data.length > 0)
+        {
+            if (data.length == 1)
+                puts(data[0]);
+            else
+            {
+                let s = data[0];
+                for (const d of data) s += d;
+                puts(s);
+            }
+        }
+        else
+            puts("");
+    }
+}

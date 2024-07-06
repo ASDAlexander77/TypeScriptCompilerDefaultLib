@@ -107,3 +107,9 @@ declare static class Math {
      */
     tan(x: number): number;    
 }
+
+declare static class console {
+    assert(condition?: boolean, ...data: string[]): void;
+
+    log(...data: string[]): void;
+}
