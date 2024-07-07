@@ -8,6 +8,10 @@ declare function write(fileNo: int, s: string, count: int);
 // Time
 declare function time(destTime: Reference<int>);
 
+// String
+declare function toupper(c: int): int;
+declare function tolower(c: int): int;
+
 // Random
 declare function srand(seed: int);
 

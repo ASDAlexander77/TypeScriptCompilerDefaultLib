@@ -202,9 +202,16 @@ export static class Math {
 export static class String {
     public toLowercase(this: string) {
         const lower = new Array<char>(this.length);
-        for (let i = 0; i < this.length; i++) lower[i] = this[i] | 0x60;
+        for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);
         return lower;
     }
+
+    public toUppercase(this: string) {
+        const lower = new Array<char>(this.length);
+        for (let i = 0; i < this.length; i++) lower[i] = toupper(this[i]);
+        return lower;
+    }
+
 }
 
 export static class console {

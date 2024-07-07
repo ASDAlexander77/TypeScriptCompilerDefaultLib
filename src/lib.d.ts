@@ -109,6 +109,8 @@ declare static class Math {
 }
 
 declare static class String {
+    toUppercase(this: string): string;
+
     toLowercase(this: string): string;
 }
 
