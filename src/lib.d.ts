@@ -117,5 +117,7 @@ declare static class console {
 
     log(...data: string[]): void;
 
+    warn(...data: string[]): void;
+
     error(...data: string[]): void;
 }
