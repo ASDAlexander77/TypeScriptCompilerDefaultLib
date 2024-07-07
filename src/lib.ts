@@ -215,18 +215,19 @@ export static class console {
 
     public log(...data: string[]): void
     {
-        if (data.length > 0)
+        switch (data.length)
         {
-            if (data.length == 1)
+            case 0:
+                puts("");
+                break;
+            case 1:
                 puts(data[0]);
-            else
-            {
+                break;
+            default:
                 let s = data[0];
-                for (const d of data) s += d;
+                for (let i = 1; i < data.length; i++) s += " " + data[i];
                 puts(s);
-            }
+                break;
         }
-        else
-            puts("");
     }
 }
