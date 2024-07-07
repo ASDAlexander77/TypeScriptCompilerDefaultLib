@@ -11,19 +11,19 @@ export static class Number {
      * A value that is not a number.
      * In equality comparisons, NaN does not equal any value, including itself. To test whether a value is equivalent to NaN, use the isNaN function.
      */
-    public NaN = 0.0/0.0;
+    public NaN = 0.0 / 0.0;
 
     /**
      * A value that is less than the largest negative number that can be represented in JavaScript.
      * JavaScript displays NEGATIVE_INFINITY values as -infinity.
      */
-    public NEGATIVE_INFINITY = -1.0/0.0;
+    public NEGATIVE_INFINITY = -1.0 / 0.0;
 
     /**
      * A value greater than the largest number that can be represented in JavaScript.
      * JavaScript displays POSITIVE_INFINITY values as infinity.
      */
-    public POSITIVE_INFINITY = 1.0/0.0;
+    public POSITIVE_INFINITY = 1.0 / 0.0;
 }
 
 export static class Math {
@@ -208,14 +208,12 @@ export static class String {
 }
 
 export static class console {
-    public assert(condition?: boolean, ...data: string[]): void
-    {
+    public assert(condition?: boolean, ...data: string[]): void {
         assert(condition || false, data.length > 0 ? data[0] : "");
     }
 
     private output(data: string[]): string {
-        switch (data.length)
-        {
+        switch (data.length) {
             case 0:
                 return "";
             case 1:
@@ -227,14 +225,34 @@ export static class console {
         }
     }
 
-    public log(...data: string[]): void
-    {
-        puts(this.output(data));
+    public log(...data: string[]): void {
+        this.printData(1, data);
     }
 
-    public error(...data: string[]): void
-    {
-        // TODO: find nice way to use fputs with stderr
-        puts(this.output(data));
+    public warn(...data: string[]): void {
+        this.printData(2, data);
     }    
+
+    public error(...data: string[]): void {
+        this.printData(2, data);
+    }
+
+    private printData(fileNo: int, data: string[]): void {
+        switch (data.length) {
+            case 0:
+                break;
+            default:
+                this.print(fileNo, data[0]);
+                for (let i = 1; i < data.length; i++) {
+                    this.print(fileNo, " ");
+                    this.print(fileNo, data[i]);
+                }
+        }
+
+        this.print(fileNo, "\n");
+    }
+
+    private print(fileNo: int, data: string): void {
+        write(fileNo, data, data.length);
+    }
 }

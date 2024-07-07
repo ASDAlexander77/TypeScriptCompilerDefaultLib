@@ -3,6 +3,7 @@ type char = TypeOf<""[0]>;
 
 // IO
 declare function puts(s: string);
+declare function write(fileNo: int, s: string, count: int);
 
 // Time
 declare function time(destTime: Reference<int>);
