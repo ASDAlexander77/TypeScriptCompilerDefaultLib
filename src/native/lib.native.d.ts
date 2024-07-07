@@ -1,4 +1,5 @@
 type int = TypeOf<1>;
+type char = TypeOf<""[0]>;
 
 // IO
 declare function puts(s: string);

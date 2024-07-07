@@ -199,6 +199,14 @@ export static class Math {
     }
 }
 
+export static class String {
+    public toLowercase(this: string) {
+        const lower = new Array<char>(this.length);
+        for (let i = 0; i < this.length; i++) lower[i] = this[i] | 0x60;
+        return lower;
+    }
+}
+
 export static class console {
     public assert(condition?: boolean, ...data: string[]): void
     {

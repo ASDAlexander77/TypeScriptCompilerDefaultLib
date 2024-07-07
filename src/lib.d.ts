@@ -108,6 +108,10 @@ declare static class Math {
     tan(x: number): number;    
 }
 
+declare static class String {
+    toLowercase(this: string): string;
+}
+
 declare static class console {
     assert(condition?: boolean, ...data: string[]): void;
 
