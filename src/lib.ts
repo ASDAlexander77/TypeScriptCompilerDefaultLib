@@ -212,19 +212,6 @@ export static class console {
         assert(condition || false, data.length > 0 ? data[0] : "");
     }
 
-    private output(data: string[]): string {
-        switch (data.length) {
-            case 0:
-                return "";
-            case 1:
-                return data[0];
-            default:
-                let s = data[0];
-                for (let i = 1; i < data.length; i++) s += " " + data[i];
-                return s;
-        }
-    }
-
     public log(...data: string[]): void {
         this.printData(1, data);
     }
