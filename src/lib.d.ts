@@ -116,4 +116,6 @@ declare static class console {
     assert(condition?: boolean, ...data: string[]): void;
 
     log(...data: string[]): void;
+
+    error(...data: string[]): void;
 }

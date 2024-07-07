@@ -213,21 +213,28 @@ export static class console {
         assert(condition || false, data.length > 0 ? data[0] : "");
     }
 
-    public log(...data: string[]): void
-    {
+    private output(data: string[]): string {
         switch (data.length)
         {
             case 0:
-                puts("");
-                break;
+                return "";
             case 1:
-                puts(data[0]);
-                break;
+                return data[0];
             default:
                 let s = data[0];
                 for (let i = 1; i < data.length; i++) s += " " + data[i];
-                puts(s);
-                break;
+                return s;
         }
     }
+
+    public log(...data: string[]): void
+    {
+        puts(this.output(data));
+    }
+
+    public error(...data: string[]): void
+    {
+        // TODO: find nice way to use fputs with stderr
+        puts(this.output(data));
+    }    
 }
