@@ -1,4 +1,5 @@
-/// <reference path="native/lib.native.d.ts" />
+/// <reference path="types/lib.types.d.ts" />
+/// <reference path="generics/lib.generics.ts" />
 
 declare static class Math {
     readonly E: number;
@@ -114,13 +115,6 @@ declare static class String {
     toUppercase(this: string): string;
 
     toLowercase(this: string): string;
-}
-
-// Generics
-namespace Array {
-    function at<T>(this: T[], index: int): T {
-        return this[index];
-    }
 }
 
 declare static class console {

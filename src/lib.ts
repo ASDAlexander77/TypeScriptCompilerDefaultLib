@@ -1,4 +1,6 @@
-/// <reference path="lib.d.ts" />
+/// <reference path="types/lib.types.d.ts" />
+/// <reference path="native/lib.native.d.ts" />
+/// <reference path="generics/lib.generics.ts" />
 
 export static class Number {
     /** The largest number that can be represented in JavaScript. Equal to approximately 1.79E+308. */
