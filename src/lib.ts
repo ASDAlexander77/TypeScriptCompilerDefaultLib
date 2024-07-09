@@ -202,16 +202,18 @@ export static class Math {
 }
 
 export static class String {
-    public toLowercase(this: string) {
-        const lower = new Array<char>(this.length);
+    public toLowercase(this: string): string {
+        const lower = new Array<char>(this.length + 1);
         for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);
-        return lower;
+        const data: Reference<char> = lower;
+        return data;
     }
 
-    public toUppercase(this: string) {
-        const lower = new Array<char>(this.length);
-        for (let i = 0; i < this.length; i++) lower[i] = toupper(this[i]);
-        return lower;
+    public toUppercase(this: string): string {
+        const upper = new Array<char>(this.length + 1);
+        for (let i = 0; i < this.length; i++) upper[i] = toupper(this[i]);
+        const data: Reference<char> = upper;
+        return data;
     }
 
 }

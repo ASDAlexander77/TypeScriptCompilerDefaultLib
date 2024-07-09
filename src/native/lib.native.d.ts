@@ -1,5 +1,4 @@
 // IO
-declare function puts(s: string);
 declare function write(fileNo: int, s: string, count: int);
 
 // Time
