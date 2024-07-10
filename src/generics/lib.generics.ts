@@ -4,7 +4,7 @@ namespace __Array {
     }
 }
 
-export static class Array {
+static class Array {
     public of<T>(...arg: T[]) {
         return arg;
     }
