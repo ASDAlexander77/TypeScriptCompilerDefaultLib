@@ -3,3 +3,9 @@ namespace __Array {
         return this[index];
     }
 }
+
+export static class Array {
+    public of<T>(...arg: T[]) {
+        return arg;
+    }
+}

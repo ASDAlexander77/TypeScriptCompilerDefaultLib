@@ -205,15 +205,13 @@ export static class String {
     public toLowercase(this: string): string {
         const lower = new Array<char>(this.length + 1);
         for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);
-        const data: Reference<char> = lower;
-        return data;
+        return <Reference<char>>lower;
     }
 
     public toUppercase(this: string): string {
         const upper = new Array<char>(this.length + 1);
         for (let i = 0; i < this.length; i++) upper[i] = toupper(this[i]);
-        const data: Reference<char> = upper;
-        return data;
+        return <Reference<char>>upper;
     }
 
 }
