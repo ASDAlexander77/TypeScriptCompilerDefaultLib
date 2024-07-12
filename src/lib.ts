@@ -201,6 +201,69 @@ export static class Math {
     }
 }
 
+enum States {
+    HasMaxByteLength = 1,
+    NonResizable = 2,
+    Detached = 4,
+    View = 8,
+}
+
+export class ArrayBuffer {
+
+    private arrayOfView: char[];
+    private states: States;
+    public maxByteLength: int;
+
+    constructor(length: int, options?: { maxByteLength?: int }) {
+        // TODO:
+        if (options != undefined && options.maxByteLength != undefined) {
+            this.maxByteLength = options.maxByteLength;
+            this.states |= States.HasMaxByteLength;
+        }
+
+        this.arrayOfView = new Array<char>(length);
+    }
+
+    public get resizable() {
+        return (this.states & States.NonResizable) != States.NonResizable;
+    }
+
+    public get detached() {
+        return (this.states & States.Detached) == States.Detached;
+    }
+
+    public static isView(arrayBuffer: this) {
+        return (this.states & States.View) == States.View;
+    }
+
+    public resize(newLength: int) {
+        this.arrayOfView.length = newLength;
+    }
+
+    public slice(start?: int, end?: int): this {
+        // TODO:
+        return this;
+    }
+
+    public transfer(newByteLength?: int): this {
+        // TODO:
+        return this;
+    }
+    
+    public transferToFixedLength(newByteLength?: int): this {
+        // TODO:
+        return this;
+    }
+
+    [Symbol.dispose]() {
+        if (this.arrayOfView)
+        {
+            delete this.arrayOfView;
+            this.arrayOfView = null;
+        }
+    }
+}
+
 export static class String {
     public toLowercase(this: string): string {
         const lower = new Array<char>(this.length + 1);
