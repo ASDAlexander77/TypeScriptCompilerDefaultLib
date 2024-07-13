@@ -254,9 +254,10 @@ export class ArrayBuffer {
         return newArrayBuffer;
     }
     
-    public transferToFixedLength(newByteLength?: int): this {
-        // TODO:
-        return this;
+    public transferToFixedLength(newByteLength?: int) {
+        const newArrayBuffer = this.transfer(newByteLength);
+        newArrayBuffer.states |= States.NonResizable;
+        return newArrayBuffer;
     }
 
     private detach() {
@@ -266,7 +267,7 @@ export class ArrayBuffer {
     }
 
     [Symbol.dispose]() {
-        if (this.arrayOfView && !this.detached)
+        if (this.arrayOfView != null && !this.detached)
         {
             delete this.arrayOfView;
             this.arrayOfView = null;
@@ -278,13 +279,13 @@ export static class String {
     public toLowercase(this: string): string {
         const lower = new Array<char>(this.length + 1);
         for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);
-        return <Reference<char>>lower;
+        return ReferenceOf(lower[0]);
     }
 
     public toUppercase(this: string): string {
         const upper = new Array<char>(this.length + 1);
         for (let i = 0; i < this.length; i++) upper[i] = toupper(this[i]);
-        return <Reference<char>>upper;
+        return ReferenceOf(upper[0]);
     }
 
 }
