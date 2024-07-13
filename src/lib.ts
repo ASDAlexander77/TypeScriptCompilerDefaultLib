@@ -215,13 +215,14 @@ export class ArrayBuffer {
     public maxByteLength: int;
 
     constructor(length: int, options?: { maxByteLength?: int }) {
-        // TODO:
         if (options != undefined && options.maxByteLength != undefined) {
             this.maxByteLength = options.maxByteLength;
             this.states |= States.HasMaxByteLength;
         }
 
-        this.arrayOfView = new Array<char>(length);
+        if (length > 0) {
+            this.arrayOfView = new Array<char>(length);
+        }
     }
 
     public get resizable() {
@@ -232,8 +233,8 @@ export class ArrayBuffer {
         return (this.states & States.Detached) == States.Detached;
     }
 
-    public static isView(arrayBuffer: this) {
-        return (this.states & States.View) == States.View;
+    public static isView(arrayBuffer: ArrayBuffer) {
+        return (arrayBuffer.states & States.View) == States.View;
     }
 
     public resize(newLength: int) {
@@ -245,9 +246,12 @@ export class ArrayBuffer {
         return this;
     }
 
-    public transfer(newByteLength?: int): this {
-        // TODO:
-        return this;
+    public transfer(newByteLength?: int) {
+        const newArrayBuffer = new ArrayBuffer(0);
+        newArrayBuffer.states = this.states;
+        newArrayBuffer.maxByteLength = this.maxByteLength;
+        newArrayBuffer.arrayOfView = this.detach();
+        return newArrayBuffer;
     }
     
     public transferToFixedLength(newByteLength?: int): this {
@@ -255,8 +259,14 @@ export class ArrayBuffer {
         return this;
     }
 
+    private detach() {
+        const inst = this.arrayOfView;
+        this.arrayOfView = null;
+        return inst;
+    }
+
     [Symbol.dispose]() {
-        if (this.arrayOfView)
+        if (this.arrayOfView && !this.detached)
         {
             delete this.arrayOfView;
             this.arrayOfView = null;
