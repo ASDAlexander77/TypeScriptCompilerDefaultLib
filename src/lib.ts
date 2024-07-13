@@ -277,15 +277,15 @@ export class ArrayBuffer {
 
 export static class String {
     public toLowercase(this: string): string {
-        const lower = new Array<char>(this.length + 1);
+        const lower = this + ""; // to clone string
         for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);
-        return ReferenceOf(lower[0]);
+        return lower;
     }
 
     public toUppercase(this: string): string {
-        const upper = new Array<char>(this.length + 1);
+        const upper = this + ""; // to clone string
         for (let i = 0; i < this.length; i++) upper[i] = toupper(this[i]);
-        return ReferenceOf(upper[0]);
+        return upper;
     }
 
 }
