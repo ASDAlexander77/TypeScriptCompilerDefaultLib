@@ -241,9 +241,12 @@ export class ArrayBuffer {
         this.arrayOfView.length = newLength;
     }
 
-    public slice(start?: int, end?: int): this {
-        // TODO:
-        return this;
+    public slice(start?: int, end?: int) {
+        const newArrayBuffer = new ArrayBuffer(0);
+        newArrayBuffer.states = this.states | States.NonResizable;
+        newArrayBuffer.maxByteLength = this.maxByteLength;
+        newArrayBuffer.arrayOfView = this.arrayOfView.view(start || 0, end || this.arrayOfView.length);
+        return newArrayBuffer;
     }
 
     public transfer(newByteLength?: int) {
@@ -261,6 +264,7 @@ export class ArrayBuffer {
     }
 
     private detach() {
+        this.states |= States.Detached;
         const inst = this.arrayOfView;
         this.arrayOfView = null;
         return inst;
