@@ -1,5 +1,10 @@
 type byte = TypeOf<Int8Array[0]>;
+type short = TypeOf<Int16Array[0]>;
+type ushort = TypeOf<Uint16Array[0]>;
 type int = TypeOf<Int32Array[0]>;
+type uint = TypeOf<Uint32Array[0]>;
+type long = TypeOf<BigInt64Array[0]>;
+type ulong = TypeOf<BigUint64Array[0]>;
 // bigint is used as keyword
 type char = TypeOf<""[0]>;
 type i16 = TypeOf<Int16Array[0]>;
@@ -11,6 +16,7 @@ type u64 = TypeOf<BigUint64Array[0]>;
 type f16 = TypeOf<Float16Array[0]>;
 type f32 = TypeOf<Float32Array[0]>;
 type f64 = TypeOf<Float64Array[0]>;
+type f128 = TypeOf<Float128Array[0]>;
 type half = TypeOf<Float16Array[0]>;
 type float = TypeOf<Float32Array[0]>;
 type double = TypeOf<Float64Array[0]>;
