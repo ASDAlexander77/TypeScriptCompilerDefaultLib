@@ -7,7 +7,7 @@ export static class Number {
     public MAX_VALUE = 1.7976931348623157e+308;
 
     /** The closest number to zero that can be represented in JavaScript. Equal to approximately 5.00E-324. */
-    public MIN_VALUE = 2.22507e-308; //5e-324;
+    public MIN_VALUE = 4.94066e-324; //5e-324;
 
     /**
      * A value that is not a number.
