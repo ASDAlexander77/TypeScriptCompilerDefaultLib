@@ -47,3 +47,6 @@ declare function sin(x: number): number;
 declare function sqrt(x: number): number;
 
 declare function tan(x: number): number;
+
+// memory
+declare function memcpy(dest: Opaque, src: Opaque, bytes: int): Opaque;

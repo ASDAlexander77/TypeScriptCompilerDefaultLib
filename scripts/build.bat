@@ -4,11 +4,13 @@ set BUILD=debug
 set BUILD1=Debug
 set LLVM_BUILD=Debug
 set ARCH=x64
+set DBG=--di
 
 if "%1"=="release" (
 	set BUILD=release
 	set BUILD1=release
 	set LLVM_BUILD=Release
+	set DBG=
 )
 
 set SRC=.
@@ -38,10 +40,10 @@ mkdir dll\%BUILD%
 mkdir lib\%BUILD%
 
 rem Build DLL
-%TOOL_PATH%\tsc.exe --emit=dll %SRC%\src\lib.ts -o %OUTPUT%\dll\%BUILD%\TypeScriptDefaultLib.dll
+%TOOL_PATH%\tsc.exe %DBG% --emit=dll %SRC%\src\lib.ts -o %OUTPUT%\dll\%BUILD%\TypeScriptDefaultLib.dll
 
 rem Build Lib
-%TOOL_PATH%\tsc.exe --emit=obj --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.obj
+%TOOL_PATH%\tsc.exe %DBG% --emit=obj --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.obj
 rem %_3RD_PATH%\llvm-lib.exe /out:%OUTPUT%\lib\TypeScriptDefaultLib.lib %OUTPUT%\lib\lib.obj
 
 for /f "usebackq tokens=*" %%i in (`vswhere -legacy -latest -property installationPath`) do (
