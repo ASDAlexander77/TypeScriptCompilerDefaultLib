@@ -53,7 +53,7 @@ namespace __Array {
             return this;
         }    
 
-        memmove(<Opaque>ReferenceOf(this[target]), <Opaque>ReferenceOf(this[start]), sizeof(T) * (end - start));
+        memmove(<Opaque>ReferenceOf(this[target]), <Opaque>ReferenceOf(this[start]), sizeof(T) * (end - start + 1));
         return this;
     }     
 
