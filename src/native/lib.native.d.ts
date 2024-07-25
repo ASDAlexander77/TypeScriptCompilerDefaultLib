@@ -50,3 +50,4 @@ declare function tan(x: number): number;
 
 // memory
 declare function memcpy(dest: Opaque, src: Opaque, bytes: int): Opaque;
+declare function memmove(dest: Opaque, src: Opaque, bytes: int): Opaque;

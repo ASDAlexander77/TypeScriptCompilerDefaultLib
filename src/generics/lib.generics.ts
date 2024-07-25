@@ -20,6 +20,53 @@ namespace __Array {
 
         return newArray;
     }    
+
+    function copyWithin<T>(this: T[], target: int, start: int, end?: int = this.length - 1 ): T[] {
+
+        if (target < 0) {
+            if (-this.length <= target) {
+                target = target + this.length;
+            } else if (target < -this.length) {
+                target = 0;
+            }
+        } else if (target >= this.length) {
+            return this;
+        }        
+
+        if (start < 0) {
+            if (-this.length <= start) {
+                start = start + this.length;
+            } else if (start < -this.length) {
+                start = 0;
+            }
+        } else if (start >= this.length) {
+            return this;
+        }    
+
+        if (end < 0) {
+            if (-this.length <= end) {
+                end = end + this.length;
+            } else if (end < -this.length) {
+                end = 0;
+            }
+        } else if (end >= this.length) {
+            return this;
+        }    
+
+        memmove(<Opaque>ReferenceOf(this[target]), <Opaque>ReferenceOf(this[start]), sizeof(T) * (end - start));
+        return this;
+    }     
+
+    function toString<T>(this: T[]): string {
+        let str = "";
+        for (const item of this) {
+            if (str.length > 0)
+                str += ",";
+            str += item;        
+        }
+
+        return str;
+    }    
 }
 
 static class Array {
