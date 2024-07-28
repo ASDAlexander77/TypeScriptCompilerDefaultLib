@@ -94,7 +94,7 @@ static class Array<T> {
     }
 
     private clone(this: T[]) {
-        var newArray = new Array<T>(this.length);
+        let newArray = new Array<T>(this.length);
         memcpy(<Opaque>ReferenceOf(newArray[0]), <Opaque>ReferenceOf(this[0]), sizeof(T) * this.length);
         return newArray;
     }
