@@ -65,7 +65,7 @@ static class Array<T> {
     } 
 
     public fill(this: T[], value: T, start?: int = 0, end?: int = this.length) {
-        const newArray = this.clone();
+        let newArray = this.clone();
 
         if (start < 0) {
             if (-this.length <= start) {
