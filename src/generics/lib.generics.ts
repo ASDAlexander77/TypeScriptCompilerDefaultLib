@@ -63,6 +63,41 @@ static class Array<T> {
         for (const v of this) if (!(result &&= func(v))) break;
         return result;
     } 
+
+    public fill(this: T[], value: T, start?: int = 0, end?: int = this.length) {
+        const newArray = this.clone();
+
+        if (start < 0) {
+            if (-this.length <= start) {
+                start = start + this.length;
+            } else if (start < -this.length) {
+                start = 0;
+            }
+        } else if (start >= this.length) {
+            return newArray;
+        }
+
+        if (end < 0) {       
+            if (-this.length <= end) {
+                end = end + this.length;
+            } else if (end < -this.length) {
+                end = 0;
+            }
+        } else if (end >= this.length) {
+            end = this.length;
+        }        
+
+        for (let i = start; i <= end; i++)
+            newArray[i] = value;
+
+        return newArray;
+    }
+
+    private clone(this: T[]) {
+        var newArray = new Array<T>(this.length);
+        memcopy(<Opaque>ReferenceOf(newArray[0]), <Opaque>ReferenceOf(this[0]), sizeof(T) * this.length);
+        return newArray;
+    }
 }
 
 namespace __Array {
