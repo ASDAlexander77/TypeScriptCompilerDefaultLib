@@ -62,7 +62,7 @@ static class Array<T> {
         let result = true;
         for (const v of this) if (!(result &&= func(v))) break;
         return result;
-    }
+    } 
 }
 
 namespace __Array {
