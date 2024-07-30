@@ -93,6 +93,23 @@ static class Array<T> {
         return newArray;
     }
 
+    /*
+    public *filter(this: T[], func: (v: T) => boolean) {
+        for (const v of this) if (func(v)) yield v;
+    }
+    */     
+
+    public filter(this: T[], func: (v: T) => boolean) {
+        let result = new Array<T>();
+        for (const v of this) if (func(v)) result.push(v);
+        return result;
+    }
+
+    public find(this: T[], func: (v: T) => boolean) {
+        for (const v of this) if (func(v)) return v;
+        return undefined;
+    }
+
     private clone(this: T[]) {
         let newArray = new Array<T>(this.length);
         memcpy(<Opaque>ReferenceOf(newArray[0]), <Opaque>ReferenceOf(this[0]), sizeof(T) * this.length);
