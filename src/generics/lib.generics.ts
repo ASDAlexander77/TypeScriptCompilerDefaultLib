@@ -5,7 +5,7 @@ static class Array<T> {
         return this[index];
     }
 
-    public copyWithin(this: T[], target: int, start: int, end?: int = this.length) {
+    public copyWithin(this: T[], target: int, start: int, end = this.length) {
 
         if (target < 0) {
             if (-this.length <= target) {
@@ -64,7 +64,7 @@ static class Array<T> {
         return result;
     } 
 
-    public fill(this: T[], value: T, start?: int = 0, end?: int = this.length) {
+    public fill(this: T[], value: T, start = 0, end = this.length) {
         let newArray = this.clone();
 
         if (start < 0) {
@@ -107,7 +107,40 @@ static class Array<T> {
 
     public find(this: T[], func: (v: T) => boolean) {
         for (const v of this) if (func(v)) return v;
-        return undefined;
+    }
+
+    public findIndex(this: T[], func: (v: T) => boolean) {
+        let i = -1;
+        for (const v of this) if (i++, func(v)) return i;
+        return -1;
+    }    
+    
+    public findLast(this: T[], func: (v: T) => boolean) {
+        for (let i = this.length - 1; i >= 0; i--) {
+            const v = this[i];
+            if (func(v)) return v;
+        }
+    }
+
+    public findLastIndex(this: T[], func: (v: T) => boolean) {
+        for (let i = this.length - 1; i >= 0; i--) {
+            const v = this[i];
+            if (func(v)) return i;
+        }
+
+        return -1;
+    }    
+
+    public forEach(this: T[], func: (v: T) => void) {
+        for (const v of this) func(v);
+    }    
+
+    public includes(this: T[], searchElement: T, fromIndex = 0) {
+        for (let i = fromIndex; i <= this.length; i++) {
+            if (searchElement === this[i]) return true;
+        }
+
+        return false;
     }
 
     private clone(this: T[]) {
