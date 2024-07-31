@@ -136,6 +136,19 @@ static class Array<T> {
     }    
 
     public includes(this: T[], searchElement: T, fromIndex = 0) {
+        if (fromIndex < 0) {
+            if (-this.length <= fromIndex) {
+                fromIndex = fromIndex + this.length;
+            } else if (fromIndex < -this.length) {
+                fromIndex = 0;
+            }
+        } else if (fromIndex >= this.length) {
+            return false;
+        }
+
+        if (fromIndex < 0)
+            fromIndex = 0;
+
         for (let i = fromIndex; i <= this.length; i++) {
             if (searchElement === this[i]) return true;
         }
