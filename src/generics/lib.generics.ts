@@ -213,6 +213,44 @@ static class Array<T> {
         for (const v of this) result.push(func(v));
         return result;
     }
+    
+    public reduce<V = T>(this: T[], func: (v: V, t: T) => V, initial?: V) {
+        if (initial == undefined)
+        {
+            if (this.length <= 0) {
+                return undefined;
+            }
+
+            let result = <V>this[0];
+            for (let i = 1; i in this; i++) result = func(result, this[i]);
+            return result;
+        }
+        else 
+        {
+            let result = initial;
+            for (const v of this) result = func(result, v);
+            return result;
+        }
+    }
+
+    public reduceRight<V = T>(this: T[], func: (v: V, t: T) => V, initial?: V) {
+        if (initial == undefined)
+        {
+            if (this.length <= 0) {
+                return undefined;
+            }
+
+            let result = <V>this[this.length - 1];
+            for (let i = this.length - 1; i in this; i--) result = func(result, this[i]);
+            return result;
+        }
+        else
+        {
+            let result = initial;
+            for (let i = this.length - 1; i in this; i--) result = func(result, this[i]);
+            return result;
+        }
+    }    
 
     private clone(this: T[]) {
         let newArray = new Array<T>(this.length);
