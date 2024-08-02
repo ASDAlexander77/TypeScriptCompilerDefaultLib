@@ -241,7 +241,7 @@ static class Array<T> {
             }
 
             let result = <V>this[this.length - 1];
-            for (let i = this.length - 1; i in this; i--) result = func(result, this[i]);
+            for (let i = this.length - 2; i in this; i--) result = func(result, this[i]);
             return result;
         }
         else
