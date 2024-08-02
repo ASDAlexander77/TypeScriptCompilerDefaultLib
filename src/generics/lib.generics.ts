@@ -48,14 +48,7 @@ static class Array<T> {
     }
 
     public toString(this: T[]) {
-        let str = "";
-        for (const item of this) {
-            if (str.length > 0)
-                str += ",";
-            str += item;
-        }
-
-        return str;
+        return this.join();
     }
 
     public every(this: T[], func: (v: T) => boolean) {
@@ -149,11 +142,76 @@ static class Array<T> {
         if (fromIndex < 0)
             fromIndex = 0;
 
-        for (let i = fromIndex; i <= this.length; i++) {
+        for (let i = fromIndex; i in this; i++) {
             if (searchElement === this[i]) return true;
         }
 
         return false;
+    }
+
+    public indexOf(this: T[], searchElement: T, fromIndex = 0) {
+        if (fromIndex < 0) {
+            if (-this.length <= fromIndex) {
+                fromIndex = fromIndex + this.length;
+            } else if (fromIndex < -this.length) {
+                fromIndex = 0;
+            }
+        } else if (fromIndex >= this.length) {
+            return -1;
+        }
+
+        if (fromIndex < 0)
+            fromIndex = 0;
+
+        for (let i = fromIndex; i in this; i++) {
+            if (searchElement === this[i]) return i;
+        }
+
+        return -1;
+    }       
+
+    public join(this: T[], separator = ",") {
+        let result = "";
+        for (const v of this) {
+            if (result.length > 0)
+                result += separator;
+            result += v;
+        }
+
+        return result;
+    } 
+    
+    public *keys(this: T[]) {
+        for (let i = 0; i in this; i++) {
+            yield i;
+        }
+    }
+
+    public lastIndexOf(this: T[], searchElement: T, fromIndex = this.length - 1) {
+        if (fromIndex < 0) {
+            if (-this.length <= fromIndex) {
+                fromIndex = fromIndex + this.length;
+            } else if (fromIndex < -this.length) {
+                fromIndex = 0;
+            }
+        } else if (fromIndex >= this.length) {
+            return -1;
+        }
+
+        if (fromIndex > this.length)
+            fromIndex = this.length - 1;
+ 
+        for (let i = fromIndex; i in this; i--) {
+            if (searchElement === this[i]) return i;
+        }
+
+        return -1;
+    }      
+
+    public map<V>(this: T[], func: (v: T) => V) {
+        let result = new Array<V>();
+        for (const v of this) result.push(func(v));
+        return result;
     }
 
     private clone(this: T[]) {
