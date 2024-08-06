@@ -44,14 +44,9 @@ rem Build DLL
 
 rem Build Lib
 %TOOL_PATH%\tsc.exe %DBG% --emit=obj --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.obj
-rem %_3RD_PATH%\llvm-lib.exe /out:%OUTPUT%\lib\TypeScriptDefaultLib.lib %OUTPUT%\lib\lib.obj
+%TOOL_PATH%\tsc.exe %DBG% --emit=llvm --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.ll
 
-for /f "usebackq tokens=*" %%i in (`vswhere -legacy -latest -property installationPath`) do (
-  set VSPATH="%%i\Common7\Tools\VsDevCmd.bat"
-)
-
-call %VSPATH%
-lib.exe /out:%OUTPUT%\lib\%BUILD%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\lib.obj
+llvm-lib.exe /out:%OUTPUT%\lib\%BUILD%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\lib.obj
 
 del %OUTPUT%\lib\%BUILD%\lib.obj
 

@@ -4,4 +4,4 @@ if "%1" == "" (
 	set BUILD=debug
 )
 
-for /f %%f in ('dir /b .\tests') do call scripts\test.bat %%~nf %BUILD%
+for /f %%f in ('dir /b .\tests\*.ts') do call scripts\test.bat %%~nf %BUILD%

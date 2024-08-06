@@ -1,5 +1,5 @@
 if "%1" == "" (
-	call scripts\build.bat release
+	call scripts\build_vs.bat release
 ) else (
-	call scripts\build.bat %1
+	call scripts\build_vs.bat %1
 )

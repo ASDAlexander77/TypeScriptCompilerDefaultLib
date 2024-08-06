@@ -46,5 +46,9 @@ rem Build DLL
 
 rem Build Lib
 %TOOL_PATH%\tsc.exe %DBG% %OPTIONS% --shared-libs=%TOOL_PATH%\TypeScriptRuntime.dll --emit=exe %SRC%\tests\%test%.ts
-%test%.exe
-del %test%.exe
+%SRC%\tests\%test%.exe
+
+@echo off
+del %SRC%\tests\%test%.exe
+del %SRC%\tests\%test%.pdb
+del %SRC%\tests\%test%.ilk
