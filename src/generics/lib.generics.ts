@@ -295,6 +295,35 @@ static class Array<T> {
         for (const v of this) if (func(v)) return true;
         return false;
     }    
+
+    public sort(this: T[], callbackfn?: (value1: T, value2: T) => int): T[] {
+        if (this.length <= 0) {
+            return this;
+        }
+
+        if (!callbackfn) {
+            callbackfn = (a, b) => { 
+                const sa = <string>a;
+                const sb = <string>b;
+                if (sa == sb) return 0;
+                return sa > sb ? 1 : -1;
+            };
+        }
+
+        const len = this.length;
+        // simple selection sort.
+        for (let i = 0; i < len - 1; ++i) {
+            for (let j = i + 1; j < len; ++j) {
+                if (callbackfn(this[i], this[j]) > 0) {
+                    let temp: T = this[i];
+                    this[i] = this[j];
+                    this[j] = temp;                    
+                }
+            }
+        }
+
+        return this;
+    }    
 }
 
 namespace __Array {
