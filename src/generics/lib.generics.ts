@@ -210,7 +210,8 @@ static class Array<T> {
 
     public map<V>(this: T[], func: (v: T) => V) {
         let result = new Array<V>();
-        for (const v of this) result.push(func(v));
+        result.length = this.length;
+        for (let i = 0; i in this; i++) result[i] = func(this[i]);
         return result;
     }
     
@@ -250,6 +251,18 @@ static class Array<T> {
             for (let i = this.length - 1; i in this; i--) result = func(result, this[i]);
             return result;
         }
+    }    
+
+    public reverse(this: T[]) {
+        const shift = this.length - 1;
+        const size = this.length >> 1;
+        for (let i = 0; i < size; i++) { 
+            const v = this[i];
+            this[i] = this[shift - i]
+            this[shift - i] = v; 
+        }
+        
+        return this;
     }    
 
     private clone(this: T[]) {
