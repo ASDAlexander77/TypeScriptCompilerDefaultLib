@@ -52,13 +52,12 @@ static class Array<T> {
     }
 
     public every(this: T[], func: (v: T) => boolean) {
-        let result = true;
-        for (const v of this) if (!(result &&= func(v))) break;
-        return result;
+        for (const v of this) if (!func(v)) return false;
+        return true;
     } 
 
     public fill(this: T[], value: T, start = 0, end = this.length) {
-        let newArray = this.clone();
+        let newArray = this.slice();
 
         if (start < 0) {
             if (-this.length <= start) {
@@ -265,11 +264,37 @@ static class Array<T> {
         return this;
     }    
 
-    private clone(this: T[]) {
-        let newArray = new Array<T>(this.length);
-        memcpy(<Opaque>ReferenceOf(newArray[0]), <Opaque>ReferenceOf(this[0]), sizeof(T) * this.length);
+    public slice(this: T[], start = 0, end = this.length) {
+
+        if (start < 0) {
+            if (-this.length <= start) {
+                start = start + this.length;
+            } else if (start < -this.length) {
+                start = 0;
+            }
+        } else if (start >= this.length) {
+            return new Array<T>(0);
+        }
+
+        if (end < 0) {
+            if (-this.length <= end) {
+                end = end + this.length;
+            } else if (end < -this.length) {
+                end = 0;
+            }
+        } else if (end >= this.length) {
+            end = this.length;
+        }
+
+        let newArray = new Array<T>(end - start);
+        memcpy(<Opaque>ReferenceOf(newArray[0]), <Opaque>ReferenceOf(this[start]), sizeof(T) * (end - start));
         return newArray;
-    }
+    }    
+
+    public some(this: T[], func: (v: T) => boolean) {
+        for (const v of this) if (func(v)) return true;
+        return false;
+    }    
 }
 
 namespace __Array {
