@@ -1,4 +1,5 @@
 /// <reference path="types/lib.types.d.ts" />
+/// <reference path="core/core.d.ts" />
 /// <reference path="generics/lib.generics.ts" />
 
 declare static class Math {

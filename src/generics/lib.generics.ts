@@ -1,13 +1,5 @@
 /// <reference path="native/lib.native.d.ts" />
 
-declare class Exception {
-    public constructor(message?: string, filename?: string, line?: int);
-}
-
-declare class RangeException extends Exception {
-    public constructor(message?: string, filename?: string, line?: int);
-}
-
 function __as<T>(a: any) : T
 {
     if (typeof a == 'number') return a;
@@ -359,10 +351,10 @@ static class Array<T> {
             } 
         }
 
-        // if (index < 0 || index >= this.length)
-        // {
-        //     throw new RangeError();
-        // }
+        if (index < 0 || index >= this.length)
+        {
+            throw new RangeError();
+        }
 
         let newArray = this.slice();
         newArray[index] = value;
