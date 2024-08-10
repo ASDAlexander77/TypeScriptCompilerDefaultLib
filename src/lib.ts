@@ -1,6 +1,17 @@
 /// <reference path="types/lib.types.d.ts" />
 /// <reference path="generics/lib.generics.ts" />
 
+export class Exception {
+    public constructor(public message?: string, public filename?: string, public line?: int) {
+    }
+}
+
+export class RangeException extends Exception {
+    public constructor(message?: string, filename?: string, line?: int) {
+        super(message, filename, line);
+    }
+}
+
 export static class Number {
     /** The largest number that can be represented in JavaScript. Equal to approximately 1.79E+308. */
     public MAX_VALUE = 1.7976931348623157e+308;

@@ -1,5 +1,13 @@
 /// <reference path="native/lib.native.d.ts" />
 
+declare class Exception {
+    public constructor(message?: string, filename?: string, line?: int);
+}
+
+declare class RangeException extends Exception {
+    public constructor(message?: string, filename?: string, line?: int);
+}
+
 function __as<T>(a: any) : T
 {
     if (typeof a == 'number') return a;
@@ -96,16 +104,14 @@ static class Array<T> {
         return newArray;
     }
 
-    /*
-    public *filter(this: T[], func: (v: T) => boolean) {
-        for (const v of this) if (func(v)) yield v;
-    }
-    */     
-
     public filter(this: T[], func: (v: T) => boolean) {
         let result = new Array<T>();
         for (const v of this) if (func(v)) result.push(v);
         return result;
+    }
+
+    public *filter2(this: T[], func: (v: T) => boolean) {
+        for (const v of this) if (func(v)) yield v;
     }
 
     public find(this: T[], func: (v: T) => boolean) {
@@ -335,6 +341,29 @@ static class Array<T> {
 
         return this;
     }    
+
+    public *values(this: T[]) {
+        for (const v of this) {
+            yield v;
+        }
+    }
+
+    public with(this: T[], index: int, value: T) {
+        if (index < 0) {
+            if (-this.length <= index) {
+                index = index + this.length;
+            } 
+        }
+
+        // if (index < 0 || index >= this.length)
+        // {
+        //     throw new RangeError();
+        // }
+
+        let newArray = this.slice();
+        newArray[index] = value;
+        return newArray;
+    }
 }
 
 namespace __Array {
