@@ -342,6 +342,10 @@ static class Array<T> {
         return this;
     }    
 
+    // public [Symbol.iterator](this: T[]) {
+    //     return this.values();
+    // }
+
     public *values(this: T[]) {
         for (const v of this) {
             yield v;
