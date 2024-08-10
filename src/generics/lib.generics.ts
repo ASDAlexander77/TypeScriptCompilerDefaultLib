@@ -1,5 +1,16 @@
 /// <reference path="native/lib.native.d.ts" />
 
+function __as<T>(a: any) : T
+{
+    if (typeof a == 'number') return a;
+    if (typeof a == 'string') return a;
+    if (typeof a == 'class') if (a instanceof T) return a;
+    if (typeof a == 'boolean') return a;
+    if (typeof a == 'i32') return a;
+    if (typeof a == 'i64') return a;
+    return null;
+}
+
 static class Array<T> {
     public at(this: T[], index: int) {
         return this[index];
