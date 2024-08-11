@@ -334,12 +334,9 @@ static class Array<T> {
         return this;
     }    
 
-    // TODO: do not use for-of here to prevent stackoverflow with iterator
-    // public *[Symbol.iterator](this: T[]) {
-    //     for (let i = 0; i in this; i++) {
-    //         yield this[i];
-    //     }
-    // }
+    public [Symbol.iterator](this: T[]) {
+        return this.values();
+    }
 
     public *values(this: T[]) {
         for (const v of this) {

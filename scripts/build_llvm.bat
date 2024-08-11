@@ -44,7 +44,7 @@ rem Build DLL
 
 rem Build Lib
 %TOOL_PATH%\tsc.exe %DBG% --emit=obj --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.obj
-%TOOL_PATH%\tsc.exe %DBG% --emit=llvm --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.ll
+rem %TOOL_PATH%\tsc.exe %DBG% --emit=llvm --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.ll
 
 llvm-lib.exe /out:%OUTPUT%\lib\%BUILD%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\lib.obj
 
