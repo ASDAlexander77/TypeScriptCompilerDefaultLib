@@ -1,7 +1,7 @@
-declare class Exception {
+declare class Error {
     public constructor(message?: string, filename?: string, line?: int);
 }
 
-declare class RangeException extends Exception {
+declare class RangeError extends Error {
     public constructor(message?: string, filename?: string, line?: int);
 }
