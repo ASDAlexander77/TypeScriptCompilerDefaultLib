@@ -395,4 +395,8 @@ static class Array {
     public of<T>(...arg: T[]) {
         return arg;
     }
+
+    public from(arrayLike) {
+        return [...arrayLike];
+    }    
 }
