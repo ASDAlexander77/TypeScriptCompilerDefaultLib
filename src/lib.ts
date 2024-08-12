@@ -1,4 +1,5 @@
 /// <reference path="types/lib.types.d.ts" />
+/// <reference path="native/lib.native.d.ts" />
 /// <reference path="core/core.ts" />
 /// <reference path="generics/lib.generics.ts" />
 

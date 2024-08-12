@@ -1,5 +1,3 @@
-/// <reference path="native/lib.native.d.ts" />
-
 function __as<T>(a: any) : T
 {
     if (typeof a == 'number') return a;
