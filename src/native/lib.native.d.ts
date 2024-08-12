@@ -5,6 +5,8 @@ declare function write(fileNo: int, s: string, count: int);
 declare function time(destTime: Reference<int>);
 
 // String
+declare function strtol(str: string, end: Reference<string>, base: int): int;
+declare function strtod(str: string, end: Reference<string>): double;
 declare function toupper(c: int): int;
 declare function tolower(c: int): int;
 

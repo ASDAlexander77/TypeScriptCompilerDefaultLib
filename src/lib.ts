@@ -2,6 +2,22 @@
 /// <reference path="core/core.ts" />
 /// <reference path="generics/lib.generics.ts" />
 
+export function parseInt(val: string, radix = 10) {
+    return strtol(val, null, radix);
+}
+
+export function parseFloat(val: string) {
+    return strtod(val, null);
+}
+
+export function isNaN(val: number): boolean {
+    return val != val;
+}
+
+export function isFinite(val: number): boolean {
+    return !isNaN(val) && val != Number.POSITIVE_INFINITY && val != Number.NEGATIVE_INFINITY;
+}
+
 export static class Number {
     /** The largest number that can be represented in JavaScript. Equal to approximately 1.79E+308. */
     public MAX_VALUE = 1.7976931348623157e+308;

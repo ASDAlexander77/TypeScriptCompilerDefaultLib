@@ -2,6 +2,12 @@
 /// <reference path="core/core.d.ts" />
 /// <reference path="generics/lib.generics.ts" />
 
+declare function parseInt(val: string, radix?: int): int;
+
+declare function parseFloat(val: string): number;
+
+declare function isNaN(val: number): boolean;
+
 declare static class Math {
     readonly E: number;
     /** The natural logarithm of 10. */
