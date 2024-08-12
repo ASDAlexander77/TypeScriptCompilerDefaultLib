@@ -338,6 +338,18 @@ static class Array<T> {
         return this.values();
     }
 
+    public toReversed(this: T[]) {
+        let newArray = this.slice();
+        newArray.reverse();
+        return newArray;
+    }        
+
+    public toSorted(this: T[], callbackfn?: (value1: T, value2: T) => int): T[] {
+        let newArray = this.slice();
+        newArray.sort(callbackfn);
+        return newArray;
+    }        
+
     public *values(this: T[]) {
         for (const v of this) {
             yield v;
