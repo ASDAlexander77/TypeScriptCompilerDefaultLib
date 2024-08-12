@@ -8,6 +8,8 @@ declare function parseFloat(val: string): number;
 
 declare function isNaN(val: number): boolean;
 
+declare function isFinite(val: number): boolean;
+
 declare static class Math {
     readonly E: number;
     /** The natural logarithm of 10. */
