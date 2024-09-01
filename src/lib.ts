@@ -1,5 +1,6 @@
 /// <reference path="types/lib.types.d.ts" />
 /// <reference path="native/lib.native.d.ts" />
+/// <reference path="core/core.os.d.ts" />
 /// <reference path="core/core.ts" />
 /// <reference path="generics/lib.generics.ts" />
 
@@ -7,7 +8,7 @@ export function parseInt(val: string, radix = 10) {
     return strtol(val, null, radix);
 }
 
-export function parseFloat(val: string) {
+export function parseFloat(val: string): number {
     return strtod(val, null);
 }
 
@@ -19,30 +20,72 @@ export function isFinite(val: number): boolean {
     return !isNaN(val) && val != Number.POSITIVE_INFINITY && val != Number.NEGATIVE_INFINITY;
 }
 
-export static class Number {
+export class Number {
+    public static EPSILON = 2 ** (-52);
+
+    public static MAX_SAFE_INTEGER = 2 ** 53 - 1;
+
     /** The largest number that can be represented in JavaScript. Equal to approximately 1.79E+308. */
-    public MAX_VALUE = 1.7976931348623157e+308;
+    public static MAX_VALUE = 1.7976931348623157e+308;
+
+    public static MIN_SAFE_INTEGER = -Number.MAX_SAFE_INTEGER;
 
     /** The closest number to zero that can be represented in JavaScript. Equal to approximately 5.00E-324. */
-    public MIN_VALUE = 2.22507385855e-308; //5e-324;
+    public static MIN_VALUE = 2.22507385855e-308; //5e-324;
 
     /**
      * A value that is not a number.
      * In equality comparisons, NaN does not equal any value, including itself. To test whether a value is equivalent to NaN, use the isNaN function.
      */
-    public NaN = 0.0 / 0.0;
+    public static NaN = 0.0 / 0.0;
 
     /**
      * A value that is less than the largest negative number that can be represented in JavaScript.
      * JavaScript displays NEGATIVE_INFINITY values as -infinity.
      */
-    public NEGATIVE_INFINITY = -1.0 / 0.0;
+    public static NEGATIVE_INFINITY = -1.0 / 0.0;
 
     /**
      * A value greater than the largest number that can be represented in JavaScript.
      * JavaScript displays POSITIVE_INFINITY values as infinity.
      */
-    public POSITIVE_INFINITY = 1.0 / 0.0;
+    public static POSITIVE_INFINITY = 1.0 / 0.0;
+
+    constructor(private value: number) {
+    }
+
+    public static isFinite(value: number): boolean {
+        return isFinite(value);
+    }
+
+    public static isInteger(value: number): boolean {
+        return (value - <i64>value) == 0;
+    }
+
+    public static isNaN(value: number): boolean {
+        return isNaN(value);
+    }
+
+    public static parseInt(value: string, radix: number = 10): number {
+        return parseInt(value, radix);
+    }
+
+    public static parseFloat(value: string) {
+        return parseFloat(value);
+    }
+
+    public static isSafeInteger(value: number) {
+        return Number.isInteger(value) && value >= Number.MIN_SAFE_INTEGER && value <= Number.MAX_SAFE_INTEGER;
+    }
+
+    public toString(radix: number = 10) {
+        //return <string>this.value;
+        return convertNum(50, "%d", this.value);
+    }
+
+    public valueOf() {
+        return this.value;
+    }
 }
 
 export static class Math {

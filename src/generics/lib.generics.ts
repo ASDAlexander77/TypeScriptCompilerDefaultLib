@@ -392,11 +392,11 @@ namespace __Array {
 }
 
 static class Array {
-    public of<T>(...arg: T[]) {
+    public of(...arg) {
         return arg;
     }
 
     public from(arrayLike) {
         return [...arrayLike];
-    }    
+    }       
 }

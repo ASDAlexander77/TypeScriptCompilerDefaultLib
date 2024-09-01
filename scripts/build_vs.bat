@@ -39,11 +39,14 @@ rmdir /S /Q lib\%BUILD%
 mkdir dll\%BUILD%
 mkdir lib\%BUILD%
 
+rem Build OS-specific Lib
+%TOOL_PATH%\tsc.exe %DBG% --emit=obj --export=none --no-default-lib %SRC%\src\lib.win32.ts -o %OUTPUT%\lib\%BUILD%\lib.win32.obj
+
 rem Build DLL
-%TOOL_PATH%\tsc.exe %DBG% --emit=dll %SRC%\src\lib.ts -o %OUTPUT%\dll\%BUILD%\TypeScriptDefaultLib.dll
+%TOOL_PATH%\tsc.exe %DBG% --emit=dll %SRC%\src\lib.ts --obj=%OUTPUT%\lib\%BUILD%\lib.win32.obj -o %OUTPUT%\dll\%BUILD%\TypeScriptDefaultLib.dll
 
 rem Build Lib
-%TOOL_PATH%\tsc.exe %DBG% --emit=obj --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.obj
+%TOOL_PATH%\tsc.exe %DBG% --emit=obj --export=none --no-default-lib %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.obj
 rem %TOOL_PATH%\tsc.exe %DBG% --emit=llvm --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.ll
 
 for /f "usebackq tokens=*" %%i in (`vswhere -legacy -latest -property installationPath`) do (
@@ -51,13 +54,15 @@ for /f "usebackq tokens=*" %%i in (`vswhere -legacy -latest -property installati
 )
 
 call %VSPATH%
-lib.exe /out:%OUTPUT%\lib\%BUILD%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\lib.obj
+lib.exe /out:%OUTPUT%\lib\%BUILD%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\lib.obj %OUTPUT%\lib\%BUILD%\lib.win32.obj
 
 del %OUTPUT%\lib\%BUILD%\lib.obj
+del %OUTPUT%\lib\%BUILD%\lib.win32.obj
 
 set BUILD_LIB_PATH=.\__build\%BUILD%\defaultlib
 rmdir /S /Q %BUILD_LIB_PATH%
 mkdir %BUILD_LIB_PATH%
 xcopy %SRC%\dll\%BUILD% %BUILD_LIB_PATH%\dll /h /i /c /k /e /r /y
 xcopy %SRC%\lib\%BUILD% %BUILD_LIB_PATH%\lib /h /i /c /k /e /r /y
-xcopy %SRC%\src\*.* %BUILD_LIB_PATH% /h /c /k /e /r /y
+xcopy %SRC%\src\*.d.ts %BUILD_LIB_PATH% /h /c /k /e /r /y
+xcopy %SRC%\src\generics\*.ts %BUILD_LIB_PATH%\generics /h /c /k /e /r /y

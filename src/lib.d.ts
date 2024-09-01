@@ -121,6 +121,56 @@ declare static class Math {
     tan(x: number): number;    
 }
 
+declare class Number {
+    static EPSILON: number;
+
+    static MAX_SAFE_INTEGER: number;
+
+    /** The largest number that can be represented in JavaScript. Equal to approximately 1.79E+308. */
+    static MAX_VALUE: number;
+
+    static MIN_SAFE_INTEGER: number;
+
+    /** The closest number to zero that can be represented in JavaScript. Equal to approximately 5.00E-324. */
+    static MIN_VALUE: number;
+
+    /**
+     * A value that is not a number.
+     * In equality comparisons, NaN does not equal any value, including itself. To test whether a value is equivalent to NaN, use the isNaN function.
+     */
+    static NaN: number;
+
+    /**
+     * A value that is less than the largest negative number that can be represented in JavaScript.
+     * JavaScript displays NEGATIVE_INFINITY values as -infinity.
+     */
+    static NEGATIVE_INFINITY: number;
+
+    /**
+     * A value greater than the largest number that can be represented in JavaScript.
+     * JavaScript displays POSITIVE_INFINITY values as infinity.
+     */
+    static POSITIVE_INFINITY: number;
+
+    constructor(value: number);
+
+    static isFinite(value: number): boolean;
+
+    static isInteger(value: number): boolean;
+
+    static isNaN(value: number): boolean;
+
+    static parseInt(value: string, radix?: number): number;
+    
+    static parseFloat(value: string): number;
+
+    static isSafeInteger(value: number): boolean;
+
+    toString(radix?: number): string;
+
+    valueOf(): number;
+}
+
 declare static class String {
     toUppercase(this: string): string;
 
