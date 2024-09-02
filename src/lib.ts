@@ -80,7 +80,7 @@ export class Number {
 
     public toString(radix: number = 10) {
         //return <string>this.value;
-        return convertNum(50, "%d", this.value);
+        //return convertNum(50, "%d", this.value);
     }
 
     public valueOf() {
