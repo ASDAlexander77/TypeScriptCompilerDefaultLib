@@ -166,7 +166,13 @@ declare class Number {
 
     static isSafeInteger(value: number): boolean;
 
-    toString(radix?: number): string;
+    toExponential(fractionDigits?: int): string;
+
+    toFixed(digits?: int): string;
+
+    toPrecision(precision?: int): string;
+
+    toString(radix?: int): string;
 
     valueOf(): number;
 }

@@ -78,9 +78,25 @@ export class Number {
         return Number.isInteger(value) && value >= Number.MIN_SAFE_INTEGER && value <= Number.MAX_SAFE_INTEGER;
     }
 
-    public toString(radix: number = 10) {
-        //return <string>this.value;
-        //return convertNum(50, "%d", this.value);
+    public toExponential(fractionDigits = 0) {
+        return convertNum(50, `%.${fractionDigits}e`, this.value);
+    }
+
+    public toFixed(digits = 0) {
+        return convertNum(50, `%.${digits}f`, this.value);
+    }
+
+    public toPrecision(precision = 0) {
+        return convertNum(50, `%.${precision}g`, this.value);
+    }
+
+    public toString(radix = 10) {
+        switch (radix) {
+            case 16:
+                return convertNum(50, "%a", this.value);
+            default:
+                return <string>this.value;
+        }
     }
 
     public valueOf() {

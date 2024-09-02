@@ -5,7 +5,7 @@ declare function sprintf_s(out: string, n: index, format: string);
 
 export function convertNum(bufferSize: int, format: string, value: number): string
 {
-    //return convertf(50, format, value);
+    //return convertf(bufferSize, format, value);
     const buffer = new Array<char>(bufferSize);
     const s = <string> <Opaque> ReferenceOf(buffer[0]);
     sprintf_s(s, bufferSize, format, value);
