@@ -34,13 +34,13 @@ fi
 
 mkdir dll
 mkdir lib
-$BIN_PATH/tsc --emit=obj --export=none --no-default-lib $SRC/src/lib.linux.ts -o $OUTPUT/lib/lib.linux.o
+$BIN_PATH/tsc --emit=obj --export=none --no-default-lib $SRC/src/lib.linux.ts -relocation-model=pic -o $OUTPUT/lib/lib.linux.o
 
 # Build DLL
-$BIN_PATH/tsc --emit=dll $SRC/src/lib.ts --obj=$OUTPUT/lib/lib.linux.o -o $OUTPUT/dll/libTypeScriptDefaultLib.so
+$BIN_PATH/tsc --emit=dll $SRC/src/lib.ts --obj=$OUTPUT/lib/lib.linux.o -relocation-model=pic -o $OUTPUT/dll/libTypeScriptDefaultLib.so
 
 # Build Lib
-$BIN_PATH/tsc --emit=obj --export=none --no-default-lib $SRC/src/lib.ts -o $OUTPUT/lib/lib.o
+$BIN_PATH/tsc --emit=obj --export=none --no-default-lib $SRC/src/lib.ts -relocation-model=pic -o $OUTPUT/lib/lib.o
 #ar rcs $OUTPUT/lib/libTypeScriptDefaultLib.a $OUTPUT/lib/lib.o
 llvm-ar rcs $OUTPUT/lib/libTypeScriptDefaultLib.a $OUTPUT/lib/lib.o $OUTPUT/lib/lib.linux.o
 rm $OUTPUT/lib/lib.o

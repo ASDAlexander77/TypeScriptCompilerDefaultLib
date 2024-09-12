@@ -20,6 +20,19 @@ export function isFinite(val: number): boolean {
     return !isNaN(val) && val != Number.POSITIVE_INFINITY && val != Number.NEGATIVE_INFINITY;
 }
 
+export class Boolean {
+    public constructor(private value: boolean) {
+    }
+
+    public toString() {
+        return <string>this.value;
+    }
+
+    public valueOf() {
+        return this.value;
+    }    
+}
+
 export class Number {
     public static EPSILON = 2 ** (-52);
 
@@ -51,7 +64,7 @@ export class Number {
      */
     public static POSITIVE_INFINITY = 1.0 / 0.0;
 
-    constructor(private value: number) {
+    public constructor(private value: number) {
     }
 
     public static isFinite(value: number): boolean {
@@ -290,7 +303,7 @@ export class ArrayBuffer {
     private states: States;
     public maxByteLength: int;
 
-    constructor(length: int, options?: { maxByteLength?: int }) {
+    public constructor(length: int, options?: { maxByteLength?: int }) {
         if (options != undefined && options.maxByteLength != undefined) {
             this.maxByteLength = options.maxByteLength;
             this.states |= States.HasMaxByteLength;
