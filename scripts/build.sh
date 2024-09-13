@@ -3,6 +3,8 @@
 #clean.sh
 
 BUILD=debug
+#PIC=-relocation-model=pic
+PIC=
 
 if [ "$1" == "release" ] ; then
 	BUILD=release
@@ -34,13 +36,13 @@ fi
 
 mkdir dll
 mkdir lib
-$BIN_PATH/tsc --emit=obj --export=none --no-default-lib $SRC/src/lib.linux.ts -relocation-model=pic -o $OUTPUT/lib/lib.linux.o
+$BIN_PATH/tsc --emit=obj --export=none --no-default-lib $SRC/src/lib.linux.ts $PIC -o $OUTPUT/lib/lib.linux.o
 
 # Build DLL
-$BIN_PATH/tsc --emit=dll $SRC/src/lib.ts --obj=$OUTPUT/lib/lib.linux.o -relocation-model=pic -verbose -o $OUTPUT/dll/libTypeScriptDefaultLib.so
+$BIN_PATH/tsc --emit=dll $SRC/src/lib.ts --obj=$OUTPUT/lib/lib.linux.o $PIC -verbose -o $OUTPUT/dll/libTypeScriptDefaultLib.so
 
 # Build Lib
-$BIN_PATH/tsc --emit=obj --export=none --no-default-lib $SRC/src/lib.ts -relocation-model=pic -o $OUTPUT/lib/lib.o
+$BIN_PATH/tsc --emit=obj --export=none --no-default-lib $SRC/src/lib.ts $PIC -o $OUTPUT/lib/lib.o
 #ar rcs $OUTPUT/lib/libTypeScriptDefaultLib.a $OUTPUT/lib/lib.o
 llvm-ar rcs $OUTPUT/lib/libTypeScriptDefaultLib.a $OUTPUT/lib/lib.o $OUTPUT/lib/lib.linux.o
 rm $OUTPUT/lib/lib.o
