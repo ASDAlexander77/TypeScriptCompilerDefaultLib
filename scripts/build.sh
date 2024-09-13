@@ -60,5 +60,5 @@ cp -r $SRC/lib/$BUILD $BUILD_LIB_PATH/
 cp -r $SRC/src/* $BUILD_LIB_PATH/
 
 #because there 2 compiles at the same time u need to split
-$OUTPUT/$BUILD/lib/lib.o
-$OUTPUT/$BUILD/lib/lib.linux.o
+rm $OUTPUT/$BUILD/lib/lib.o
+rm $OUTPUT/$BUILD/lib/lib.linux.o
