@@ -10,7 +10,7 @@ if "%1"=="release" (
 	set BUILD=release
 	set BUILD1=release
 	set LLVM_BUILD=Release
-	set DBG=
+	set DBG=--opt --opt_level=3
 )
 
 set SRC=.

@@ -3,11 +3,19 @@
 #clean.sh
 
 BUILD=debug
-#PIC=-relocation-model=pic
 PIC=
+TOOL=gcc
 
 if [ "$1" == "release" ] ; then
 	BUILD=release
+fi
+
+if [ "$2" == "clang" ] ; then
+	TOOL=clang
+fi
+
+if [ "$3" == "pic" ] ; then
+	PIC=-relocation-model=pic
 fi
 
 SRC=.
@@ -16,7 +24,7 @@ OUTPUT=.
 if [ -z "${TOOL_PATH}" ]; then
 	ROOT=..
 	BUILD_PATH=$ROOT/TypeScriptCompiler/__build
-	BIN_PATH=$BUILD_PATH/tsc/linux-ninja-gcc-$BUILD/bin
+	BIN_PATH=$BUILD_PATH/tsc/linux-ninja-$TOOL-$BUILD/bin
 else
 	BUILD_PATH=$TOOL_PATH
 	BIN_PATH=$TOOL_PATH
@@ -31,7 +39,7 @@ if [ -z "${LLVM_LIB_PATH}" ]; then
 fi
 
 if [ -z "${TSC_LIB_PATH}" ]; then
-	export TSC_LIB_PATH=$BUILD_PATH/tsc/linux-ninja-gcc-$BUILD/lib
+	export TSC_LIB_PATH=$BUILD_PATH/tsc/linux-ninja-$TOOL-$BUILD/lib
 fi
 
 mkdir dll
