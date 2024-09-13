@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#clean.sh
-
 BUILD=debug
 PIC=
 TOOL=gcc
@@ -42,23 +40,25 @@ if [ -z "${TSC_LIB_PATH}" ]; then
 	export TSC_LIB_PATH=$BUILD_PATH/tsc/linux-ninja-$TOOL-$BUILD/lib
 fi
 
-mkdir dll
-mkdir lib
-$BIN_PATH/tsc --emit=obj --export=none --no-default-lib $SRC/src/lib.linux.ts $PIC -o $OUTPUT/lib/lib.linux.o
+mkdir dll/$BUILD
+mkdir lib/$BUILD
+$BIN_PATH/tsc --emit=obj --export=none --no-default-lib $SRC/src/lib.linux.ts $PIC -o $OUTPUT/lib/$BUILD/lib.linux.o
 
 # Build DLL
-$BIN_PATH/tsc --emit=dll $SRC/src/lib.ts --obj=$OUTPUT/lib/lib.linux.o $PIC -verbose -o $OUTPUT/dll/libTypeScriptDefaultLib.so
+$BIN_PATH/tsc --emit=dll $SRC/src/lib.ts --obj=$OUTPUT/lib/$BUILD/lib.linux.o $PIC -verbose -o $OUTPUT/dll/$BUILD/libTypeScriptDefaultLib.so
 
 # Build Lib
-$BIN_PATH/tsc --emit=obj --export=none --no-default-lib $SRC/src/lib.ts $PIC -o $OUTPUT/lib/lib.o
-#ar rcs $OUTPUT/lib/libTypeScriptDefaultLib.a $OUTPUT/lib/lib.o
-llvm-ar rcs $OUTPUT/lib/libTypeScriptDefaultLib.a $OUTPUT/lib/lib.o $OUTPUT/lib/lib.linux.o
-rm $OUTPUT/lib/lib.o
-rm $OUTPUT/lib/lib.linux.o
+$BIN_PATH/tsc --emit=obj --export=none --no-default-lib $SRC/src/lib.ts $PIC -o $OUTPUT/lib/$BUILD/lib.o
+#ar rcs $OUTPUT/lib/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o
+llvm-ar rcs $OUTPUT/lib/$BUILD/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o
 
 # Copy
 BUILD_LIB_PATH=./__build/$BUILD/defaultlib
 mkdir -p $BUILD_LIB_PATH
-cp -r $SRC/dll $BUILD_LIB_PATH/
-cp -r $SRC/lib $BUILD_LIB_PATH/
+cp -r $SRC/dll/$BUILD $BUILD_LIB_PATH/
+cp -r $SRC/lib/$BUILD $BUILD_LIB_PATH/
 cp -r $SRC/src/* $BUILD_LIB_PATH/
+
+#because there 2 compiles at the same time u need to split
+$OUTPUT/$BUILD/lib/lib.o
+$OUTPUT/$BUILD/lib/lib.linux.o

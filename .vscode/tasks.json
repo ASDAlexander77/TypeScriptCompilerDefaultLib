@@ -6,6 +6,7 @@
         {
             "label": "Build Debug",
             "type": "shell",
+            "options": {"cwd": "${workspaceFolder}"},
             "windows": {
                 "command": "./build.bat",
                 "args": ["debug"]
@@ -40,9 +41,10 @@
         {
             "label": "Build Release",
             "type": "shell",
+            "options": {"cwd": "${workspaceFolder}"},
             "windows": {
                 "command": "./build.bat",
-                "args": ["release"]
+                "args": ["release"],
             },
             "linux": {
                 "command": "./build.sh",

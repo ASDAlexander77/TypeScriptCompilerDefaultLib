@@ -1,3 +1,6 @@
 #!/bin/bash
-./scripts/build.sh release clang
-./scripts/build.sh debug clang
+if [ "$1" == "debug" ] ; then	
+    ./scripts/build.sh debug clang
+else    
+    ./scripts/build.sh release clang
+fi
