@@ -37,7 +37,7 @@ mkdir lib
 $BIN_PATH/tsc --emit=obj --export=none --no-default-lib $SRC/src/lib.linux.ts -relocation-model=pic -o $OUTPUT/lib/lib.linux.o
 
 # Build DLL
-$BIN_PATH/tsc --emit=dll $SRC/src/lib.ts --obj=$OUTPUT/lib/lib.linux.o -relocation-model=pic -o $OUTPUT/dll/libTypeScriptDefaultLib.so
+$BIN_PATH/tsc --emit=dll $SRC/src/lib.ts --obj=$OUTPUT/lib/lib.linux.o -relocation-model=pic -verbose -o $OUTPUT/dll/libTypeScriptDefaultLib.so
 
 # Build Lib
 $BIN_PATH/tsc --emit=obj --export=none --no-default-lib $SRC/src/lib.ts -relocation-model=pic -o $OUTPUT/lib/lib.o
@@ -49,6 +49,6 @@ rm $OUTPUT/lib/lib.linux.o
 # Copy
 BUILD_LIB_PATH=./__build/$BUILD/defaultlib
 mkdir -p $BUILD_LIB_PATH
-cp -r $SRC/dll $BUILD_LIB_PATH/dll/
-cp -r $SRC/lib $BUILD_LIB_PATH/lib/
+cp -r $SRC/dll $BUILD_LIB_PATH/
+cp -r $SRC/lib $BUILD_LIB_PATH/
 cp -r $SRC/src/* $BUILD_LIB_PATH/
