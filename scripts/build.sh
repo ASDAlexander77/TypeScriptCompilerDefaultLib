@@ -53,11 +53,12 @@ ar rcs $OUTPUT/lib/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o
 #llvm-ar rcs $OUTPUT/lib/$BUILD/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o
 
 # Copy
-BUILD_LIB_PATH=./__build/$BUILD/defaultlib
-mkdir -p $BUILD_LIB_PATH
-cp -r $SRC/dll/$BUILD $BUILD_LIB_PATH/
-cp -r $SRC/lib/$BUILD $BUILD_LIB_PATH/
-cp -r $SRC/src/* $BUILD_LIB_PATH/
+BUILD_LIB_PATH=./__build/$BUILD/defaultlib/
+mkdir -p $BUILD_LIB_PATH/dll/
+mkdir -p $BUILD_LIB_PATH/lib/
+cp -r $SRC/dll/$BUILD/* $BUILD_LIB_PATH/dll/
+cp -r $SRC/lib/$BUILD/* $BUILD_LIB_PATH/lib/
+cp -r $SRC/src/* $BUILD_LIB_PATH
 
 #because there 2 compiles at the same time u need to split
 rm $OUTPUT/lib/$BUILD/lib.o
