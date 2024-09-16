@@ -40,8 +40,8 @@ if [ -z "${TSC_LIB_PATH}" ]; then
 	export TSC_LIB_PATH=$BUILD_PATH/tsc/linux-ninja-$TOOL-$BUILD/lib
 fi
 
-mkdir dll/$BUILD
-mkdir lib/$BUILD
+mkdir -p dll/$BUILD
+mkdir -p lib/$BUILD
 $BIN_PATH/tsc --emit=obj --export=none --no-default-lib $SRC/src/lib.linux.ts $PIC -o $OUTPUT/lib/$BUILD/lib.linux.o
 
 # Build DLL
@@ -49,8 +49,8 @@ $BIN_PATH/tsc --emit=dll $SRC/src/lib.ts --obj=$OUTPUT/lib/$BUILD/lib.linux.o $P
 
 # Build Lib
 $BIN_PATH/tsc --emit=obj --export=none --no-default-lib $SRC/src/lib.ts $PIC -o $OUTPUT/lib/$BUILD/lib.o
-#ar rcs $OUTPUT/lib/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o
-llvm-ar rcs $OUTPUT/lib/$BUILD/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o
+ar rcs $OUTPUT/lib/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o
+#llvm-ar rcs $OUTPUT/lib/$BUILD/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o
 
 # Copy
 BUILD_LIB_PATH=./__build/$BUILD/defaultlib
@@ -60,5 +60,5 @@ cp -r $SRC/lib/$BUILD $BUILD_LIB_PATH/
 cp -r $SRC/src/* $BUILD_LIB_PATH/
 
 #because there 2 compiles at the same time u need to split
-rm $OUTPUT/$BUILD/lib/lib.o
-rm $OUTPUT/$BUILD/lib/lib.linux.o
+rm $OUTPUT/lib/$BUILD/lib.o
+rm $OUTPUT/lib/$BUILD/lib.linux.o
