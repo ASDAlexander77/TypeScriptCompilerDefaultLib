@@ -3,6 +3,7 @@
 BUILD=debug
 PIC=
 TOOL=gcc
+ARC=ar
 
 if [ "$1" == "release" ] ; then
 	BUILD=release
@@ -10,6 +11,7 @@ fi
 
 if [ "$2" == "clang" ] ; then
 	TOOL=clang
+	ARC=llvm-ar
 fi
 
 if [ "$3" == "pic" ] ; then
@@ -49,8 +51,7 @@ $BIN_PATH/tsc --emit=dll $SRC/src/lib.ts --obj=$OUTPUT/lib/$BUILD/lib.linux.o $P
 
 # Build Lib
 $BIN_PATH/tsc --emit=obj --export=none --no-default-lib $SRC/src/lib.ts $PIC -o $OUTPUT/lib/$BUILD/lib.o
-ar rcs $OUTPUT/lib/$BUILD/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o
-#llvm-ar rcs $OUTPUT/lib/$BUILD/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o
+$ARC rcs $OUTPUT/lib/$BUILD/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o
 
 # Copy
 BUILD_LIB_PATH=./__build/$BUILD/defaultlib/
