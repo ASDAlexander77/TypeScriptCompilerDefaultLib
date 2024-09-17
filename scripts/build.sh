@@ -49,7 +49,7 @@ $BIN_PATH/tsc --emit=dll $SRC/src/lib.ts --obj=$OUTPUT/lib/$BUILD/lib.linux.o $P
 
 # Build Lib
 $BIN_PATH/tsc --emit=obj --export=none --no-default-lib $SRC/src/lib.ts $PIC -o $OUTPUT/lib/$BUILD/lib.o
-ar rcs $OUTPUT/lib/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o
+ar rcs $OUTPUT/lib/$BUILD/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o
 #llvm-ar rcs $OUTPUT/lib/$BUILD/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o
 
 # Copy
