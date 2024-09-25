@@ -30,7 +30,7 @@ export class Boolean {
 
     public valueOf() {
         return this.value;
-    }    
+    }
 }
 
 export class Number {
@@ -114,6 +114,77 @@ export class Number {
 
     public valueOf() {
         return this.value;
+    }
+}
+
+namespace __String {
+
+    function dataAt(this: string, index: int) {
+        if (index < 0) {
+            if (-this.length <= index) {
+                index = index + this.length;
+            } else if (index < -this.length) {
+                index = 0;
+            }
+        } else if (index >= this.length) {
+            return ""[0];
+        }
+
+        return this[index];
+    }    
+
+    export function at(this: string, index: int): string {
+        return dataAt(this, index);
+    }
+
+    export function charAt(this: string, index: int): string {
+        return dataAt(this, index);
+    }    
+
+    export function charCodeAt(this: string, index: int): int {
+        return dataAt(this, index);
+    }    
+
+    export function codePointAt(this: string, index: int): int {
+        return dataAt(this, index);
+    }    
+
+    export function concat(this: string, ...other: string[]): string {
+        let count = this.length;
+        for (const item of other)
+            count += item.length;
+        let newString = this + ""; // to clone string
+        newString.length = count;
+        newString[count + 1] = null;
+        let index = this.length;
+        for (const item of other) {
+            memcpy(ReferenceOf(newString[index]), ReferenceOf(item[0]), sizeof<TypeOf<""[0]>>() * item.length);
+            index += item.length;
+        }
+
+        return newString;
+    }       
+
+    export function toLowercase(this: string): string {
+        const lower = this + ""; // to clone string
+        for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);
+        return lower;
+    }
+
+    export function toUppercase(this: string): string {
+        const upper = this + ""; // to clone string
+        for (let i = 0; i < this.length; i++) upper[i] = toupper(this[i]);
+        return upper;
+    }
+}
+
+export class String {
+
+    public constructor(private value: string) {
+    }
+
+    public at(index: int) {
+        return this.value.at(index);
     }
 }
 
@@ -345,7 +416,7 @@ export class ArrayBuffer {
         newArrayBuffer.arrayOfView = this.detach();
         return newArrayBuffer;
     }
-    
+
     public transferToFixedLength(newByteLength?: int) {
         const newArrayBuffer = this.transfer(newByteLength);
         newArrayBuffer.states |= States.NonResizable;
@@ -360,27 +431,11 @@ export class ArrayBuffer {
     }
 
     [Symbol.dispose]() {
-        if (this.arrayOfView != null && !this.detached)
-        {
+        if (this.arrayOfView != null && !this.detached) {
             delete this.arrayOfView;
             this.arrayOfView = null;
         }
     }
-}
-
-export static class String {
-    public toLowercase(this: string): string {
-        const lower = this + ""; // to clone string
-        for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);
-        return lower;
-    }
-
-    public toUppercase(this: string): string {
-        const upper = this + ""; // to clone string
-        for (let i = 0; i < this.length; i++) upper[i] = toupper(this[i]);
-        return upper;
-    }
-
 }
 
 export static class console {
@@ -394,7 +449,7 @@ export static class console {
 
     public warn(...data: string[]): void {
         this.printData(2, data);
-    }    
+    }
 
     public error(...data: string[]): void {
         this.printData(2, data);

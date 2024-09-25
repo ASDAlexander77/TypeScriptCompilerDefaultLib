@@ -79,10 +79,20 @@ declare class Number {
     valueOf(): number;
 }
 
-declare static class String {
-    toUppercase(this: string): string;
+declare namespace __String {
+    function at(this: string, index: int): string;
 
-    toLowercase(this: string): string;
+    function charAt(this: string, index: int): string;
+
+    function charCodeAt(this: string, index: int): int;
+
+    function codePointAt(this: string, index: int): int;
+
+    function concat(this: string, ...other: string[]): string;
+}
+
+declare class String {
+    at(index: int): string;
 }
 
 declare static class Math {

@@ -46,7 +46,7 @@ static class Array<T> {
             end = this.length;
         }
 
-        memmove(<Opaque>ReferenceOf(this[target]), <Opaque>ReferenceOf(this[start]), sizeof(T) * (end - start));
+        memmove(ReferenceOf(this[target]), ReferenceOf(this[start]), sizeof<T>() * (end - start));
         return this;
     }
 
@@ -294,7 +294,7 @@ static class Array<T> {
         }
 
         let newArray = new Array<T>(end - start);
-        memcpy(<Opaque>ReferenceOf(newArray[0]), <Opaque>ReferenceOf(this[start]), sizeof(T) * (end - start));
+        memcpy(ReferenceOf(newArray[0]), ReferenceOf(this[start]), sizeof<T>() * (end - start));
         return newArray;
     }    
 
@@ -380,10 +380,10 @@ namespace __Array {
             count += item.length;
         let newArray = new Array<T>(count);
         let index = 0;
-        memcpy(<Opaque>ReferenceOf(newArray[index]), <Opaque>ReferenceOf(this[0]), sizeof(T) * this.length);
+        memcpy(ReferenceOf(newArray[index]), ReferenceOf(this[0]), sizeof<T>() * this.length);
         index += this.length;
         for (const item of other) {
-            memcpy(<Opaque>ReferenceOf(newArray[index]), <Opaque>ReferenceOf(item[0]), sizeof(T) * item.length);
+            memcpy(ReferenceOf(newArray[index]), ReferenceOf(item[0]), sizeof<T>() * item.length);
             index += item.length;
         }
 
