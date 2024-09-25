@@ -1,6 +1,6 @@
 #!/bin/bash
 if [ "$1" == "debug" ] ; then	
-    ./scripts/build.sh debug
+    ./scripts/build2.sh debug gcc pic
 else    
-    ./scripts/build.sh release
+    ./scripts/build2.sh release gcc pic
 fi
