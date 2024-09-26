@@ -127,7 +127,7 @@ namespace __String {
                 index = 0;
             }
         } else if (index >= this.length) {
-            return ""[0];
+            return <char>0;
         }
 
         return this[index];

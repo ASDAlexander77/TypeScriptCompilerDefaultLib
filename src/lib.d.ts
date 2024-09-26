@@ -92,6 +92,10 @@ declare namespace __String {
 }
 
 declare class String {
+    private value: string;
+
+    constructor(value: string);
+    
     at(index: int): string;
 }
 

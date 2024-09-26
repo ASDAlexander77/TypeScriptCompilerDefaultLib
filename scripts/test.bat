@@ -39,13 +39,14 @@ if "%DEFAULT_LIB_PATH%"=="" (
 	set DEFAULT_LIB_PATH=%DEFAULTLIB_BUILD_PATH%
 )
 
-@echo on
+@echo off
 
 rem Build DLL
 %TOOL_PATH%\tsc.exe %DBG% %OPTIONS% --shared-libs=%TOOL_PATH%\TypeScriptRuntime.dll --emit=jit %SRC%\tests\%test%.ts
 
 rem Build Lib
 %TOOL_PATH%\tsc.exe %DBG% %OPTIONS% --shared-libs=%TOOL_PATH%\TypeScriptRuntime.dll --emit=exe %SRC%\tests\%test%.ts
+@echo on
 %SRC%\tests\%test%.exe
 
 @echo off
