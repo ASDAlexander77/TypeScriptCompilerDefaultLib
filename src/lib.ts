@@ -186,9 +186,24 @@ namespace __String {
         {
             return false;
         }
-        
+
         return strstr(<string>ReferenceOf(this[position]), searchString) != null;
     }      
+
+    export function indexOf(this: string, searchString: string, position = 0): int {    
+        if (position >= this.length || !searchString) 
+        {
+            return -1;
+        }
+        
+        const found = strstr(<string>ReferenceOf(this[position]), searchString);
+        if (found == null)
+        {
+            return -1;
+        }
+
+        return <index>ReferenceOf(found[0]) - <index>ReferenceOf(this[0]);
+    }        
 
     export function toLowercase(this: string): string {
         const lower = this + ""; // to clone string

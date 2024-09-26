@@ -93,6 +93,8 @@ declare namespace __String {
     function endsWith(this: string, end: string, endPosition?: int): boolean;
 
     function includes(this: string, searchString: string, position = 0): boolean;
+
+    function indexOf(this: string, searchString: string, position = 0): int;
 }
 
 declare class String {
