@@ -191,9 +191,14 @@ namespace __String {
     }      
 
     export function indexOf(this: string, searchString: string, position = 0): int {    
-        if (position >= this.length || !searchString) 
+        if (!searchString)
         {
             return -1;
+        }
+
+        if (position >= this.length) 
+        {
+            return this.length;
         }
         
         const found = strstr(<string>ReferenceOf(this[position]), searchString);
