@@ -165,6 +165,22 @@ namespace __String {
         return newString;
     }       
 
+    export function endsWith(this: string, searchString: string, endPosition = this.length): boolean {
+        if (!searchString)
+        {
+            return false;
+        }
+
+        const lenstr = endPosition;
+        const lensuffix = searchString.length;
+        if (lensuffix > lenstr)
+        {
+            return false;
+        }
+
+        return strncmp(<string>ReferenceOf(this[lenstr - lensuffix]), searchString, lensuffix) == 0;
+    }    
+
     export function toLowercase(this: string): string {
         const lower = this + ""; // to clone string
         for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);

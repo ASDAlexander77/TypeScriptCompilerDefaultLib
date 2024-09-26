@@ -89,6 +89,8 @@ declare namespace __String {
     function codePointAt(this: string, index: int): int;
 
     function concat(this: string, ...other: string[]): string;
+
+    function endsWith(this: string, end: string, endPosition?: int): boolean;
 }
 
 declare class String {

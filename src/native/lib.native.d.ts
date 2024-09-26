@@ -7,6 +7,7 @@ declare function time(destTime: Reference<int>);
 // String
 declare function strtol(str: string, end: Reference<string>, base: int): int;
 declare function strtod(str: string, end: Reference<string>): double;
+declare function strncmp(str: string, end: string, count: index): int;
 declare function toupper(c: int): int;
 declare function tolower(c: int): int;
 
