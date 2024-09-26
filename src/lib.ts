@@ -181,6 +181,15 @@ namespace __String {
         return strncmp(<string>ReferenceOf(this[lenstr - lensuffix]), searchString, lensuffix) == 0;
     }    
 
+    export function includes(this: string, searchString: string, position = 0): boolean {    
+        if (position >= this.length) 
+        {
+            return false;
+        }
+        
+        return strstr(<string>ReferenceOf(this[position]), searchString) != null;
+    }      
+
     export function toLowercase(this: string): string {
         const lower = this + ""; // to clone string
         for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);

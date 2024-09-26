@@ -91,6 +91,8 @@ declare namespace __String {
     function concat(this: string, ...other: string[]): string;
 
     function endsWith(this: string, end: string, endPosition?: int): boolean;
+
+    function includes(this: string, searchString: string, position = 0): boolean;
 }
 
 declare class String {
