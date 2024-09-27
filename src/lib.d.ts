@@ -95,6 +95,8 @@ declare namespace __String {
     function includes(this: string, searchString: string, position = 0): boolean;
 
     function indexOf(this: string, searchString: string, position = 0): int;
+
+    function isWellFormed(this: string): boolean;
 }
 
 declare class String {

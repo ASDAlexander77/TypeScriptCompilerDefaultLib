@@ -210,6 +210,11 @@ namespace __String {
         return <index>ReferenceOf(found[0]) - <index>ReferenceOf(this[0]);
     }        
 
+    export function isWellFormed(this: string): boolean {    
+        // TODO: to be implemented
+        return true;
+    }    
+
     export function toLowercase(this: string): string {
         const lower = this + ""; // to clone string
         for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);
