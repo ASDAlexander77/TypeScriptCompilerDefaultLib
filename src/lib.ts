@@ -244,6 +244,11 @@ namespace __String {
         return -1;
     }     
 
+    export function localeCompare(this: string, compareString: string, locale?: string = null): int {
+        setlocale (LC_COLLATE, locale);
+        return strcoll(this, compareString);
+    }
+
     export function toLowercase(this: string): string {
         const lower = this + ""; // to clone string
         for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);

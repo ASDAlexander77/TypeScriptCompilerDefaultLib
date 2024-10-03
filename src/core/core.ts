@@ -1,3 +1,5 @@
+const LC_COLLATE = 1;
+
 export class Error {
     public constructor(public message?: string, public filename?: string, public line?: int) {
     }

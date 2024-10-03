@@ -99,6 +99,8 @@ declare namespace __String {
     function isWellFormed(this: string): boolean;
 
     function lastIndexOf(this: string, searchString: string, position?: int): int;
+
+    function localeCompare(this: string, compareString: string, locale?: string): int;
 }
 
 declare class String {

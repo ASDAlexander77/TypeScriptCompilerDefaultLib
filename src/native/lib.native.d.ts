@@ -9,6 +9,8 @@ declare function strtol(str: string, end: Reference<string>, base: int): int;
 declare function strtod(str: string, end: Reference<string>): double;
 declare function strncmp(str: string, other: string, count: index): int;
 declare function strstr(str: string, other: string): string;
+declare function strcoll(str: string, other: string): string;
+declare function setlocale (category: int, locale: string): string;
 declare function toupper(c: int): int;
 declare function tolower(c: int): int;
 
