@@ -215,6 +215,35 @@ namespace __String {
         return true;
     }    
 
+    export function lastIndexOf(this: string, searchString: string, position = this.length): int {    
+        if (!searchString)
+        {
+            return position;
+        }
+
+        const searchStringLen = searchString.length;
+        if (searchStringLen == 0)
+        {
+            return position;
+        }
+
+        if (position < 0) 
+        {
+            position = 0;
+        }
+        
+        for (let i = position; i >= 0; i--)
+        {
+            const found = strncmp(<string>ReferenceOf(this[i]), searchString, searchStringLen);
+            if (found == 0)
+            {
+                return <index>ReferenceOf(this[i]) - <index>ReferenceOf(this[0]);
+            }
+        }
+
+        return -1;
+    }     
+
     export function toLowercase(this: string): string {
         const lower = this + ""; // to clone string
         for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);
