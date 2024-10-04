@@ -117,6 +117,12 @@ export class Number {
     }
 }
 
+export class RegExp
+{
+    public constructor(private expr: string) {
+    }
+}
+
 namespace __String {
 
     function dataAt(this: string, index: int) {
@@ -244,9 +250,14 @@ namespace __String {
         return -1;
     }     
 
-    export function localeCompare(this: string, compareString: string, locale?: string = null): int {
-        setlocale (LC_COLLATE, locale);
+    export function localeCompare(this: string, compareString: string, locale = ""): int {
+        setlocale (LC_COLLATE, locale);        
         return strcoll(this, compareString);
+    }
+
+    export function match(this: string, expr: RegExp): string[] {
+        // TODO: finish match
+        return null;
     }
 
     export function toLowercase(this: string): string {

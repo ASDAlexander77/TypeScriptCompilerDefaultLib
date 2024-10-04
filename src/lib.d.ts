@@ -79,6 +79,13 @@ declare class Number {
     valueOf(): number;
 }
 
+declare class RegExp
+{
+    private expr: string;
+
+    constructor(expr: string);
+}
+
 declare namespace __String {
     function at(this: string, index: int): string;
 
@@ -101,6 +108,8 @@ declare namespace __String {
     function lastIndexOf(this: string, searchString: string, position?: int): int;
 
     function localeCompare(this: string, compareString: string, locale?: string): int;
+
+    function match(this: string, expr: RegExp): string[];
 }
 
 declare class String {
