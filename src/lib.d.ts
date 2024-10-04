@@ -116,6 +116,8 @@ declare namespace __String {
     function normalize(this: string, form?: string): string;
     
     function padEnd(this: string, targetLength: index, padString?: string): string;
+
+    function padStart(this: string, targetLength: index, padString?: string): string;
 }
 
 declare class String {

@@ -139,8 +139,8 @@ namespace __String {
         return this[index];
     }    
 
-    function clone(this: string): string {
-        return this + ""; // to clone string
+    function clone(this: string, add = "", right = false): string {
+        return right ? add + this : this + add; // to clone string
     }
 
     function resize(this: string, newSize: index): string {
@@ -278,23 +278,34 @@ namespace __String {
         return this;
     }
 
-    export function padEnd(this: string, targetLength: index, padString = " "): string {
-        if (targetLength <= this.length) {
-            return this;
-        }
-
-        const newSize = targetLength;
-        let newString = this.clone().resize(newSize);
+    function pad(addSize: index, padString: string): string {
+        let newPadString = "".clone().resize(addSize);
         let padStringIndex = 0;
-        for (let i = this.length; i < targetLength; i++) {
-            newString[i] = padString[padStringIndex++];
+        for (let i = 0; i < addSize; i++) {
+            newPadString[i] = padString[padStringIndex++];
             if (padStringIndex >= padString.length) {
                 padStringIndex = 0;
             }
         }
 
-        return newString;
+        return newPadString;
     }
+
+    export function padEnd(this: string, targetLength: index, padString = " "): string {
+        if (targetLength <= this.length) {
+            return this;
+        }
+
+        return this.clone(pad(targetLength - this.length, padString));
+    }
+
+    export function padStart(this: string, targetLength: index, padString = " "): string {
+        if (targetLength <= this.length) {
+            return this;
+        }
+
+        return this.clone(pad(targetLength - this.length, padString), true);
+    }    
 
     export function toLowercase(this: string): string {
         const lower = this.clone();
