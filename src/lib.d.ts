@@ -110,6 +110,8 @@ declare namespace __String {
     function localeCompare(this: string, compareString: string, locale?: string): int;
 
     function match(this: string, expr: RegExp): string[];
+
+    function matchAll(this: string, expr: RegExp): string[];
 }
 
 declare class String {

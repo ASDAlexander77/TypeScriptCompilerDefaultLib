@@ -260,6 +260,11 @@ namespace __String {
         return null;
     }
 
+    export function matchAll(this: string, expr: RegExp): string[] {
+        // TODO: finish matchAll
+        return null;
+    }
+
     export function toLowercase(this: string): string {
         const lower = this + ""; // to clone string
         for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);
