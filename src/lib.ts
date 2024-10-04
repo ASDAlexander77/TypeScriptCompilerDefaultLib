@@ -139,29 +139,37 @@ namespace __String {
         return this[index];
     }    
 
+    function clone(this: string): string {
+        return this + ""; // to clone string
+    }
+
+    function resize(this: string, newSize: index): string {
+        this.length = newSize;
+        this[newSize] = null;
+        return this;
+    }
+
     export function at(this: string, index: int): string {
-        return dataAt(this, index);
+        return this.dataAt(index);
     }
 
     export function charAt(this: string, index: int): string {
-        return dataAt(this, index);
+        return this.dataAt(index);
     }    
 
     export function charCodeAt(this: string, index: int): int {
-        return dataAt(this, index);
+        return this.dataAt(index);
     }    
 
     export function codePointAt(this: string, index: int): int {
-        return dataAt(this, index);
+        return this.dataAt(index);
     }    
 
     export function concat(this: string, ...other: string[]): string {
         let count = this.length;
         for (const item of other)
             count += item.length;
-        let newString = this + ""; // to clone string
-        newString.length = count;
-        newString[count + 1] = null;
+        let newString = this.clone().resize(count);        
         let index = this.length;
         for (const item of other) {
             memcpy(ReferenceOf(newString[index]), ReferenceOf(item[0]), sizeof<TypeOf<""[0]>>() * item.length);
@@ -270,25 +278,32 @@ namespace __String {
         return this;
     }
 
-    export function padEnd(this: string, targetLength: index, padString?: string): string {
-        let newString = this + ""; // to clone string
-        const resize = targetLength + 1;
-        newString.length = resize;
-        newString[resize] = null; 
-        
-        const pad = (padString || " ")[0];
-        for (let i = this.length; i < targetLength; i++) newString[i] = pad;
+    export function padEnd(this: string, targetLength: index, padString = " "): string {
+        if (targetLength <= this.length) {
+            return this;
+        }
+
+        const newSize = targetLength;
+        let newString = this.clone().resize(newSize);
+        let padStringIndex = 0;
+        for (let i = this.length; i < targetLength; i++) {
+            newString[i] = padString[padStringIndex++];
+            if (padStringIndex >= padString.length) {
+                padStringIndex = 0;
+            }
+        }
+
         return newString;
     }
 
     export function toLowercase(this: string): string {
-        const lower = this + ""; // to clone string
+        const lower = this.clone();
         for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);
         return lower;
     }
 
     export function toUppercase(this: string): string {
-        const upper = this + ""; // to clone string
+        const upper = this.clone();
         for (let i = 0; i < this.length; i++) upper[i] = toupper(this[i]);
         return upper;
     }
