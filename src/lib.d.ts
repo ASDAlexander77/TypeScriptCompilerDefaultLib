@@ -112,6 +112,10 @@ declare namespace __String {
     function match(this: string, expr: RegExp): string[];
 
     function matchAll(this: string, expr: RegExp): string[];
+
+    function normalize(this: string, form?: string): string;
+    
+    function padEnd(this: string, targetLength: index, padString?: string): string;
 }
 
 declare class String {

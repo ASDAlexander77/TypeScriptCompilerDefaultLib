@@ -265,6 +265,22 @@ namespace __String {
         return null;
     }
 
+    export function normalize(this: string, form?: string): string {
+        // TODO: finish normalize
+        return this;
+    }
+
+    export function padEnd(this: string, targetLength: index, padString?: string): string {
+        let newString = this + ""; // to clone string
+        const resize = targetLength + 1;
+        newString.length = resize;
+        newString[resize] = null; 
+        
+        const pad = (padString || " ")[0];
+        for (let i = this.length; i < targetLength; i++) newString[i] = pad;
+        return newString;
+    }
+
     export function toLowercase(this: string): string {
         const lower = this + ""; // to clone string
         for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);
