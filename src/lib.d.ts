@@ -118,6 +118,8 @@ declare namespace __String {
     function padEnd(this: string, targetLength: index, padString?: string): string;
 
     function padStart(this: string, targetLength: index, padString?: string): string;
+
+    function repeat(this: string, count: int): string;
 }
 
 declare class String {

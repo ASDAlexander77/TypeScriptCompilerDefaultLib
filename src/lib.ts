@@ -306,7 +306,23 @@ namespace __String {
 
         return this.clone(pad(targetLength - this.length, padString), true);
     }    
+    
+    export function repeat(this: string, count: int): string {
+        if (count < 0) throw new RangeError();
+        if (count == 0) return "";
 
+        let newSize = this.length * count;
+        let newString = this.clone().resize(newSize);        
+        let index = this.length;
+        const byteSize = sizeof<TypeOf<""[0]>>() * this.length;
+        for (let i = 0; i < count; i++) {
+            memcpy(ReferenceOf(newString[index]), this, byteSize);
+            index += this.length;
+        }
+
+        return newString;        
+    }
+    
     export function toLowercase(this: string): string {
         const lower = this.clone();
         for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);
