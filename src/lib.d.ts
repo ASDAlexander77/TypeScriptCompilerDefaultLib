@@ -126,6 +126,10 @@ declare namespace __String {
     function replaceAll(this: string, pattern: string | RegExp, replacement: string): string;
     
     function search(this: string, regexp: RegExp): index;
+
+    function slice(this: string, indexStart: int, indexEnd?: int): string;
+
+    function split(this: string, separator?: string | RegExp, limit?: int): string[];
 }
 
 declare class String {

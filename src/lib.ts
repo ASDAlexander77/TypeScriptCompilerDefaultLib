@@ -144,7 +144,7 @@ namespace __String {
     }
 
     function resize(this: string, newSize: index): string {
-        this.length = newSize;
+        this.length = newSize + 1;
         this[newSize] = null;
         return this;
     }
@@ -169,10 +169,10 @@ namespace __String {
         let count = this.length;
         for (const item of other)
             count += item.length;
-        let newString = this.clone().resize(count);        
+        const newString = this.clone().resize(count);        
         let index = this.length;
         for (const item of other) {
-            memcpy(ReferenceOf(newString[index]), ReferenceOf(item[0]), sizeof<TypeOf<""[0]>>() * item.length);
+            memcpy(ReferenceOf(newString[index]), ReferenceOf(item[0]), sizeof<char>() * item.length);
             index += item.length;
         }
 
@@ -312,7 +312,7 @@ namespace __String {
         if (count == 0) return "";
 
         let newSize = this.length * count;
-        let newString = this.clone().resize(newSize);        
+        const newString = this.clone().resize(newSize);        
         let index = this.length;
         const byteSize = sizeof<char>() * this.length;
         for (let i = 0; i < count; i++) {
@@ -336,6 +336,68 @@ namespace __String {
     export function search(this: string, regexp: RegExp): index {
         // TODO: finish search
         return -1;
+    }
+
+    export function slice(this: string, indexStart: int, indexEnd = this.length): string {
+
+        if (indexStart < 0) {
+            if (-this.length <= indexStart) {
+                indexStart = indexStart + this.length;
+            } else if (indexStart < -this.length) {
+                indexStart = 0;
+            }
+        } else if (indexStart >= this.length) {
+            return "";
+        }
+
+        if (indexEnd < 0) {
+            if (-this.length <= indexEnd) {
+                indexEnd = indexEnd + this.length;
+            } else if (indexEnd < -this.length) {
+                indexEnd = 0;
+            }
+        } else if (indexEnd >= this.length) {
+            indexEnd = this.length;
+        }        
+
+        const count = indexEnd - indexStart;
+        const newString = "".clone().resize(count);
+        memcpy(ReferenceOf(newString[0]), ReferenceOf(this[indexStart]), sizeof<char>() * count);
+        return newString;
+    }
+
+    export function split(this: string, separator: string | RegExp = "", limit?: int): string[] {
+
+        if (limit != undefined && limit == 0)
+            return [];
+
+        if (typeof separator == "string")
+        {
+            let pos = 0;
+            const result: string[] = [];
+            const len = this.length;
+            while (pos < len) {
+                const matchPos = this.indexOf(separator, pos);
+                if (matchPos === -1) {
+                    result.push(this.substring(pos));
+                    break;
+                }
+                
+                result.push(this.substring(pos, matchPos));
+                if (limit != undefined && limit >= result.length) {
+                    break;
+                }
+                
+                pos = matchPos + separator.length;
+            }
+
+            return result;    
+        }   
+        else
+        {
+            // TODO: finish implementation with regexp
+            return [];
+        } 
     }
     
     export function toLowercase(this: string): string {
