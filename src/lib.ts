@@ -314,13 +314,28 @@ namespace __String {
         let newSize = this.length * count;
         let newString = this.clone().resize(newSize);        
         let index = this.length;
-        const byteSize = sizeof<TypeOf<""[0]>>() * this.length;
+        const byteSize = sizeof<char>() * this.length;
         for (let i = 0; i < count; i++) {
             memcpy(ReferenceOf(newString[index]), this, byteSize);
             index += this.length;
         }
 
         return newString;        
+    }
+
+    export function replace(this: string, pattern: string | RegExp, replacement: string): string {
+        // TODO: finish replace
+        return this;
+    }
+    
+    export function replaceAll(this: string, pattern: string | RegExp, replacement: string): string {
+        // TODO: finish replace
+        return this;
+    }    
+
+    export function search(this: string, regexp: RegExp): index {
+        // TODO: finish search
+        return -1;
     }
     
     export function toLowercase(this: string): string {

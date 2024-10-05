@@ -120,6 +120,12 @@ declare namespace __String {
     function padStart(this: string, targetLength: index, padString?: string): string;
 
     function repeat(this: string, count: int): string;
+
+    function replace(this: string, pattern: string | RegExp, replacement: string): string;
+
+    function replaceAll(this: string, pattern: string | RegExp, replacement: string): string;
+    
+    function search(this: string, regexp: RegExp): index;
 }
 
 declare class String {
