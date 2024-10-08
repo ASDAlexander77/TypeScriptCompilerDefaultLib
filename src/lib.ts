@@ -366,15 +366,27 @@ namespace __String {
         return newString;
     }
 
-    export function split(this: string, separator: string | RegExp = "", limit?: int): string[] {
+    export function split(this: string, separator?: string | RegExp, limit?: int): string[] {
 
         if (limit != undefined && limit == 0)
             return [];
 
-        if (typeof separator == "string")
+        if (separator == undefined)
         {
+            return [this];        
+        }
+        else if (typeof separator == "string")
+        {
+            if (separator == "")
+            {
+                // split every char;
+                let result: string[] = [];
+                for (const v of this) result.push(v);
+                return result;
+            }
+
             let pos = 0;
-            const result: string[] = [];
+            let result: string[] = [];
             const len = this.length;
             while (pos < len) {
                 const matchPos = this.indexOf(separator, pos);
@@ -400,6 +412,33 @@ namespace __String {
         } 
     }
     
+    export function substring(this: string, indexStart: int, indexEnd = this.length): string {
+        if (indexStart < 0) {
+            indexStart = 0;
+        } else if (indexStart >= this.length) {
+            indexStart = this.length;
+        }
+
+        if (indexEnd < 0) {
+            indexEnd = 0;
+        } else if (indexEnd >= this.length) {
+            indexEnd = this.length;
+        }        
+
+        if (indexStart == indexEnd) {
+            return "";
+        }
+
+        if (indexStart > indexEnd) {
+            [indexStart, indexEnd] = [indexEnd, indexStart];
+        }
+
+        const count = indexEnd - indexStart;
+        const newString = "".clone().resize(count);
+        memcpy(ReferenceOf(newString[0]), ReferenceOf(this[indexStart]), sizeof<char>() * count);
+        return newString;        
+    }
+
     export function toLowercase(this: string): string {
         const lower = this.clone();
         for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);
