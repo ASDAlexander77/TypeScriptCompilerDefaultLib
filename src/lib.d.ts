@@ -132,6 +132,8 @@ declare namespace __String {
     function split(this: string, separator?: string | RegExp, limit?: int): string[];
 
     function substring(this: string, indexStart: int, indexEnd?: int): string;
+
+    function startsWith(this: string, searchString: string, position?: int);
 }
 
 declare class String {

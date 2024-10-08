@@ -412,6 +412,21 @@ namespace __String {
         } 
     }
     
+    export function startsWith(this: string, searchString: string, position = 0): boolean {
+        if (!searchString)
+        {
+            return false;
+        }
+
+        const lensuffix = searchString.length;
+        if (position > this.length)
+        {
+            return false;
+        }
+
+        return strncmp(<string>ReferenceOf(this[position]), searchString, lensuffix) == 0;
+    }    
+
     export function substring(this: string, indexStart: int, indexEnd = this.length): string {
         if (indexStart < 0) {
             indexStart = 0;
