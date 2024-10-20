@@ -40,13 +40,13 @@ mkdir dll\%BUILD%
 mkdir lib\%BUILD%
 
 rem Build OS-specific Lib
-%TOOL_PATH%\tsc.exe %DBG% --emit=obj --export=none --no-default-lib %SRC%\src\lib.win32.ts -o %OUTPUT%\lib\%BUILD%\lib.win32.obj
+%TOOL_PATH%\tsc.exe %DBG% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.win32.ts -o %OUTPUT%\lib\%BUILD%\lib.win32.obj
 
 rem Build DLL
-%TOOL_PATH%\tsc.exe %DBG% --emit=dll %SRC%\src\lib.ts --obj=%OUTPUT%\lib\%BUILD%\lib.win32.obj -o %OUTPUT%\dll\%BUILD%\TypeScriptDefaultLib.dll
+%TOOL_PATH%\tsc.exe %DBG% --emit=dll --nowarn %SRC%\src\lib.ts --obj=%OUTPUT%\lib\%BUILD%\lib.win32.obj -o %OUTPUT%\dll\%BUILD%\TypeScriptDefaultLib.dll
 
 rem Build Lib
-%TOOL_PATH%\tsc.exe %DBG% --emit=obj --export=none --no-default-lib %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.obj
+%TOOL_PATH%\tsc.exe %DBG% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.obj
 rem %TOOL_PATH%\tsc.exe %DBG% --emit=llvm --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.ll
 
 llvm-lib.exe /out:%OUTPUT%\lib\%BUILD%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\lib.obj

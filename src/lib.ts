@@ -475,6 +475,10 @@ export class String {
     public at(index: int) {
         return this.value.at(index);
     }
+
+    public *[Symbol.iterator]() {
+        for (const c of this) yield c;
+    }
 }
 
 export static class Math {

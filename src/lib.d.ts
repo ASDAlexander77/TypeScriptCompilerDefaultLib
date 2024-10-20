@@ -142,6 +142,8 @@ declare class String {
     constructor(value: string);
     
     at(index: int): string;
+
+    [Symbol.iterator](): ClassGenerator<char, this>;
 }
 
 declare static class Math {

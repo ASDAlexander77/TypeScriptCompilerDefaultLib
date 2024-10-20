@@ -4,7 +4,7 @@ set BUILD1=Debug
 set LLVM_BUILD=Debug
 set ARCH=x64
 set DBG=--di
-set OPTIONS=--no-warn
+set OPTIONS=--nowarn
 
 set test=%1
 if "%2"=="release" (
