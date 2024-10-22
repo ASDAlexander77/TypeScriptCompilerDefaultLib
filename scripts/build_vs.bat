@@ -48,6 +48,7 @@ rem Build DLL
 rem Build Lib
 %TOOL_PATH%\tsc.exe %DBG% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.obj
 rem %TOOL_PATH%\tsc.exe %DBG% --emit=llvm --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.ll
+%TOOL_PATH%\tsc.exe %DBG% --emit=mlir --export=none %SRC%\src\lib.ts 2> %OUTPUT%\lib\%BUILD%\lib.mlir
 
 for /f "usebackq tokens=*" %%i in (`vswhere -legacy -latest -property installationPath`) do (
   set VSPATH="%%i\Common7\Tools\VsDevCmd.bat"

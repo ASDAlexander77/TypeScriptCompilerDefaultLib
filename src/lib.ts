@@ -467,6 +467,21 @@ namespace __String {
     }
 }
 
+/*
+class StringIterator implements ClassIterator<string> {
+
+    private #index = 0;
+
+    public constructor(private value: string) {
+    }
+
+    public next(): IterateResult<string> {
+        if (this.#index >= this.value.length) return { value: undefined, done: true };
+        return { value: this.value[this.#index++], done: false };
+    }
+}
+*/
+
 export class String {
 
     public constructor(private value: string) {
@@ -476,9 +491,12 @@ export class String {
         return this.value.at(index);
     }
 
-    public *[Symbol.iterator]() {
-        for (const c of this) yield c;
+    public *[Symbol.iterator]() : Iterator<string> {
+        for (const c of this.value) yield <string>c;
     }
+    // public [Symbol.iterator]() : ClassIterator<string> {
+    //     return new StringIterator(this.value);
+    // }
 }
 
 export static class Math {

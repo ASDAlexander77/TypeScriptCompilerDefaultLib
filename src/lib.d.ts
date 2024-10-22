@@ -143,7 +143,8 @@ declare class String {
     
     at(index: int): string;
 
-    [Symbol.iterator](): ClassGenerator<char, this>;
+    [Symbol.iterator](): Iterator<string>;
+    //[Symbol.iterator](): ClassIterator<string>;
 }
 
 declare static class Math {
