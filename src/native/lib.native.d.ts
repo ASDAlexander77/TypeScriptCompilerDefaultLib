@@ -13,6 +13,7 @@ declare function strcoll(str: string, other: string): int;
 declare function setlocale (category: int, locale: string): string;
 declare function toupper(c: int): int;
 declare function tolower(c: int): int;
+declare function isspace(argument: int): int;
 
 // Random
 declare function srand(seed: int);

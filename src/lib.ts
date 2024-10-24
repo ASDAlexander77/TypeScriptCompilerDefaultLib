@@ -454,17 +454,76 @@ namespace __String {
         return newString;        
     }
 
-    export function toLowercase(this: string): string {
+    export function toLocaleLowerCase(this: string, locale = ""): string {
+        setlocale (LC_COLLATE, locale); 
         const lower = this.clone();
         for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);
         return lower;
     }
 
-    export function toUppercase(this: string): string {
+    export function toLocaleUpperCase(this: string, locale = ""): string {
+        setlocale (LC_COLLATE, locale); 
         const upper = this.clone();
         for (let i = 0; i < this.length; i++) upper[i] = toupper(this[i]);
         return upper;
     }
+
+    export function toLowerCase(this: string): string {
+        const lower = this.clone();
+        for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);
+        return lower;
+    }
+
+    export function toString(this: string): string {
+        return this;
+    }
+
+    export function toUpperCase(this: string): string {
+        const upper = this.clone();
+        for (let i = 0; i < this.length; i++) upper[i] = toupper(this[i]);
+        return upper;
+    }
+
+    export function toWellFormed(this: string): string {
+        // TODO: finish it
+        return this;
+    }    
+
+    export function trim(this: string): string {
+        let start = 0;
+        for (let i = 0; i < this.length; i++) {
+            if (!isspace(this[i])) { start = i; break; }
+        }
+
+        let end = this.length - 1;
+        for (let i = this.length - 1; i >= 0; i--) {
+            if (!isspace(this[i])) { end = i; break; }
+        }
+
+        return this.substring(start, end);
+    }
+
+    export function trimStart(this: string): string {
+        let start = 0;
+        for (let i = 0; i < this.length; i++) {
+            if (!isspace(this[i])) { start = i; break; }
+        }
+
+        return this.substring(start);
+    }    
+
+    export function trimEnd(this: string): string {
+        let end = this.length - 1;
+        for (let i = this.length - 1; i >= 0; i--) {
+            if (!isspace(this[i])) { end = i; break; }
+        }
+
+        return this.substring(0, end);
+    }    
+
+    export function valueOf(this: string): string {
+        return this;
+    }    
 }
 
 /*

@@ -134,6 +134,26 @@ declare namespace __String {
     function substring(this: string, indexStart: int, indexEnd?: int): string;
 
     function startsWith(this: string, searchString: string, position?: int);
+
+    function toLocaleLowerCase(this: string, locale?: string): string;
+
+    function toLocaleUpperCase(this: string, locale?: string): string;
+
+    function toLowerCase(this: string): string;
+
+    function toString(this: string): string;
+
+    function toUpperCase(this: string): string;
+
+    function toWellFormed(this: string): string;
+
+    function trim(this: string): string;
+
+    function trimStart(this: string): string;
+
+    function trimEnd(this: string): string;
+
+    function valueOf(this: string): string;
 }
 
 declare class String {
