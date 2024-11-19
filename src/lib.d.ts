@@ -163,6 +163,72 @@ declare class String {
     
     at(index: int): string;
 
+    charAt(this: string, index: int): string;
+
+    charCodeAt(this: string, index: int): int;
+
+    codePointAt(this: string, index: int): int;
+
+    concat(this: string, ...other: string[]): string;
+
+    endsWith(this: string, end: string, endPosition?: int): boolean;
+
+    includes(this: string, searchString: string, position?: int): boolean;
+
+    indexOf(this: string, searchString: string, position?: int): int;
+
+    isWellFormed(this: string): boolean;
+
+    lastIndexOf(this: string, searchString: string, position?: int): int;
+
+    localeCompare(this: string, compareString: string, locale?: string): int;
+
+    match(this: string, expr: RegExp): string[];
+
+    matchAll(this: string, expr: RegExp): string[];
+
+    normalize(this: string, form?: string): string;
+    
+    padEnd(this: string, targetLength: index, padString?: string): string;
+
+    padStart(this: string, targetLength: index, padString?: string): string;
+
+    repeat(this: string, count: int): string;
+
+    replace(this: string, pattern: string | RegExp, replacement: string): string;
+
+    replaceAll(this: string, pattern: string | RegExp, replacement: string): string;
+    
+    search(this: string, regexp: RegExp): index;
+
+    slice(this: string, indexStart: int, indexEnd?: int): string;
+
+    split(this: string, separator?: string | RegExp, limit?: int): string[];
+
+    substring(this: string, indexStart: int, indexEnd?: int): string;
+
+    startsWith(this: string, searchString: string, position?: int);
+
+    toLocaleLowerCase(this: string, locale?: string): string;
+
+    toLocaleUpperCase(this: string, locale?: string): string;
+
+    toLowerCase(this: string): string;
+
+    toString(this: string): string;
+
+    toUpperCase(this: string): string;
+
+    toWellFormed(this: string): string;
+
+    trim(this: string): string;
+
+    trimStart(this: string): string;
+
+    trimEnd(this: string): string;
+
+    valueOf(this: string): string;
+
     [Symbol.iterator](): Iterator<string>;
     //[Symbol.iterator](): ClassIterator<string>;
 }

@@ -550,6 +550,138 @@ export class String {
         return this.value.at(index);
     }
 
+    public charAt(index: int): string {
+        return this.value.charAt(index);
+    }
+
+    public charCodeAt(index: int): int {
+        return this.value.charCodeAt(index);
+    }
+
+    public codePointAt(index: int): int {
+        return this.value.codePointAt(index);
+    }
+
+    public concat(...other: string[]): string {
+        return this.value.concat(other);
+    }
+
+    public endsWith(end: string, endPosition?: int): boolean {
+        return this.value.endsWith(end, endPosition);
+    }
+
+    public includes(searchString: string, position?: int): boolean {
+        return this.value.includes(searchString, position);
+    }
+
+    public indexOf(searchString: string, position?: int): int {
+        return this.value.indexOf(searchString, position);
+    }
+
+    public isWellFormed(): boolean {
+        return this.value.isWellFormed();
+    }
+
+    public lastIndexOf(searchString: string, position?: int): int {
+        return this.value.lastIndexOf(searchString, position);
+    }
+
+    public localeCompare(compareString: string, locale?: string): int {
+        return this.value.localeCompare(compareString, locale);
+    }
+
+    public match(expr: RegExp): string[] {
+        return this.value.match(expr);
+    }
+
+    public matchAll(expr: RegExp): string[] {
+        return this.value.matchAll(expr);
+    }
+
+    public normalize(form?: string): string {
+        return this.value.normalize(form);
+    }
+    
+    public padEnd(targetLength: index, padString?: string): string {
+        return this.value.padEnd(targetLength, padString);
+    }
+
+    public padStart(targetLength: index, padString?: string): string {
+        return this.value.padStart(targetLength, padString);
+    }
+
+    public repeat(count: int): string {
+        return this.value.repeat(count);
+    }
+
+    public replace(pattern: string | RegExp, replacement: string): string {
+        return this.value.replace(pattern, replacement);
+    }
+
+    public replaceAll(pattern: string | RegExp, replacement: string): string {
+        return this.value.replaceAll(pattern, replacement);
+    }
+    
+    public search(regexp: RegExp): index {
+        return this.value.search(regexp);
+    }
+
+    public slice(indexStart: int, indexEnd?: int): string {
+        return this.value.slice(indexStart, indexEnd);
+    }
+
+    public split(separator?: string | RegExp, limit?: int): string[] {
+        return this.value.split(separator, limit);
+    }
+
+    public substring(indexStart: int, indexEnd?: int): string {
+        return this.value.substring(indexStart, indexEnd);
+    }
+
+    public startsWith(searchString: string, position?: int) {
+        return this.value.startsWith(searchString, position);
+    }
+
+    public toLocaleLowerCase(locale?: string): string {
+        return this.value.toLocaleLowerCase(locale);
+    }
+
+    public toLocaleUpperCase(locale?: string): string {
+        return this.value.toLocaleUpperCase(locale);
+    }
+
+    public toLowerCase(): string {
+        return this.value.toLowerCase();
+    }
+
+    public toString(): string {
+        return this.value.toString();
+    }
+
+    public toUpperCase(): string {
+        return this.value.toUpperCase();
+    }
+
+    public toWellFormed(): string {
+        return this.value.toWellFormed();
+    }
+
+    public trim(): string {
+        return this.value.trim();
+    }
+
+    public trimStart(): string {
+        return this.value.trimStart();
+    }
+
+    public trimEnd(): string {
+        return this.value.trimEnd();
+    }
+
+    public valueOf(): string {
+        return this.value.valueOf();
+    }
+
     public *[Symbol.iterator]() : Iterator<string> {
         for (const c of this.value) yield <string>c;
     }
