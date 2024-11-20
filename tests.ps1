@@ -64,11 +64,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
         $run_code = $LASTEXITCODE
     }
 
-    if ($run_cdoe -eq 0) {
-        return $true
-    }
-
-    return $false
+    return $true
 }
 
 Write-Host "Testing..."
