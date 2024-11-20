@@ -55,7 +55,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
 
         $run_code = $LASTEXITCODE
 
-        Get-ChildItem $SRC\tests\$test.* -exclude $SRC\tests\$test.ts | Remove-Item
+        Get-ChildItem $SRC\tests\$test.* -Exclude *.ts | Remove-Item
     }
 
     if ($mode -eq "jit") {
