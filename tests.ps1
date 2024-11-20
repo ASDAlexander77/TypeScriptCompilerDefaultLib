@@ -18,7 +18,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
     $SRC="."
     $OUTPUT="."
 
-    if ($Env:TOOL_PATH -eq $null) {
+    if ($null -eq $Env:TOOL_PATH) {
 	    $BUILD_PATH="..\TypeScriptCompiler\__build"
 	    $TOOL_PATH="..\TypeScriptCompiler\__build\tsc\windows-msbuild-$BUILD\bin"
 	    $DEFAULTLIB_BUILD_PATH="..\TypeScriptCompilerDefaultLib\__build\$BUILD"
@@ -27,16 +27,16 @@ function Test([string]$config, [string]$mode, [string]$fileName)
 	    $DEFAULTLIB_BUILD_PATH=$TOOL_PATH
     }
 
-    if ($Env:GC_LIB_PATH -eq $null) {
+    if ($null -eq $Env:GC_LIB_PATH) {
 	    $Env:GC_LIB_PATH="$BUILD_PATH\gc\msbuild\$ARCH\$BUILD\$BUILD1"
     }
-    if ($Env:LLVM_LIB_PATH -eq $null) {
+    if ($null -eq $Env:LLVM_LIB_PATH) {
 	    $Env:LLVM_LIB_PATH="$BUILD_PATH\llvm\msbuild\$ARCH\$BUILD\$BUILD1\lib"
     }
-    if ($Env:TSC_LIB_PATH -eq $null) {
+    if ($null -eq $Env:TSC_LIB_PATH) {
 	    $Env:TSC_LIB_PATH="$BUILD_PATH\tsc\windows-msbuild-$BUILD\lib"
     }
-    if ($Env:DEFAULT_LIB_PAT -eq $null) {
+    if ($null -eq $Env:DEFAULT_LIB_PAT) {
 	    $Env:DEFAULT_LIB_PATH="$DEFAULTLIB_BUILD_PATH"
     }
 
