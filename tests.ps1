@@ -1,13 +1,3 @@
-function Green
-{
-    Write-Host $_ -ForegroundColor Green
-}
-
-function Red
-{
-    Write-Host $_ -ForegroundColor Red
-}
-
 function Test([string]$config, [string]$mode, [string]$fileName)
 {
     $BUILD="debug"
@@ -56,8 +46,8 @@ function Test([string]$config, [string]$mode, [string]$fileName)
         $compile_code = $LASTEXITCODE
 
         if ($compile_code -ne 0) {
-            Write-Output "Compile Error" | Red
-            Write-Output "Output: $compile_output" 
+            Write-Host "Compile Error" -ForegroundColor Red
+            Write-Host "Output: $compile_output" 
             return $false
         }
 
@@ -89,10 +79,10 @@ Get-ChildItem ".\tests" -Filter *.ts | Foreach-Object {
     $result = Test "release" "compile" $_.Basename
 
     if ($result -eq $true) {
-        Write-Output "Success" | Green
+        Write-Host "Success" -ForegroundColor Green
     }
     else {
-        Write-Output "Failed" | Red
+        Write-Host "Failed" -ForegroundColor Red
     }
 }
 
