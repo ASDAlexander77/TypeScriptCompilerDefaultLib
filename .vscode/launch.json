@@ -5,6 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Test",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "${workspaceFolder}/tests.ps1",
+            "cwd": "${cwd}"
+        },
+        {
             "name": "(Windows) Current File - EXE",
             "type": "cppvsdbg",
             "preLaunchTask": "build EXE (Debug)",
