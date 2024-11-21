@@ -72,18 +72,29 @@ function Test([string]$config, [string]$mode, [string]$fileName)
 }
 
 Write-Host "Testing..."
+
+$count = (Get-ChildItem ".\tests" -Filter *.ts | Measure-Object).Count
+
+$index = 0
+$success = 0
 Get-ChildItem ".\tests" -Filter *.ts | Foreach-Object {
-    Write-Host -NoNewline "Running ... $_ ... "
+    $index++
+
+    $testName = "$_ ".PadRight(40, '.')
+    Write-Host -NoNewline "$success/$count Test #$index : $testName  "
     #Start-Process -NoNewWindow -FilePath "C:\wamp64\bin\mysql\mysql5.7.19\bin\mysql" -ArgumentList "-u root","-proot","-h localhost"
 
-    $result = Test "release" "compile" $_.Basename
+    $time = (Measure-Command { $result = Test "release" "compile" $_.Basename }).TotalSeconds
 
     if ($result -eq $true) {
-        Write-Host "Success" -ForegroundColor Green
+        $success++
+        Write-Host -NoNewline "Passed    " -ForegroundColor Green
     }
     else {
-        Write-Host "Failed" -ForegroundColor Red
+        Write-Host -NoNewline "Failed    " -ForegroundColor Red
     }
+
+    Write-Host "$time sec"
 }
 
 

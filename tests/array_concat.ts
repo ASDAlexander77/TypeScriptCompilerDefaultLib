@@ -8,3 +8,5 @@ for (const fruit of newFruits) console.log("item = ", fruit);
 
 assert(fruits.length == 3)
 assert(newFruits.length == 6)
+
+assert(newFruits.toString() == "banana,apple,peach,banana,apple,peach");
