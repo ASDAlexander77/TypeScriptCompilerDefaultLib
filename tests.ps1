@@ -86,4 +86,7 @@ Get-ChildItem ".\tests" -Filter *.ts | Foreach-Object {
     }
 }
 
+
+Get-ChildItem -Path $SRC\tests -Include *.pdb,*.ilk,*.exe | Remove-Item
+
 Write-Host "Done."
