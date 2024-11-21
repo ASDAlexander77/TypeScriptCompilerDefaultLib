@@ -85,6 +85,7 @@ Get-ChildItem ".\tests" -Filter *.ts | Foreach-Object {
     #Start-Process -NoNewWindow -FilePath "C:\wamp64\bin\mysql\mysql5.7.19\bin\mysql" -ArgumentList "-u root","-proot","-h localhost"
 
     $time = (Measure-Command { $result = Test "release" "compile" $_.Basename }).TotalSeconds
+    $time = [math]::Round($time, 2).ToString("0.00")
 
     if ($result -eq $true) {
         $success++
