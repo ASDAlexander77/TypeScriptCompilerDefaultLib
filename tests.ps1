@@ -41,7 +41,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
     }
 
     if ($mode -eq "compile") {
-        $compile_output = & $TOOL_PATH\tsc.exe $DBG $OPTIONS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=exe $SRC\tests\$test.ts
+        $compile_error_output = ($compile_output = & $TOOL_PATH\tsc.exe $DBG $OPTIONS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=exe $SRC\tests\$test.ts) 2>&1
 
         $compile_code = $LASTEXITCODE
 
@@ -51,7 +51,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
             return $false
         }
 
-        $run_output = & $SRC\tests\$test.exe
+        $run_error_output = ($run_output = & $SRC\tests\$test.exe) 2>&1
 
         $run_code = $LASTEXITCODE
 
@@ -59,9 +59,13 @@ function Test([string]$config, [string]$mode, [string]$fileName)
     }
 
     if ($mode -eq "jit") {
-        & $TOOL_PATH\tsc.exe $DBG $OPTIONS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=jit $SRC\tests\$test.ts
+        $run_error_output = ($run_output = & $TOOL_PATH\tsc.exe $DBG $OPTIONS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=jit $SRC\tests\$test.ts) 2>&1
 
         $run_code = $LASTEXITCODE
+    }
+
+    if (($run_error_output | Where-Object {$_.GetType().fullname.Contains("ErrorRecord")} | Measure-Object).Count -gt 0) {
+        return $false
     }
 
     return $true
