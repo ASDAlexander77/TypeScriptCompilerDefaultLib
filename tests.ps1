@@ -71,34 +71,43 @@ function Test([string]$config, [string]$mode, [string]$fileName)
     return $true
 }
 
-Write-Host "Testing..."
+function Tests([string]$config, [string]$mode)
+{
+    Write-Host "Testing..."
 
-$count = (Get-ChildItem ".\tests" -Filter *.ts | Measure-Object).Count
+    $count = (Get-ChildItem ".\tests" -Filter *.ts | Measure-Object).Count
 
-$index = 0
-$success = 0
-Get-ChildItem ".\tests" -Filter *.ts | Foreach-Object {
-    $index++
+    $index = 0
+    $success = 0
+    Get-ChildItem ".\tests" -Filter *.ts | Foreach-Object {
+        $index++
 
-    $testName = "$_ ".PadRight(40, '.')
-    Write-Host -NoNewline "$success/$count Test #$index : $testName  "
-    #Start-Process -NoNewWindow -FilePath "C:\wamp64\bin\mysql\mysql5.7.19\bin\mysql" -ArgumentList "-u root","-proot","-h localhost"
+        $testName = "$_ ".PadRight(40, '.')
+        Write-Host -NoNewline "$success/$count Test #$index : $testName  "
+        #Start-Process -NoNewWindow -FilePath "C:\wamp64\bin\mysql\mysql5.7.19\bin\mysql" -ArgumentList "-u root","-proot","-h localhost"
 
-    $time = (Measure-Command { $result = Test "release" "compile" $_.Basename }).TotalSeconds
-    $time = [math]::Round($time, 2).ToString("0.00")
+        $time = (Measure-Command { $result = Test "release" "compile" $_.Basename }).TotalSeconds
+        $time = [math]::Round($time, 2).ToString("0.00")
 
-    if ($result -eq $true) {
-        $success++
-        Write-Host -NoNewline "Passed    " -ForegroundColor Green
+        if ($result -eq $true) {
+            $success++
+            Write-Host -NoNewline "Passed    " -ForegroundColor Green
+        }
+        else {
+            Write-Host -NoNewline "Failed    " -ForegroundColor Red
+        }
+
+        Write-Host "$time sec"
     }
-    else {
-        Write-Host -NoNewline "Failed    " -ForegroundColor Red
-    }
 
-    Write-Host "$time sec"
+    Get-ChildItem -Path $SRC\tests -Include *.pdb,*.ilk,*.exe | Remove-Item
+
+    Write-Host "Finished $config, $mode"
 }
 
-
-Get-ChildItem -Path $SRC\tests -Include *.pdb,*.ilk,*.exe | Remove-Item
+Tests "release" "compile"
+Tests "release" "jit"
+Tests "debug" "compile"
+Tests "debug" "jit"
 
 Write-Host "Done."
