@@ -883,7 +883,9 @@ export class ArrayBuffer {
         }
 
         if (length > 0) {
-            this.arrayOfView = new Array<char>(length);
+            const buffer : char[] = [];
+            buffer.length = length;            
+            this.arrayOfView = buffer;
         }
     }
 

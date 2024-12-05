@@ -524,7 +524,8 @@ namespace __Array {
         let count = this.length;
         for (const item of other)
             count += item.length;
-        let newArray = new Array<T>(count);
+        let newArray : T[] = [];
+        newArray.length = count;
         let index = 0;
         memcpy(ReferenceOf(newArray[index]), ReferenceOf(this[0]), sizeof<T>() * this.length);
         index += this.length;
