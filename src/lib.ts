@@ -563,7 +563,7 @@ export class String {
     }
 
     public concat(...other: string[]): string {
-        return this.value.concat(other);
+        return this.value.concat(...other);
     }
 
     public endsWith(end: string, endPosition?: int): boolean {
@@ -883,7 +883,7 @@ export class ArrayBuffer {
         }
 
         if (length > 0) {
-            const buffer : char[] = [];
+            let buffer : char[] = [];
             buffer.length = length;            
             this.arrayOfView = buffer;
         }

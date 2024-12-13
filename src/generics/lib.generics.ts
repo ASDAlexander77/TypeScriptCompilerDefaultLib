@@ -334,9 +334,9 @@ namespace __Array {
         return this;
     }    
 
-    // public [Symbol.iterator](this: T[]) {
-    //     return this.values();
-    // }
+    function iterator<T>(this: T[]) {
+         return this.values();
+    }
 
     function toReversed<T>(this: T[]) {
         let newArray = this.slice();
