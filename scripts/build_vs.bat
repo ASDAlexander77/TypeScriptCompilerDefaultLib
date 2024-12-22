@@ -35,7 +35,7 @@ if "%TSC_LIB_PATH%"=="" (
 
 if "%VSWHERE_PATH%"=="" (
 	set VSWHERE_PATH="vswhere"
-}
+)
 
 rd /S /Q dll\%BUILD%
 rd /S /Q lib\%BUILD%
