@@ -47,7 +47,7 @@ mkdir -p lib/$BUILD
 $BIN_PATH/tsc --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.linux.ts $PIC -o $OUTPUT/lib/$BUILD/lib.linux.o
 
 # Build DLL
-$BIN_PATH/tsc --emit=dll  --nowarn $SRC/src/lib.ts --obj=$OUTPUT/lib/$BUILD/lib.linux.o $PIC -verbose -o $OUTPUT/dll/$BUILD/libTypeScriptDefaultLib.so
+$BIN_PATH/tsc --emit=dll  --nowarn --no-default-lib $SRC/src/lib.ts --obj=$OUTPUT/lib/$BUILD/lib.linux.o $PIC -verbose -o $OUTPUT/dll/$BUILD/libTypeScriptDefaultLib.so
 
 # Build Lib
 $BIN_PATH/tsc --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.ts $PIC -o $OUTPUT/lib/$BUILD/lib.o

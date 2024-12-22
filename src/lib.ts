@@ -907,14 +907,27 @@ export class ArrayBuffer {
         this.arrayOfView.length = newLength;
     }
 
-    public slice(start?: int, end?: int) {
+    public slice(start = 0, end = this.arrayOfView.length) {
+        if (start < 0 && -this.arrayOfView.length <= start) start += this.arrayOfView.length;
+        if (start < -this.arrayOfView.length) start = 0;
+        if (start >= this.arrayOfView.length) {
+            start = 0;
+            end = 0;
+        }
+
+        if (-this.arrayOfView.length <= end && end < 0) end += this.arrayOfView.length;
+        if (end < -this.arrayOfView.length) end = 0;
+        if (end >= this.arrayOfView.length) end = this.arrayOfView.length;
+        if (start >= end) end = start; 
+
         const newArrayBuffer = new ArrayBuffer(0);
         newArrayBuffer.states = this.states | States.NonResizable;
         newArrayBuffer.maxByteLength = this.maxByteLength;
-        newArrayBuffer.arrayOfView = this.arrayOfView.view(start || 0, end || this.arrayOfView.length);
+        newArrayBuffer.arrayOfView = this.arrayOfView.view(start, end);
         return newArrayBuffer;
     }
 
+    // TODO: newByteLength is not used
     public transfer(newByteLength?: int) {
         const newArrayBuffer = new ArrayBuffer(0);
         newArrayBuffer.states = this.states;
