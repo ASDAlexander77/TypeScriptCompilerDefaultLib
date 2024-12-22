@@ -33,11 +33,21 @@ if "%TSC_LIB_PATH%"=="" (
 	set TSC_LIB_PATH=%BUILD_PATH%\tsc\windows-msbuild-%BUILD%\lib
 )
 
+if "%VSWHERE_PATH%"=="" (
+	set VSWHERE_PATH="vswhere"
+}
+
 rd /S /Q dll\%BUILD%
 rd /S /Q lib\%BUILD%
 
 md dll\%BUILD%
 md lib\%BUILD%
+
+for /f "usebackq tokens=*" %%i in (`%VSWHERE_PATH% -legacy -latest -property installationPath`) do (
+  set VSPATH="%%i\Common7\Tools\VsDevCmd.bat"
+)
+
+call %VSPATH%
 
 rem Build OS-specific Lib
 %TOOL_PATH%\tsc.exe %DBG% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.win32.ts -o %OUTPUT%\lib\%BUILD%\lib.win32.obj
@@ -50,11 +60,6 @@ rem Build Lib
 rem %TOOL_PATH%\tsc.exe %DBG% --emit=llvm --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.ll
 rem %TOOL_PATH%\tsc.exe %DBG% --emit=mlir --export=none %SRC%\src\lib.ts 2> %OUTPUT%\lib\%BUILD%\lib.mlir
 
-for /f "usebackq tokens=*" %%i in (`vswhere -legacy -latest -property installationPath`) do (
-  set VSPATH="%%i\Common7\Tools\VsDevCmd.bat"
-)
-
-call %VSPATH%
 lib.exe /out:%OUTPUT%\lib\%BUILD%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\lib.obj %OUTPUT%\lib\%BUILD%\lib.win32.obj
 
 del %OUTPUT%\lib\%BUILD%\lib.obj
