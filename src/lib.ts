@@ -4,6 +4,8 @@
 /// <reference path="core/core.ts" />
 /// <reference path="generics/lib.generics.ts" />
 
+// @strict-null false
+
 export function parseInt(val: string, radix = 10) {
     return strtol(val, null, radix);
 }
