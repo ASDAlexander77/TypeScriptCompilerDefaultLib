@@ -1,5 +1,7 @@
 rem call clean.bat
 
+echo off
+
 set BUILD=debug
 set BUILD1=Debug
 set LLVM_BUILD=Debug
@@ -49,6 +51,8 @@ for /f "usebackq tokens=*" %%i in (`%VSWHERE_PATH% -legacy -latest -property ins
 
 call %VSPATH%
 
+echo on
+
 rem Build OS-specific Lib
 %TOOL_PATH%\tsc.exe %DBG% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.win32.ts -o %OUTPUT%\lib\%BUILD%\lib.win32.obj
 
@@ -62,12 +66,17 @@ rem %TOOL_PATH%\tsc.exe %DBG% --emit=mlir --export=none %SRC%\src\lib.ts 2> %OUT
 
 lib.exe /out:%OUTPUT%\lib\%BUILD%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\lib.obj %OUTPUT%\lib\%BUILD%\lib.win32.obj
 
+echo off
+
 del %OUTPUT%\lib\%BUILD%\lib.obj
 del %OUTPUT%\lib\%BUILD%\lib.win32.obj
 
 set BUILD_LIB_PATH=.\__build\%BUILD%\defaultlib
 rd /S /Q %BUILD_LIB_PATH%
 md %BUILD_LIB_PATH%
+
+echo on
+
 xcopy %SRC%\dll\%BUILD% %BUILD_LIB_PATH%\dll /h /i /c /k /e /r /y
 xcopy %SRC%\lib\%BUILD% %BUILD_LIB_PATH%\lib /h /i /c /k /e /r /y
 xcopy %SRC%\src\*.d.ts %BUILD_LIB_PATH% /h /c /k /e /r /y
