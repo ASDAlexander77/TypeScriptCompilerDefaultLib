@@ -46,7 +46,7 @@ md dll\%BUILD%
 md lib\%BUILD%
 
 for /f "usebackq tokens=*" %%i in (`%VSWHERE_PATH% -legacy -latest -property installationPath`) do (
-  set VSPATH="%%i\Common7\Tools\VsDevCmd.bat"
+  set VSPATH="%%i\VC\Auxiliary\Build\vcvars64.bat"
 )
 
 call %VSPATH%
