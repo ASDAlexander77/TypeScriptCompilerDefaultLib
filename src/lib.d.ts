@@ -113,8 +113,13 @@ declare class BigInt {
     valueOf();
 }
 
-declare class RegExp
-{
+declare class Date {
+    private timestamp: long;
+    
+    constructor (value?: long);
+}
+
+declare class RegExp {
     private expr: string;
 
     constructor(expr: string);
