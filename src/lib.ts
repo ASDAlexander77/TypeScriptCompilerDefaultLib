@@ -22,16 +22,46 @@ export function isFinite(val: number): boolean {
     return !isNaN(val) && val != Number.POSITIVE_INFINITY && val != Number.NEGATIVE_INFINITY;
 }
 
+namespace __Boolean {
+    function toString(this: boolean) {
+        return <string>this;
+    }    
+}
+
 export class Boolean {
     public constructor(private value: boolean) {
     }
 
     public toString() {
-        return <string>this.value;
+        return this.value.toString();
     }
 
     public valueOf() {
         return this.value;
+    }
+}
+
+namespace __Number {
+
+    function toExponential(this: number, fractionDigits = 0) {
+        return convertNum(50, `%.${fractionDigits}e`, this);
+    }
+
+    function toFixed(this: number, digits = 0) {
+        return convertNum(50, `%.${digits}f`, this);
+    }
+
+    function toPrecision(this: number, precision = 0) {
+        return convertNum(50, `%.${precision}g`, this);
+    }
+
+    function toString(this: number, radix = 10) {
+        switch (radix) {
+            case 16:
+                return convertNum(50, "%a", this);
+            default:
+                return <string>this;
+        }
     }
 }
 
@@ -94,24 +124,19 @@ export class Number {
     }
 
     public toExponential(fractionDigits = 0) {
-        return convertNum(50, `%.${fractionDigits}e`, this.value);
+        return this.value.toExponential(fractionDigits);
     }
 
     public toFixed(digits = 0) {
-        return convertNum(50, `%.${digits}f`, this.value);
+        return this.value.toFixed(digits);
     }
 
     public toPrecision(precision = 0) {
-        return convertNum(50, `%.${precision}g`, this.value);
+        return this.value.toPrecision(precision);
     }
 
     public toString(radix = 10) {
-        switch (radix) {
-            case 16:
-                return convertNum(50, "%a", this.value);
-            default:
-                return <string>this.value;
-        }
+        this.value.toString(radix);
     }
 
     public valueOf() {
