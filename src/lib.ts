@@ -144,6 +144,35 @@ export class Number {
     }
 }
 
+namespace __BigInt {
+    
+    function toLocaleString(this: bigint, locale = "") {
+        setlocale (LC_COLLATE, locale);        
+        return convertNum(50, "%a", this);
+    }  
+
+    function toString(this: bigint) {
+        return <string>this;
+    }    
+}
+
+export class BigInt {
+    public constructor(private value: bigint) {
+    }
+
+    public toLocaleString(locale = "") {
+        return this.value.toLocaleString(locale);
+    }
+
+    public toString() {
+        return this.value.toString();
+    }
+
+    public valueOf() {
+        return this.value;
+    }    
+}
+
 export class RegExp
 {
     public constructor(private expr: string) {
@@ -981,6 +1010,42 @@ export class ArrayBuffer {
         }
     }
 }
+
+class Int8Array extends TypedArray<s8> {    
+};
+
+class Uint8Array extends TypedArray<u8> {    
+};
+
+class Int16Array extends TypedArray<s16> {    
+};
+
+class Uint16Array extends TypedArray<u16> {    
+};
+
+class Int32Array extends TypedArray<s32> {    
+};
+
+class Uint32Array extends TypedArray<u32> {    
+};
+
+class BigInt64Array extends TypedArray<s64> {    
+};
+
+class BigUint64Array extends TypedArray<u64> {    
+};
+
+class Float16Array extends TypedArray<f16> {    
+};
+
+class Float32Array extends TypedArray<f32> {    
+};
+
+class Float64Array extends TypedArray<f64> {    
+};
+
+class Float128Array extends TypedArray<f128> {    
+};
 
 export static class console {
     public assert(condition?: boolean, ...data: string[]): void {

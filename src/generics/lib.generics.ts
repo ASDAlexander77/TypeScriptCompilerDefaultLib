@@ -1,34 +1,3 @@
-function __as<T>(a: any) : T
-{
-    if (typeof a == 'number') return a;
-    if (typeof a == 'string') return a;
-    if (typeof a == 'boolean') return a;
-    if (typeof a == 'class') if (a instanceof T) return a;
-    if (typeof a == 'interface') if (a instanceof T) return a;
-    if (typeof a == 'object') return a;
-    if (typeof a == 'array') return a;
-    if (typeof a == 'f32') return a;
-    if (typeof a == 'i32') return a;
-    if (typeof a == 's32') return a;
-    if (typeof a == 'u32') return a;
-    if (typeof a == 'bigint') return a;
-    if (typeof a == 'f64') return a;
-    if (typeof a == 'i64') return a;
-    if (typeof a == 's64') return a;
-    if (typeof a == 'u64') return a;
-    if (typeof a == 'char') return a;
-    if (typeof a == 'index') return a;
-    if (typeof a == 'f128') return a;
-    if (typeof a == 'f16') return a;
-    if (typeof a == 'i16') return a;
-    if (typeof a == 's16') return a;
-    if (typeof a == 'u16') return a;
-    if (typeof a == 'i8') return a;
-    if (typeof a == 's8') return a;
-    if (typeof a == 'u8') return a;
-    return null;
-}
-
 function __is<V extends T, T>(t: T): t is V
 {
     return true;
@@ -73,6 +42,24 @@ namespace __Array {
 
         memmove(ReferenceOf(this[target]), ReferenceOf(this[start]), sizeof<T>() * (end - start));
         return this;
+    }
+
+    // to prevent cycling initialization of T[][] as Array<Array<....>> which causes inf. cycle
+    function concat<T>(this: T[], ...other: T[][]) {
+        let count = this.length;
+        for (const item of other)
+            count += item.length;
+        let newArray : T[] = [];
+        newArray.length = count;
+        let index = 0;
+        memcpy(ReferenceOf(newArray[index]), ReferenceOf(this[0]), sizeof<T>() * this.length);
+        index += this.length;
+        for (const item of other) {
+            memcpy(ReferenceOf(newArray[index]), ReferenceOf(item[0]), sizeof<T>() * item.length);
+            index += item.length;
+        }
+
+        return newArray;
     }
 
     function *entries<T>(this: T[]) {
@@ -433,6 +420,10 @@ class Array<T> {
         return this.data.copyWithin(target, start, end);
     }
 
+    public concat(...other: T[][]) {
+        return this.data.concat(...other);
+    }
+
     public entries() {
         return this.data.entries();
     }
@@ -546,26 +537,6 @@ class Array<T> {
     }
 }
 
-namespace __Array {
-    // to prevent cycling initialization of T[][] as Array<Array<....>> which causes inf. cycle
-    function concat<T>(this: T[], ...other: T[][]) {
-        let count = this.length;
-        for (const item of other)
-            count += item.length;
-        let newArray : T[] = [];
-        newArray.length = count;
-        let index = 0;
-        memcpy(ReferenceOf(newArray[index]), ReferenceOf(this[0]), sizeof<T>() * this.length);
-        index += this.length;
-        for (const item of other) {
-            memcpy(ReferenceOf(newArray[index]), ReferenceOf(item[0]), sizeof<T>() * item.length);
-            index += item.length;
-        }
-
-        return newArray;
-    }
-}
-
 static class Array {
     public of(...arg) {
         return arg;
@@ -575,3 +546,6 @@ static class Array {
         return [...arrayLike];
     }       
 }
+
+class TypedArray<T> extends Array<T> {    
+};

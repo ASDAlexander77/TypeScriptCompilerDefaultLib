@@ -11,6 +11,10 @@ declare function isNaN(val: number): boolean;
 
 declare function isFinite(val: number): boolean;
 
+declare namespace __Boolean {
+    function toString(this: boolean): string;
+}
+
 declare class Boolean {
     private value: boolean;
 
@@ -19,6 +23,17 @@ declare class Boolean {
     toString(): string;
 
     valueOf(): boolean;
+}
+
+declare namespace __Number {
+
+    function toExponential(this: number, fractionDigits?: int): string;
+
+    function toFixed(this: number, digits?: int): string;
+
+    function toPrecision(this: number, precision?: int): string;
+
+    function toString(this: number, radix?: int): string;
 }
 
 declare class Number {
@@ -77,6 +92,25 @@ declare class Number {
     toString(radix?: int): string;
 
     valueOf(): number;
+}
+
+declare namespace __BigInt {
+    
+    function toLocaleString(this: bigint, locale?: string);
+
+    function toString(this: bigint);
+}
+
+declare class BigInt {
+    private value: bigint;
+
+    constructor(value: bigint);
+
+    toLocaleString(locale?: string);
+
+    toString();
+
+    valueOf();
 }
 
 declare class RegExp
