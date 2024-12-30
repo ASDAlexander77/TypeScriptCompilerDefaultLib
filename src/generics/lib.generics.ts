@@ -1,3 +1,19 @@
+type Record<K extends string | number | symbol, T> = { [P in K]: T; };
+type Partial<T> = { [P in keyof T]?: T[P] | undefined; }
+type Required<T> = { [P in keyof T]-?: T[P]; }
+type Readonly<T> = { readonly [P in keyof T]: T[P]; }
+type Pick<T, K extends keyof T> = { [P in K]: T[P]; }
+type Omit<T, K extends string | number | symbol> = { [P in Exclude<keyof T, K>]: T[P]; }
+type Exclude<T, U> = T extends U ? never : T;
+type Extract<T, U> = T extends U ? T : never;
+type NonNullable<T> = T & {};
+type Parameters<T extends (...args: any) => any> = T extends (...args: infer P) => any ? P : never;
+type ReturnType<T extends (...args: any) => any> = T extends (...args: any) => infer R ? R : any;
+type ConstructorParameters<T extends abstract new (...args: any) => any> = T extends abstract new (...args: infer P) => any ? P : never;
+type InstanceType<T extends abstract new (...args: any) => any> = T extends abstract new (...args: any) => infer R ? R : any;
+type ThisParameterType<T> = T extends (this: infer U, ...args: never) => any ? U : unknown
+type OmitThisParameterType<T> = T extends (this: never, ...args: infer A) => infer R ? (...args: A) => R : T;
+
 function __is<V extends T, T>(t: T): t is V
 {
     return true;
