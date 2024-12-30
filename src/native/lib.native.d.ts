@@ -2,7 +2,7 @@
 declare function write(fileNo: int, s: string, count: int);
 
 // Time
-declare function time(destTime: Reference<int>);
+declare function time(destTime: Reference<long>);
 
 // String
 declare function strtol(str: string, end: Reference<string>, base: int): int;

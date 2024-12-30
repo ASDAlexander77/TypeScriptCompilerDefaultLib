@@ -173,6 +173,21 @@ export class BigInt {
     }    
 }
 
+export class Date {
+    //private datetime: [tm_sec: int, tm_min: int, tm_hour: int, tm_mday: int, tm_mon: int, tm_year: int, tm_wday: int, tm_yday: int, tm_isdst: int];
+    private timestamp: long;
+    constructor (value?: long) {
+        if (value != undefined)
+        {
+            this.timestamp = value;
+        }
+        else
+        {
+            time(this.timestamp);
+        }
+    }
+}
+
 export class RegExp
 {
     public constructor(private expr: string) {
@@ -765,7 +780,7 @@ export static class Math {
     public SQRT2 = 1.4142135623730951;
 
     constructor() {
-        let ltime = 0;
+        let ltime: long = 0;
         time(ltime);
         srand(ltime);
     }
