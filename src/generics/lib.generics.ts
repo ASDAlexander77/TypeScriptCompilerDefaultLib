@@ -420,6 +420,16 @@ class Array<T> {
         this.data[index] = value;
     }
 
+    public push(...args: T[]): int {
+        for (const v of args)
+            this.data.push(v);
+        return this.data.length;
+    }
+
+    public pop(): T {
+        return this.data.pop();
+    }
+
     public get length() {
         return this.data.length;
     }
