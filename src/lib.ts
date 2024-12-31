@@ -1026,41 +1026,41 @@ export class ArrayBuffer {
     }
 }
 
-// class Int8Array extends TypedArray<s8> {    
-// };
+class Int8Array extends TypedArray<s8> {    
+};
 
-// class Uint8Array extends TypedArray<u8> {    
-// };
+class Uint8Array extends TypedArray<u8> {    
+};
 
-// class Int16Array extends TypedArray<s16> {    
-// };
+class Int16Array extends TypedArray<s16> {    
+};
 
-// class Uint16Array extends TypedArray<u16> {    
-// };
+class Uint16Array extends TypedArray<u16> {    
+};
 
-// class Int32Array extends TypedArray<s32> {    
-// };
+class Int32Array extends TypedArray<s32> {    
+};
 
-// class Uint32Array extends TypedArray<u32> {    
-// };
+class Uint32Array extends TypedArray<u32> {    
+};
 
-// class BigInt64Array extends TypedArray<s64> {    
-// };
+class BigInt64Array extends TypedArray<s64> {    
+};
 
-// class BigUint64Array extends TypedArray<u64> {    
-// };
+class BigUint64Array extends TypedArray<u64> {    
+};
 
-// class Float16Array extends TypedArray<f16> {    
-// };
+//class Float16Array extends TypedArray<f16> {    
+//};
 
-// class Float32Array extends TypedArray<f32> {    
-// };
+class Float32Array extends TypedArray<f32> {    
+};
 
-// class Float64Array extends TypedArray<f64> {    
-// };
+class Float64Array extends TypedArray<f64> {    
+};
 
-// class Float128Array extends TypedArray<f128> {    
-// };
+//class Float128Array extends TypedArray<f128> {    
+//};
 
 export static class console {
     public assert(condition?: boolean, ...data: string[]): void {

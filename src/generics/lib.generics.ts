@@ -461,7 +461,7 @@ class Array<T> {
     }
 
     public *filter2(func: (v: T) => boolean) {
-        this.data.filter2(func);
+        return this.data.filter2(func);
     }
 
     public find(func: (v: T) => boolean) {
