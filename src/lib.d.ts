@@ -414,7 +414,7 @@ declare class Array<T> {
 
     filter(func: (v: T) => boolean): T[];
 
-    *filter2(func: (v: T) => boolean): Iterator<T>;
+    filter2(func: (v: T) => boolean): Iterator<T>;
 
     find(func: (v: T) => boolean): T | undefined;
 
