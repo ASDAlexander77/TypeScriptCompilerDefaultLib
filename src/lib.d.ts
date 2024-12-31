@@ -382,7 +382,7 @@ declare static class Math {
     tan(x: number): number;    
 }
 
-declare class Array<T> {
+declare class ArrayDecl<T> {
 
     private data: T[];
 
@@ -461,47 +461,47 @@ declare class Array<T> {
     _with(index: int, value: T): T[];
 }
 
-declare class TypedArray<T> extends Array<T> {    
+declare class TypedArrayDecl<T> extends ArrayDecl<T> {    
     constructor(data?: T[]);
 }
 
-declare class Int8Array extends TypedArray<s8> {   
+declare class Int8Array extends TypedArrayDecl<s8> {   
     constructor(data?: s8[]);
 }
 
-declare class Uint8Array extends TypedArray<u8> {    
+declare class Uint8Array extends TypedArrayDecl<u8> {    
     constructor(data?: u8[]);
 }
 
-declare class Int16Array extends TypedArray<s16> {    
+declare class Int16Array extends TypedArrayDecl<s16> {    
     constructor(data?: s16[]);
 }
 
-declare class Uint16Array extends TypedArray<u16> {    
+declare class Uint16Array extends TypedArrayDecl<u16> {    
     constructor(data?: u16[]);
 }
 
-declare class Int32Array extends TypedArray<s32> {    
+declare class Int32Array extends TypedArrayDecl<s32> {    
     constructor(data?: s32[]);
 }
 
-declare class Uint32Array extends TypedArray<u32> {    
+declare class Uint32Array extends TypedArrayDecl<u32> {    
     constructor(data?: u32[]);
 }
 
-declare class BigInt64Array extends TypedArray<s64> {    
+declare class BigInt64Array extends TypedArrayDecl<s64> {    
     constructor(data?: s64[]);
 }
 
-declare class BigUint64Array extends TypedArray<u64> {    
+declare class BigUint64Array extends TypedArrayDecl<u64> {    
     constructor(data?: u64[]);
 }
 
-declare class Float32Array extends TypedArray<f32> {    
+declare class Float32Array extends TypedArrayDecl<f32> {    
     constructor(data?: f32[]);
 }
 
-declare class Float64Array extends TypedArray<f64> {    
+declare class Float64Array extends TypedArrayDecl<f64> {    
     constructor(data?: f64[]);
 }
 
