@@ -564,4 +564,7 @@ static class Array {
 }
 
 class TypedArray<T> extends Array<T> {    
+    constructor(data: T[] = []) {
+        super(data);
+    }    
 };

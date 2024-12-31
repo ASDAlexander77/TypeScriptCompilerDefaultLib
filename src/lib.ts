@@ -1026,41 +1026,65 @@ export class ArrayBuffer {
     }
 }
 
-class Int8Array extends TypedArray<s8> {    
+class Int8Array extends TypedArray<s8> {   
+    constructor(data: s8[] = []) {
+        super(data);
+    }         
 };
 
 class Uint8Array extends TypedArray<u8> {    
+    constructor(data: u8[] = []) {
+        super(data);
+    }         
 };
 
 class Int16Array extends TypedArray<s16> {    
+    constructor(data: s16[] = []) {
+        super(data);
+    }         
 };
 
 class Uint16Array extends TypedArray<u16> {    
+    constructor(data: u16[] = []) {
+        super(data);
+    }         
 };
 
 class Int32Array extends TypedArray<s32> {    
+    constructor(data: s32[] = []) {
+        super(data);
+    }         
 };
 
 class Uint32Array extends TypedArray<u32> {    
+    constructor(data: u32[] = []) {
+        super(data);
+    }         
 };
 
 class BigInt64Array extends TypedArray<s64> {    
+    constructor(data: s64[] = []) {
+        super(data);
+    }         
 };
 
 class BigUint64Array extends TypedArray<u64> {    
+    constructor(data: u64[] = []) {
+        super(data);
+    }         
 };
 
-//class Float16Array extends TypedArray<f16> {    
-//};
-
 class Float32Array extends TypedArray<f32> {    
+    constructor(data: f32[] = []) {
+        super(data);
+    }         
 };
 
 class Float64Array extends TypedArray<f64> {    
+    constructor(data: f64[] = []) {
+        super(data);
+    }         
 };
-
-//class Float128Array extends TypedArray<f128> {    
-//};
 
 export static class console {
     public assert(condition?: boolean, ...data: string[]): void {
