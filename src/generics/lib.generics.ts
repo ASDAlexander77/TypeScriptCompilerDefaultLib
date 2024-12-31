@@ -568,3 +568,23 @@ class TypedArray<T> extends Array<T> {
         super(data);
     }    
 };
+
+type Int8Array = TypedArray<s8>;
+
+type Uint8Array = TypedArray<u8>;
+
+type Int16Array = TypedArray<s16>;
+
+type Uint16Array = TypedArray<u16>;
+
+type Int32Array = TypedArray<s32>;
+
+type Uint32Array = TypedArray<u32>;
+
+type BigInt64Array = TypedArray<s64>;
+
+type BigUint64Array = TypedArray<u64>;
+
+type Float32Array = TypedArray<f32>;
+
+type Float64Array = TypedArray<f64>;
