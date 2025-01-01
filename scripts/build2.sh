@@ -1,11 +1,13 @@
 #!/bin/bash
 
+TOOL_BUILD=release
 BUILD=debug
 PIC=
 TOOL=gcc
 ARC=ar
 
 if [ "$1" == "release" ] ; then
+	TOOL_BUILD=release
 	BUILD=release
 fi
 
@@ -24,7 +26,7 @@ OUTPUT=.
 if [ -z "${TOOL_PATH}" ]; then
 	ROOT=..
 	BUILD_PATH=$ROOT/TypeScriptCompiler/__build
-	BIN_PATH=$BUILD_PATH/tsc/linux-ninja-$TOOL-$BUILD/bin
+	BIN_PATH=$BUILD_PATH/tsc/linux-ninja-$TOOL-$TOOL_BUILD/bin
 else
 	BUILD_PATH=$TOOL_PATH
 	BIN_PATH=$TOOL_PATH

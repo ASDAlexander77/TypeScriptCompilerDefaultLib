@@ -81,50 +81,6 @@
                 "kind": "build",
                 "isDefault": true
             }
-        },
-        {
-            "label": "build EXE (Debug)",
-            "command": "I:\\TypeScriptCompiler\\__build\\tsc\\windows-msbuild-debug\\bin\\tsc",
-            "type": "shell",
-            "args": [
-                "--gc-lib-path=I:\\TypeScriptCompiler\\3rdParty\\gc\\x64\\debug",
-                "--llvm-lib-path=I:\\TypeScriptCompiler\\3rdParty\\llvm\\x64\\debug\\lib",
-                "--tsc-lib-path=I:\\TypeScriptCompiler\\__build\\tsc\\windows-msbuild-debug\\lib",
-                "--default-lib-path=I:\\TypeScriptCompilerDefaultLib\\__build\\debug",
-                "--di",
-                "--opt_level=0",
-                "--emit=exe",
-                "${file}"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": false
-            },
-            "presentation": {
-                "reveal": "silent"
-            },
-            "problemMatcher":             
-            {
-                "fileLocation": ["relative", "${workspaceFolder}"],                
-                "pattern": [
-                    {
-                        "regexp": "^([^\\s].*)\\s+:\\s+(error|warning|info)\\s+([^\\s].*):\\s+(.*)$",
-                        "file": 1,
-                        "severity": 2,
-                        "code": 3,
-                        "message": 4
-                    },
-                    {
-                        "regexp": "^\\s+(\\d+):(\\d+)\\s+(error|warning|info)\\s+(.*)\\s\\s+(.*)$",
-                        "line": 1,
-                        "column": 2,
-                        "severity": 3,
-                        "message": 4,
-                        "code": 5,
-                        "loop": true
-                    }
-                ]
-            }
-        },        
+        },       
     ]
 }

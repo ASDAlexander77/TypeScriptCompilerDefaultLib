@@ -2,6 +2,7 @@ rem call clean.bat
 
 echo off
 
+set TOOL_BUILD=release
 set BUILD=debug
 set BUILD1=Debug
 set LLVM_BUILD=Debug
@@ -9,6 +10,7 @@ set ARCH=x64
 set DBG=--di
 
 if "%1"=="release" (
+	set TOOL_BUILD=release
 	set BUILD=release
 	set BUILD1=release
 	set LLVM_BUILD=Release
@@ -20,7 +22,7 @@ set OUTPUT=.
 
 if "%TOOL_PATH%"=="" (
 	set BUILD_PATH=..\TypeScriptCompiler\__build
-	set TOOL_PATH=..\TypeScriptCompiler\__build\tsc\windows-msbuild-%BUILD%\bin
+	set TOOL_PATH=..\TypeScriptCompiler\__build\tsc\windows-msbuild-%TOOL_BUILD%\bin
 ) else (
 	set BUILD_PATH=%TOOL_PATH%
 )
