@@ -13,6 +13,11 @@ export function convertNum(bufferSize: int, format: string, value: number): stri
     return s;
 }
 
+declare function _tzset();
+export function init_time() {
+    _tzset();
+}
+
 type timeval64 = [tv_sec: i64, tv_usec: i32];
 declare function _timespec64_get(tv: Reference<timeval64>, base: int): int;
 
@@ -24,10 +29,10 @@ export function getMilliseconds(): i64 {
 }
 
 type tm = [tm_sec: i32, tm_min: i32, tm_hour: i32, tm_mday: i32, tm_mon: i32, tm_year: i32, tm_wday: i32, tm_yday: i32, tm_isdst: i32];
-declare function _mktime64(tv: Reference<tm>): long;
-export function maketime(year: i32, month: i32, day: i32, hour: i32, minutes: i32, seconds: i32, milliseconds: i32): i64 {
+declare function _mkgmtime64(tv: Reference<tm>): long;
+export function makegmtime(year: i32, month: i32, day: i32, hour: i32, minutes: i32, seconds: i32, milliseconds: i32): i64 {
     let tm1: tm = [seconds, minutes, hour, day, month, year - 1900, 0, 0, 0];
-    const sec = _mktime64(ReferenceOf(tm1));
+    const sec = _mkgmtime64(ReferenceOf(tm1));
     if (sec == -1)
     {
         // error
@@ -53,4 +58,11 @@ export function localtime(time: long): tm {
     if (tmRef == null)
         return [0, 0, 0, 0, 0, 0, 0, 0, 0];
     return LoadReference(tmRef); // return ms
+}
+
+declare function _get_timezone(time: Reference<i32>): int;
+export function timezone(): i32 {
+    let time = 0;
+    const error = _get_timezone(ReferenceOf(time));
+    return time;
 }

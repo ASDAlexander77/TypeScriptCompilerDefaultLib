@@ -1,6 +1,8 @@
 /dll
 /lib
 /__build
+/node_modules
+/tsconfig.json
 *.exe
 *.ilk
 *.exp

@@ -186,12 +186,16 @@ export class Date {
         }
     }
 
+    static {
+        init_time();
+    }
+
     static now(): long {
         return getMilliseconds();
     }
 
     static UTC(year: i32, monthIndex = 0, day = 1, hours = 0, minutes = 0, seconds = 0, milliseconds = 0): long {
-        return maketime(year, monthIndex, day, hours, minutes, seconds, milliseconds);
+        return makegmtime(year, monthIndex, day, hours, minutes, seconds, milliseconds);
     }
 
     getDate(): i32 {
@@ -233,6 +237,10 @@ export class Date {
     getTime(): long {
         return this.timestamp;
     } 
+
+    getTimezoneOffset(): i32 {
+        return timezone();
+    }
     
     getUTCDate(): i32 {
         return gmtime(this.timestamp).tm_mday;

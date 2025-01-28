@@ -142,6 +142,8 @@ declare class Date {
 
     getTime(): long;
 
+    getTimezoneOffset(): i32;
+
     getUTCDate(): i32;
 
     getUTCDay(): i32;
