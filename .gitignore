@@ -1,6 +1,8 @@
 /dll
 /lib
 /__build
-/tests/*.exe
-/tests/*.ilk
-/tests/*.pdb
+*.exe
+*.ilk
+*.exp
+*.lib
+*.pdb

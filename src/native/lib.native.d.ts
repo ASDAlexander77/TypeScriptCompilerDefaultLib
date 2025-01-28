@@ -1,7 +1,7 @@
 // IO
 declare function write(fileNo: int, s: string, count: int);
 
-// Time
+// Time (in seconds)
 declare function time(destTime: Reference<long>);
 
 // String
