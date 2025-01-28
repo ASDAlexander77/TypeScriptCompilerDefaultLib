@@ -195,8 +195,20 @@ export class Date {
     }
 
     getDate(): i32 {
-        return gmtime(this.timestamp).tm_yday;
+        return gmtime(this.timestamp).tm_mday;
     }
+
+    getDay(): i32 {
+        return gmtime(this.timestamp).tm_wday;
+    }    
+
+    getFullYear(): i32 {
+        return gmtime(this.timestamp).tm_year + 1900;
+    }
+
+    getHours(): i32 {
+        return gmtime(this.timestamp).tm_hour;
+    }    
 }
 
 export class RegExp

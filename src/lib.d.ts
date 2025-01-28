@@ -123,6 +123,12 @@ declare class Date {
     static UTC(year: i32, monthIndex?: i32, day?: i32, hours?: i32, minutes?: i32, seconds?: i32, milliseconds?: i32): long;
 
     getDate(): i32;
+
+    getDay(): i32;
+
+    getFullYear(): i32;
+
+    getHours(): i32;
 }
 
 declare class RegExp {
