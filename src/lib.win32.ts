@@ -46,3 +46,11 @@ export function gmtime(time: long): tm {
     return LoadReference(tmRef); // return ms
 }
 
+declare function _localtime64(time: Reference<long>) : Reference<tm>;
+export function localtime(time: long): tm {
+    let timeInSec: long = time / 1000;
+    const tmRef = _localtime64(ReferenceOf(timeInSec));
+    if (tmRef == null)
+        return [0, 0, 0, 0, 0, 0, 0, 0, 0];
+    return LoadReference(tmRef); // return ms
+}

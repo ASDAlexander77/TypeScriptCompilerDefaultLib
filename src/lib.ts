@@ -195,19 +195,19 @@ export class Date {
     }
 
     getDate(): i32 {
-        return gmtime(this.timestamp).tm_mday;
+        return localtime(this.timestamp).tm_mday;
     }
 
     getDay(): i32 {
-        return gmtime(this.timestamp).tm_wday;
+        return localtime(this.timestamp).tm_wday;
     }    
 
     getFullYear(): i32 {
-        return gmtime(this.timestamp).tm_year + 1900;
+        return localtime(this.timestamp).tm_year + 1900;
     }
 
     getHours(): i32 {
-        return gmtime(this.timestamp).tm_hour;
+        return localtime(this.timestamp).tm_hour;
     }    
 
     getMilliseconds(): i32 {
@@ -219,8 +219,56 @@ export class Date {
     }
 
     getMinutes(): i32 {
+        return localtime(this.timestamp).tm_min;
+    }     
+
+    getMonth(): i32 {
+        return localtime(this.timestamp).tm_mon;
+    }     
+
+    getSeconds(): i32 {
+        return localtime(this.timestamp).tm_sec;
+    }      
+
+    getTime(): long {
+        return this.timestamp;
+    } 
+    
+    getUTCDate(): i32 {
+        return gmtime(this.timestamp).tm_mday;
+    }
+
+    getUTCDay(): i32 {
+        return gmtime(this.timestamp).tm_wday;
+    }    
+
+    getUTCFullYear(): i32 {
+        return gmtime(this.timestamp).tm_year + 1900;
+    }
+
+    getUTCHours(): i32 {
+        return gmtime(this.timestamp).tm_hour;
+    }    
+
+    getUTCMilliseconds(): i32 {
+        return this.timestamp % 1000;
+    }
+
+    setUTCMilliseconds(ms: i32) {
+        this.timestamp += ms - this.timestamp % 1000;
+    }
+
+    getUTCMinutes(): i32 {
         return gmtime(this.timestamp).tm_min;
     }     
+
+    getUTCMonth(): i32 {
+        return gmtime(this.timestamp).tm_mon;
+    }     
+
+    getUTCSeconds(): i32 {
+        return gmtime(this.timestamp).tm_sec;
+    }      
 }
 
 export class RegExp

@@ -135,6 +135,30 @@ declare class Date {
     setMilliseconds(ms: i32);
 
     getMinutes(): i32;
+
+    getMonth(): i32;
+
+    getSeconds(): i32;
+
+    getTime(): long;
+
+    getUTCDate(): i32;
+
+    getUTCDay(): i32;
+
+    getUTCFullYear(): i32;
+
+    getUTCHours(): i32;
+
+    getUTCMilliseconds(): i32;
+
+    setUTCMilliseconds(ms: i32);
+
+    getUTCMinutes(): i32;
+
+    getUTCMonth(): i32;
+
+    getUTCSeconds(): i32;
 }
 
 declare class RegExp {
