@@ -209,6 +209,18 @@ export class Date {
     getHours(): i32 {
         return gmtime(this.timestamp).tm_hour;
     }    
+
+    getMilliseconds(): i32 {
+        return this.timestamp % 1000;
+    }
+
+    setMilliseconds(ms: i32) {
+        this.timestamp += ms - this.timestamp % 1000;
+    }
+
+    getMinutes(): i32 {
+        return gmtime(this.timestamp).tm_min;
+    }     
 }
 
 export class RegExp

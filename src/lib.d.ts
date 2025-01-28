@@ -129,6 +129,12 @@ declare class Date {
     getFullYear(): i32;
 
     getHours(): i32;
+
+    getMilliseconds(): i32;
+
+    setMilliseconds(ms: i32);
+
+    getMinutes(): i32;
 }
 
 declare class RegExp {
