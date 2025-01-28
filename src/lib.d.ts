@@ -116,7 +116,7 @@ declare class BigInt {
 declare class Date {
     private timestamp: long;
     
-    constructor (value?: long);
+    constructor (valueOrYear?: long | i32, monthIndex?: i32, day?: i32, hours?: i32, minutes?: i32, seconds?: i32, milliseconds?: i32);
 
     static now(): long;
 
@@ -131,8 +131,6 @@ declare class Date {
     getHours(): i32;
 
     getMilliseconds(): i32;
-
-    setMilliseconds(ms: i32);
 
     getMinutes(): i32;
 
@@ -154,13 +152,46 @@ declare class Date {
 
     getUTCMilliseconds(): i32;
 
-    setUTCMilliseconds(ms: i32);
-
     getUTCMinutes(): i32;
 
     getUTCMonth(): i32;
 
     getUTCSeconds(): i32;
+
+    getYear(): i32;
+
+    setDate(mday: i32);
+
+    setFullYear(year: i32);
+
+    setHours(hours: i32);
+
+    setMilliseconds(ms: i32);
+
+    setMinutes(minutes: i32);
+
+    setMonth(month: i32);
+
+    setSeconds(seconds: i32);
+
+    setTime(time: long);
+
+    setUTCDate(mday: i32);
+
+    setUTCFullYear(year: i32);
+
+    setUTCHours(hours: i32);
+
+    setUTCMilliseconds(ms: i32);
+
+    setUTCMinutes(minutes: i32);
+
+    setUTCMonth(month: i32);
+
+    setUTCSeconds(seconds: i32);
+
+    setYear(year: i32);
+
 }
 
 declare class RegExp {

@@ -13,6 +13,7 @@ export function convertNum(bufferSize: int, format: string, value: number): stri
     return s;
 }
 
+// Date & Time
 declare function _tzset();
 export function init_time() {
     _tzset();
@@ -33,6 +34,19 @@ declare function _mkgmtime64(tv: Reference<tm>): long;
 export function makegmtime(year: i32, month: i32, day: i32, hour: i32, minutes: i32, seconds: i32, milliseconds: i32): i64 {
     let tm1: tm = [seconds, minutes, hour, day, month, year - 1900, 0, 0, 0];
     const sec = _mkgmtime64(ReferenceOf(tm1));
+    if (sec == -1)
+    {
+        // error
+        return sec;
+    }
+
+    return sec * 1000 + milliseconds; // return ms
+}
+
+declare function _mktime64(tv: Reference<tm>): long;
+export function maketime(year: i32, month: i32, day: i32, hour: i32, minutes: i32, seconds: i32, milliseconds: i32): i64 {
+    let tm1: tm = [seconds, minutes, hour, day, month, year - 1900, 0, 0, 0];
+    const sec = _mktime64(ReferenceOf(tm1));
     if (sec == -1)
     {
         // error
