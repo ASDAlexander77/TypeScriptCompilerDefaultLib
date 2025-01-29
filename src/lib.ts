@@ -175,13 +175,13 @@ export class BigInt {
 
 export class Date {
     private timestamp: long;
-    constructor (valueOrYear?: long | i32, monthIndex = 0, day = 1, hours = 0, minutes = 0, seconds = 0, milliseconds = 0) {
+    constructor (valueOrYear?: long | i32, monthIndex?: i32, day = 1, hours = 0, minutes = 0, seconds = 0, milliseconds = 0) {
         if (valueOrYear != undefined)
         {
-            if (typeof valueOrYear == "i64") {
-                this.timestamp = valueOrYear;
-            } else {
+            if (monthIndex != undefined) {
                 this.timestamp = maketime(valueOrYear, monthIndex, day, hours, minutes, seconds, milliseconds); 
+            } else {
+                this.timestamp = valueOrYear;
             }
         }
         else
