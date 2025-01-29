@@ -199,7 +199,7 @@ export class Date {
     }
 
     static UTC(year: i32, monthIndex = 0, day = 1, hours = 0, minutes = 0, seconds = 0, milliseconds = 0): long {
-        return makegmtime(year - 1900, monthIndex, day, hours, minutes, seconds, milliseconds);
+        return makegmtime(year >= 1900 ? year - 1900 : year, monthIndex, day, hours, minutes, seconds, milliseconds);
     }
 
     getDate(): i32 {
@@ -405,6 +405,22 @@ export class Date {
 
     toUTCString() {
         return time_to_string(26, this.timestamp, true);// + time_format(100, "%z", this.timestamp, true);
+    }
+
+    valueOf() {
+        return this.timestamp;
+    }
+
+    [Symbol.toPrimitive](hint: string) : string | number {
+        if (hint === "number") {
+            return <number>this.timestamp;
+        }
+        
+        if (hint === "string") {
+            return this.toString();
+        }
+
+        return this.toString();
     }
 }
 

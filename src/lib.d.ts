@@ -209,6 +209,10 @@ declare class Date {
     toTimeString(): string;
 
     toUTCString(): string;
+
+    valueOf(): long;
+
+    [Symbol.toPrimitive](hint: string) : string | number;
 }
 
 declare class RegExp {
