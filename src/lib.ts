@@ -179,7 +179,7 @@ export class Date {
         if (valueOrYear != undefined)
         {
             if (monthIndex != undefined) {
-                this.timestamp = maketime(valueOrYear, monthIndex, day, hours, minutes, seconds, milliseconds); 
+                this.timestamp = maketime(valueOrYear - 1900, monthIndex, day, hours, minutes, seconds, milliseconds); 
             } else {
                 this.timestamp = valueOrYear;
             }
@@ -199,7 +199,7 @@ export class Date {
     }
 
     static UTC(year: i32, monthIndex = 0, day = 1, hours = 0, minutes = 0, seconds = 0, milliseconds = 0): long {
-        return makegmtime(year, monthIndex, day, hours, minutes, seconds, milliseconds);
+        return makegmtime(year - 1900, monthIndex, day, hours, minutes, seconds, milliseconds);
     }
 
     getDate(): i32 {
@@ -285,7 +285,7 @@ export class Date {
 
     setFullYear(year: i32) {
         let lt = localtime(this.timestamp);
-        this.timestamp = maketime(year, lt.tm_mon, lt.tm_mday, lt.tm_hour, lt.tm_min, lt.tm_sec, this.timestamp % 1000); 
+        this.timestamp = maketime(year - 1900, lt.tm_mon, lt.tm_mday, lt.tm_hour, lt.tm_min, lt.tm_sec, this.timestamp % 1000); 
     }    
 
     setHours(hours: i32) {
@@ -323,7 +323,7 @@ export class Date {
 
     setUTCFullYear(year: i32) {
         let lt = gmtime(this.timestamp);
-        this.timestamp = makegmtime(year, lt.tm_mon, lt.tm_mday, lt.tm_hour, lt.tm_min, lt.tm_sec, this.timestamp % 1000); 
+        this.timestamp = makegmtime(year - 1900, lt.tm_mon, lt.tm_mday, lt.tm_hour, lt.tm_min, lt.tm_sec, this.timestamp % 1000); 
     }    
 
     setUTCHours(hours: i32) {
@@ -352,7 +352,7 @@ export class Date {
 
     setYear(year: i32) {
         let lt = localtime(this.timestamp);
-        this.timestamp = maketime(year + 1900, lt.tm_mon, lt.tm_mday, lt.tm_hour, lt.tm_min, lt.tm_sec, this.timestamp % 1000); 
+        this.timestamp = maketime(year, lt.tm_mon, lt.tm_mday, lt.tm_hour, lt.tm_min, lt.tm_sec, this.timestamp % 1000); 
     }      
 }
 
