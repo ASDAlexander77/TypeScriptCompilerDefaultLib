@@ -116,7 +116,8 @@ export function time_to_string(maxsize: index, time: long, isUtc: boolean): stri
     let buffer : char[] = [];
     buffer.length = maxsize;
     const s = <string> <Opaque> ReferenceOf(buffer[0]);    
-    return asctime_s(s, maxsize, ReferenceOf(tm));
+    const error = asctime_s(s, maxsize, ReferenceOf(tm));
+    return s;
 }
 
 declare function strftime(out: string, maxsize: index, format: string, tm: Reference<tm>): index;

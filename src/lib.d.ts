@@ -200,9 +200,13 @@ declare class Date {
 
     toLocaleDateString(locale?: string): string; 
 
-    toLocaleString(locale?: string): string;
+    toLocaleString(locale?: string, options?: { timeZone?: string }): string;
+
+    toLocaleTimeString(locale?: string, options?: { timeZone?: string }): string;
 
     toString(): string;
+
+    toTimeString(): string;
 
     toUTCString(): string;
 }

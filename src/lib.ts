@@ -362,7 +362,7 @@ export class Date {
     }      
 
     toDateString() {
-        return time_format(100, "%#x", this.timestamp);
+        return time_format(100, "%#x", this.timestamp, false);
     }
 
     toISOString() {
@@ -379,16 +379,32 @@ export class Date {
         return time_format_locale(100, "%#x", this.timestamp, locale, false);
     }
 
-    toLocaleString(locale = "") {
+    toLocaleString(locale = "", options?: { timeZone?: string }) {
+        if (options != undefined && options.timeZone == 'UTC') {
+            return time_format_locale(100, "%#c", this.timestamp, locale, true);
+        }
+        
         return time_format_locale(100, "%#c", this.timestamp, locale, false);
     }    
 
+    toLocaleTimeString(locale = "", options?: { timeZone?: string }) {
+        if (options != undefined && options.timeZone == 'UTC') {
+            return time_format_locale(50, "%X", this.timestamp, locale, true);
+        }
+        
+        return time_format_locale(50, "%X", this.timestamp, locale, false);
+    }    
+
     toString() {
-        return timestamp_to_string(100, this.timestamp);
+        return timestamp_to_string(26, this.timestamp);
     }
 
+    toTimeString() {
+        return time_format(50, "%T %Z", this.timestamp, false);
+    }   
+
     toUTCString() {
-        return time_to_string(100, this.timestamp, true);
+        return time_to_string(26, this.timestamp, true);
     }
 }
 
