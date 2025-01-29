@@ -288,18 +288,20 @@ export class Date {
         this.timestamp = maketime(year - 1900, lt.tm_mon, lt.tm_mday, lt.tm_hour, lt.tm_min, lt.tm_sec, this.timestamp % 1000); 
     }    
 
-    setHours(hours: i32) {
+    setHours(hours: i32, minutes?: i32, seconds?: i32, ms?: i32) {
         let lt = localtime(this.timestamp);
-        this.timestamp = maketime(lt.tm_year, lt.tm_mon, lt.tm_mday, hours, lt.tm_min, lt.tm_sec, this.timestamp % 1000); 
+        this.timestamp = maketime(lt.tm_year, lt.tm_mon, lt.tm_mday, hours, 
+            minutes == undefined ? lt.tm_min : minutes, seconds == undefined ? lt.tm_sec : seconds, ms == undefined ? this.timestamp % 1000 : ms); 
     }        
 
     setMilliseconds(ms: i32) {
         this.timestamp += ms - this.timestamp % 1000;
     }
 
-    setMinutes(minutes: i32) {
+    setMinutes(minutes: i32, seconds?: i32, ms?: i32) {
         let lt = localtime(this.timestamp);
-        this.timestamp = maketime(lt.tm_year, lt.tm_mon, lt.tm_mday, lt.tm_hour, minutes, lt.tm_sec, this.timestamp % 1000); 
+        this.timestamp = maketime(lt.tm_year, lt.tm_mon, lt.tm_mday, lt.tm_hour, minutes, 
+            seconds == undefined ? lt.tm_sec : seconds, ms == undefined ? this.timestamp % 1000 : ms); 
     }        
 
     setMonth(month: i32) {
@@ -307,9 +309,10 @@ export class Date {
         this.timestamp = maketime(lt.tm_year, month, lt.tm_mday, lt.tm_hour, lt.tm_min, lt.tm_sec, this.timestamp % 1000); 
     }        
 
-    setSeconds(seconds: i32) {
+    setSeconds(seconds: i32, ms?: i32) {
         let lt = localtime(this.timestamp);
-        this.timestamp = maketime(lt.tm_year, lt.tm_mon, lt.tm_mday, lt.tm_hour, lt.tm_min, seconds, this.timestamp % 1000); 
+        this.timestamp = maketime(lt.tm_year, lt.tm_mon, lt.tm_mday, lt.tm_hour, lt.tm_min, seconds, 
+            ms == undefined ? this.timestamp % 1000 : ms); 
     }        
 
     setTime(time: long) {
@@ -326,18 +329,20 @@ export class Date {
         this.timestamp = makegmtime(year - 1900, lt.tm_mon, lt.tm_mday, lt.tm_hour, lt.tm_min, lt.tm_sec, this.timestamp % 1000); 
     }    
 
-    setUTCHours(hours: i32) {
+    setUTCHours(hours: i32, minutes?: i32, seconds?: i32, ms?: i32) {
         let lt = gmtime(this.timestamp);
-        this.timestamp = makegmtime(lt.tm_year, lt.tm_mon, lt.tm_mday, hours, lt.tm_min, lt.tm_sec, this.timestamp % 1000); 
+        this.timestamp = makegmtime(lt.tm_year, lt.tm_mon, lt.tm_mday, hours, 
+            minutes == undefined ? lt.tm_min : minutes, seconds == undefined ? lt.tm_sec : seconds, ms == undefined ? this.timestamp % 1000 : ms); 
     }        
 
     setUTCMilliseconds(ms: i32) {
         this.timestamp += ms - this.timestamp % 1000;
     }
 
-    setUTCMinutes(minutes: i32) {
+    setUTCMinutes(minutes: i32, seconds?: i32, ms?: i32) {
         let lt = gmtime(this.timestamp);
-        this.timestamp = makegmtime(lt.tm_year, lt.tm_mon, lt.tm_mday, lt.tm_hour, minutes, lt.tm_sec, this.timestamp % 1000); 
+        this.timestamp = makegmtime(lt.tm_year, lt.tm_mon, lt.tm_mday, lt.tm_hour, minutes, 
+            seconds == undefined ? lt.tm_sec : seconds, ms == undefined ? this.timestamp % 1000 : ms); 
     }        
 
     setUTCMonth(month: i32) {
@@ -345,15 +350,20 @@ export class Date {
         this.timestamp = makegmtime(lt.tm_year, month, lt.tm_mday, lt.tm_hour, lt.tm_min, lt.tm_sec, this.timestamp % 1000); 
     }        
 
-    setUTCSeconds(seconds: i32) {
+    setUTCSeconds(seconds: i32, ms?: i32) {
         let lt = gmtime(this.timestamp);
-        this.timestamp = makegmtime(lt.tm_year, lt.tm_mon, lt.tm_mday, lt.tm_hour, lt.tm_min, seconds, this.timestamp % 1000); 
+        this.timestamp = makegmtime(lt.tm_year, lt.tm_mon, lt.tm_mday, lt.tm_hour, lt.tm_min, seconds, 
+            ms == undefined ? this.timestamp % 1000 : ms); 
     }        
 
     setYear(year: i32) {
         let lt = localtime(this.timestamp);
         this.timestamp = maketime(year, lt.tm_mon, lt.tm_mday, lt.tm_hour, lt.tm_min, lt.tm_sec, this.timestamp % 1000); 
     }      
+
+    toString() {
+        return time_to_string(this.timestamp);
+    }
 }
 
 export class RegExp

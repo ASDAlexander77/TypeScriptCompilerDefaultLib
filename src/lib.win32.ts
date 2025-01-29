@@ -80,3 +80,13 @@ export function timezone(): i32 {
     const error = _get_timezone(ReferenceOf(time));
     return time;
 }
+
+declare function asctime(time: Reference<tm>): string;
+export function time_to_string(time: long): string | null {
+    let timeInSec: long = time / 1000;
+    const tmRef = _localtime64(ReferenceOf(timeInSec));
+    if (tmRef == null)
+        return null;
+    return asctime(tmRef);
+}
+

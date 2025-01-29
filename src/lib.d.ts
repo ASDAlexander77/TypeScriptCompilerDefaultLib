@@ -96,9 +96,9 @@ declare class Number {
 
 declare namespace __BigInt {
     
-    function toLocaleString(this: bigint, locale?: string);
+    function toLocaleString(this: bigint, locale?: string): string;
 
-    function toString(this: bigint);
+    function toString(this: bigint): string;
 }
 
 declare class BigInt {
@@ -106,11 +106,11 @@ declare class BigInt {
 
     constructor(value: bigint);
 
-    toLocaleString(locale?: string);
+    toLocaleString(locale?: string): string;
 
-    toString();
+    toString(): string;
 
-    valueOf();
+    valueOf(): bigint;
 }
 
 declare class Date {
@@ -164,15 +164,15 @@ declare class Date {
 
     setFullYear(year: i32);
 
-    setHours(hours: i32);
+    setHours(hours: i32, minutes?: i32, seconds?: i32, ms?: i32);
 
     setMilliseconds(ms: i32);
 
-    setMinutes(minutes: i32);
+    setMinutes(minutes: i32, seconds?: i32, ms?: i32);
 
     setMonth(month: i32);
 
-    setSeconds(seconds: i32);
+    setSeconds(seconds: i32, ms?: i32);
 
     setTime(time: long);
 
@@ -180,18 +180,19 @@ declare class Date {
 
     setUTCFullYear(year: i32);
 
-    setUTCHours(hours: i32);
+    setUTCHours(hours: i32, minutes?: i32, seconds?: i32, ms?: i32);
 
     setUTCMilliseconds(ms: i32);
 
-    setUTCMinutes(minutes: i32);
+    setUTCMinutes(minutes: i32, seconds?: i32, ms?: i32);
 
     setUTCMonth(month: i32);
 
-    setUTCSeconds(seconds: i32);
+    setUTCSeconds(seconds: i32, ms?: i32);
 
     setYear(year: i32);
 
+    toString(): string;
 }
 
 declare class RegExp {
