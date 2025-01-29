@@ -396,7 +396,7 @@ export class Date {
     }    
 
     toString() {
-        return timestamp_to_string(26, this.timestamp);
+        return timestamp_to_string(26, this.timestamp);// + time_format(100, "%z", this.timestamp, false);
     }
 
     toTimeString() {
@@ -404,7 +404,7 @@ export class Date {
     }   
 
     toUTCString() {
-        return time_to_string(26, this.timestamp, true);
+        return time_to_string(26, this.timestamp, true);// + time_format(100, "%z", this.timestamp, true);
     }
 }
 

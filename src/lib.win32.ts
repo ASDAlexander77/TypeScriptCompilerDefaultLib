@@ -99,7 +99,7 @@ export function timezone(): i32 {
 }
 
 declare function _ctime64_s(buffer: string, numberOfElements: index, time: Reference<time_t>): string;
-export function timestamp_to_string(maxsize: index, time: long): string | null {
+export function timestamp_to_string(maxsize: index, time: long): string {
     let timeInSec: time_t = time / 1000;
     let buffer : char[] = [];
     buffer.length = maxsize;
@@ -109,8 +109,7 @@ export function timestamp_to_string(maxsize: index, time: long): string | null {
 }
 
 declare function asctime_s(buffer: string, numberOfElements: index, time: Reference<tm>): string;
-export function time_to_string(maxsize: index, time: long, isUtc: boolean): string | null 
-{
+export function time_to_string(maxsize: index, time: long, isUtc: boolean): string {
     let tm = isUtc ? gmtime(time) : localtime(time);
 
     let buffer : char[] = [];
@@ -121,8 +120,7 @@ export function time_to_string(maxsize: index, time: long, isUtc: boolean): stri
 }
 
 declare function strftime(out: string, maxsize: index, format: string, tm: Reference<tm>): index;
-export function time_format(maxsize: index, format: string, time: long, isUtc: boolean): string | null
-{
+export function time_format(maxsize: index, format: string, time: long, isUtc: boolean): string {
     let tm = isUtc ? gmtime(time) : localtime(time);
 
     let buffer : char[] = [];
@@ -133,8 +131,7 @@ export function time_format(maxsize: index, format: string, time: long, isUtc: b
 }
 
 declare function _strftime_l(out: string, maxsize: index, format: string, tm: Reference<tm>, locale: string): index;
-export function time_format_locale(maxsize: index, format: string, time: long, locale: string, isUtc: boolean): string | null
-{
+export function time_format_locale(maxsize: index, format: string, time: long, locale: string, isUtc: boolean): string {
     let tm = isUtc ? gmtime(time) : localtime(time);
 
     const locale_t = _create_locale(LC_TIME, locale);
