@@ -280,7 +280,7 @@ export class Date {
 
     setDate(mday: i32) {
         let lt = localtime(this.timestamp);
-        this.timestamp = maketime(lt.tm_year, lt.tm_mon, mday, lt.tm_hour, lt.tm_min, lt.tm_sec, this.timestamp % 1000); 
+        this.timestamp = maketime(lt.tm_year, lt.tm_mon, mday - 1, lt.tm_hour, lt.tm_min, lt.tm_sec, this.timestamp % 1000); 
     }    
 
     setFullYear(year: i32) {
@@ -318,7 +318,7 @@ export class Date {
 
     setUTCDate(mday: i32) {
         let lt = gmtime(this.timestamp);
-        this.timestamp = makegmtime(lt.tm_year, lt.tm_mon, mday, lt.tm_hour, lt.tm_min, lt.tm_sec, this.timestamp % 1000); 
+        this.timestamp = makegmtime(lt.tm_year, lt.tm_mon, mday - 1, lt.tm_hour, lt.tm_min, lt.tm_sec, this.timestamp % 1000); 
     }    
 
     setUTCFullYear(year: i32) {
