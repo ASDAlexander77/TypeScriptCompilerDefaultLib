@@ -193,6 +193,8 @@ declare class Date {
     setYear(year: i32);
 
     toString(): string;
+
+    toUTCString(): string;
 }
 
 declare class RegExp {

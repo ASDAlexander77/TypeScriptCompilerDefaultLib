@@ -14,3 +14,5 @@ declare function gmtime(time: long): tm;
 declare function timezone(): i32;
 
 declare function time_to_string(time: long): string | null;
+
+declare function time_to_utcstring(time: long): string | null;

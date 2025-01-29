@@ -81,10 +81,16 @@ export function timezone(): i32 {
     return time;
 }
 
-declare function asctime(time: Reference<tm>): string;
+declare function _ctime64(time: Reference<tm>): string;
 export function time_to_string(time: long): string | null {
     let timeInSec: long = time / 1000;
-    const tmRef = _localtime64(ReferenceOf(timeInSec));
+    return _ctime64(ReferenceOf(timeInSec));
+}
+
+declare function asctime(time: Reference<tm>): string;
+export function time_to_utcstring(time: long): string | null {
+    let timeInSec: long = time / 1000;
+    const tmRef = _gmtime64(ReferenceOf(timeInSec));
     if (tmRef == null)
         return null;
     return asctime(tmRef);

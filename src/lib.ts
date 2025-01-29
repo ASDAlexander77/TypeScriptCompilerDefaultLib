@@ -364,6 +364,10 @@ export class Date {
     toString() {
         return time_to_string(this.timestamp);
     }
+
+    toUTCString() {
+        return time_to_utcstring(this.timestamp);
+    }
 }
 
 export class RegExp
