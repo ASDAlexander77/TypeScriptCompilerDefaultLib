@@ -14,7 +14,7 @@ declare function gmtime(time: long): tm;
 
 declare function timezone(): i32;
 
-declare function timestamp_to_string(time: long): string | null;
-declare function time_to_string(time: long, isUtc: boolean): string | null;
-declare function time_format(bufferSize: int, format: string, time: long, isUtc: boolean): string | null;
-declare function time_format_locale(bufferSize: int, format: string, time: long, locale: string, isUtc: boolean): string | null;
+declare function timestamp_to_string(maxsize: index, time: long): string | null;
+declare function time_to_string(maxsize: index, time: long, isUtc: boolean): string | null;
+declare function time_format(maxsize: index, format: string, time: long, isUtc: boolean): string | null;
+declare function time_format_locale(maxsize: index, format: string, time: long, locale: string, isUtc: boolean): string | null;

@@ -1,6 +1,8 @@
 /// <reference path="types/lib.types.d.ts" />
 
 const LC_TIME = 5;
+type errno_t = i32;
+type time_t = long; 
 
 // locale
 declare function _create_locale (category: int, locale: string): Opaque;
@@ -73,22 +75,20 @@ export function maketime(year: i32, month: i32, day: i32, hour: i32, minutes: i3
     return sec * 1000 + milliseconds; // return ms
 }
 
-declare function _gmtime64(time: Reference<long>) : Reference<tm>;
+declare function _gmtime64_s(tm: Reference<tm>, time: Reference<time_t>) : errno_t;
 export function gmtime(time: long): tm {
+    let tmDest: tm = [0, 0, 0, 0, 0, 0, 0, 0, 0];
     let timeInSec: long = time / 1000;
-    const tmRef = _gmtime64(ReferenceOf(timeInSec));
-    if (tmRef == null)
-        return [0, 0, 0, 0, 0, 0, 0, 0, 0];
-    return LoadReference(tmRef); // return ms
+    const error = _gmtime64_s(ReferenceOf(tmDest), ReferenceOf(timeInSec));
+    return tmDest; // return ms
 }
 
-declare function _localtime64(time: Reference<long>) : Reference<tm>;
+declare function _localtime64_s(tm: Reference<tm>, time: Reference<time_t>) : errno_t;
 export function localtime(time: long): tm {
+    let tmDest: tm = [0, 0, 0, 0, 0, 0, 0, 0, 0];
     let timeInSec: long = time / 1000;
-    const tmRef = _localtime64(ReferenceOf(timeInSec));
-    if (tmRef == null)
-        return [0, 0, 0, 0, 0, 0, 0, 0, 0];
-    return LoadReference(tmRef); // return ms
+    const error = _localtime64_s(ReferenceOf(tmDest), ReferenceOf(timeInSec));
+    return tmDest; // return ms
 }
 
 declare function _get_timezone(time: Reference<i32>): int;
@@ -98,50 +98,50 @@ export function timezone(): i32 {
     return time;
 }
 
-declare function _ctime64(time: Reference<tm>): string;
-export function timestamp_to_string(time: long): string | null {
-    let timeInSec: long = time / 1000;
-    return _ctime64(ReferenceOf(timeInSec));
-}
-
-declare function asctime(time: Reference<tm>): string;
-export function time_to_string(time: long, isUtc: boolean): string | null {
-    let timeInSec: long = time / 1000;
-    const tmRef = isUtc ? _gmtime64(ReferenceOf(timeInSec)) : _localtime64(ReferenceOf(timeInSec));
-    if (tmRef == null)
-        return null;
-    return asctime(tmRef);
-}
-
-declare function strftime(out: string, maxsize: index, format: string, tm: Reference<tm>);
-export function time_format(bufferSize: int, format: string, time: long, isUtc: boolean): string | null
-{
-    let timeInSec: long = time / 1000;
-    const tmRef = isUtc ? _gmtime64(ReferenceOf(timeInSec)) : _localtime64(ReferenceOf(timeInSec));
-    if (tmRef == null)
-        return null;
-
+declare function _ctime64_s(buffer: string, numberOfElements: index, time: Reference<time_t>): string;
+export function timestamp_to_string(maxsize: index, time: long): string | null {
+    let timeInSec: time_t = time / 1000;
     let buffer : char[] = [];
-    buffer.length = bufferSize;
+    buffer.length = maxsize;
     const s = <string> <Opaque> ReferenceOf(buffer[0]);
-    strftime(s, bufferSize, format, tmRef);
+    const error = _ctime64_s(s, maxsize, ReferenceOf(timeInSec));
     return s;
 }
 
-declare function _strftime_l(out: string, maxsize: index, format: string, tm: Reference<tm>, locale: string);
-export function time_format_locale(bufferSize: int, format: string, time: long, locale: string, isUtc: boolean): string | null
+declare function asctime_s(buffer: string, numberOfElements: index, time: Reference<tm>): string;
+export function time_to_string(maxsize: index, time: long, isUtc: boolean): string | null 
 {
-    let timeInSec: long = time / 1000;
-    const tmRef = isUtc ? _gmtime64(ReferenceOf(timeInSec)) : _localtime64(ReferenceOf(timeInSec));
-    if (tmRef == null)
-        return null;
+    let tm = isUtc ? gmtime(time) : localtime(time);
+
+    let buffer : char[] = [];
+    buffer.length = maxsize;
+    const s = <string> <Opaque> ReferenceOf(buffer[0]);    
+    return asctime_s(s, maxsize, ReferenceOf(tm));
+}
+
+declare function strftime(out: string, maxsize: index, format: string, tm: Reference<tm>): index;
+export function time_format(maxsize: index, format: string, time: long, isUtc: boolean): string | null
+{
+    let tm = isUtc ? gmtime(time) : localtime(time);
+
+    let buffer : char[] = [];
+    buffer.length = maxsize;
+    const s = <string> <Opaque> ReferenceOf(buffer[0]);
+    const len = strftime(s, maxsize, format, ReferenceOf(tm));
+    return s;
+}
+
+declare function _strftime_l(out: string, maxsize: index, format: string, tm: Reference<tm>, locale: string): index;
+export function time_format_locale(maxsize: index, format: string, time: long, locale: string, isUtc: boolean): string | null
+{
+    let tm = isUtc ? gmtime(time) : localtime(time);
 
     const locale_t = _create_locale(LC_TIME, locale);
 
     let buffer : char[] = [];
-    buffer.length = bufferSize;
+    buffer.length = maxsize;
     const s = <string> <Opaque> ReferenceOf(buffer[0]);
-    _strftime_l(s, bufferSize, format, tmRef, locale_t);
+    const len = _strftime_l(s, maxsize, format, ReferenceOf(tm), locale_t);
 
     _free_locale(locale_t);
 

@@ -384,11 +384,11 @@ export class Date {
     }    
 
     toString() {
-        return timestamp_to_string(this.timestamp);
+        return timestamp_to_string(100, this.timestamp);
     }
 
     toUTCString() {
-        return time_to_string(this.timestamp, true);
+        return time_to_string(100, this.timestamp, true);
     }
 }
 
