@@ -1,8 +1,17 @@
-//const birthday = new Date('August 19, 1975 23:15:30');
-const birthday = new Date(177718530000);
-const date1 = birthday.getDate();
+//const event = new Date('August 19, 1975 00:00:00');
+const event = new Date(177634800000);
 
-assert(date1 == 19);
+event.setDate(24);
 
-console.log(date1);
-// Expected output: 19
+console.log(event.getDate());
+// Expected output: 24
+
+assert(event.getDate() == 24)
+
+event.setDate(32);
+// Only 31 days in August!
+
+console.log(event.getDate());
+// Expected output: 1
+
+assert(event.getDate() == 1)
