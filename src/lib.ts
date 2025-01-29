@@ -367,19 +367,20 @@ export class Date {
 
     toISOString() {
         const ms = convertInteger(50, ".%03.dZ", this.timestamp % 1000);
-        return time_format(100, "%FT%T", this.timestamp) + ms;
+        return time_format(100, "%FT%T", this.timestamp, true) + ms;
     }
 
     toJSON() {
-        return time_format(100, "%#c", this.timestamp);
+        const ms = convertInteger(50, ".%03.dZ", this.timestamp % 1000);
+        return time_format(100, "%FT%T", this.timestamp, false) + ms;
     }
 
     toLocaleDateString(locale = "") {
-        return time_format_locale(100, "%#x", this.timestamp, locale);
+        return time_format_locale(100, "%#x", this.timestamp, locale, false);
     }
 
     toLocaleString(locale = "") {
-        return time_format_locale(100, "%#c", this.timestamp, locale);
+        return time_format_locale(100, "%#c", this.timestamp, locale, false);
     }    
 
     toString() {
@@ -387,7 +388,7 @@ export class Date {
     }
 
     toUTCString() {
-        return time_to_utcstring(this.timestamp);
+        return time_to_string(this.timestamp, true);
     }
 }
 

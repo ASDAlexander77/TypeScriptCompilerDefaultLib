@@ -8,4 +8,6 @@ console.log(event.toString());
 event.setMilliseconds(123);
 
 console.log(event.toISOString());
-// Expected output: "2011-10-05T14:48:00.000Z"
+// Expected output: "2011-10-05T14:48:00.123Z"
+
+assert(event.toISOString() == "2011-10-05T14:48:00.123Z")

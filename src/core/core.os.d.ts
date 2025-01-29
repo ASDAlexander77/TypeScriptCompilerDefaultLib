@@ -15,10 +15,6 @@ declare function gmtime(time: long): tm;
 declare function timezone(): i32;
 
 declare function timestamp_to_string(time: long): string | null;
-
-declare function time_to_string(time: long): string | null;
-
-declare function time_to_utcstring(time: long): string | null;
-
-declare function time_format(bufferSize: int, format: string, time: long): string | null;
-declare function time_format_locale(bufferSize: int, format: string, time: long, locale: string): string | null;
+declare function time_to_string(time: long, isUtc: boolean): string | null;
+declare function time_format(bufferSize: int, format: string, time: long, isUtc: boolean): string | null;
+declare function time_format_locale(bufferSize: int, format: string, time: long, locale: string, isUtc: boolean): string | null;

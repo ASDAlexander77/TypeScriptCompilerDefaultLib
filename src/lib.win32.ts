@@ -105,27 +105,19 @@ export function timestamp_to_string(time: long): string | null {
 }
 
 declare function asctime(time: Reference<tm>): string;
-export function time_to_string(time: long): string | null {
+export function time_to_string(time: long, isUtc: boolean): string | null {
     let timeInSec: long = time / 1000;
-    const tmRef = _localtime64(ReferenceOf(timeInSec));
-    if (tmRef == null)
-        return null;
-    return asctime(tmRef);
-}
-
-export function time_to_utcstring(time: long): string | null {
-    let timeInSec: long = time / 1000;
-    const tmRef = _gmtime64(ReferenceOf(timeInSec));
+    const tmRef = isUtc ? _gmtime64(ReferenceOf(timeInSec)) : _localtime64(ReferenceOf(timeInSec));
     if (tmRef == null)
         return null;
     return asctime(tmRef);
 }
 
 declare function strftime(out: string, maxsize: index, format: string, tm: Reference<tm>);
-export function time_format(bufferSize: int, format: string, time: long): string | null
+export function time_format(bufferSize: int, format: string, time: long, isUtc: boolean): string | null
 {
     let timeInSec: long = time / 1000;
-    const tmRef = _localtime64(ReferenceOf(timeInSec));
+    const tmRef = isUtc ? _gmtime64(ReferenceOf(timeInSec)) : _localtime64(ReferenceOf(timeInSec));
     if (tmRef == null)
         return null;
 
@@ -137,10 +129,10 @@ export function time_format(bufferSize: int, format: string, time: long): string
 }
 
 declare function _strftime_l(out: string, maxsize: index, format: string, tm: Reference<tm>, locale: string);
-export function time_format_locale(bufferSize: int, format: string, time: long, locale: string): string | null
+export function time_format_locale(bufferSize: int, format: string, time: long, locale: string, isUtc: boolean): string | null
 {
     let timeInSec: long = time / 1000;
-    const tmRef = _localtime64(ReferenceOf(timeInSec));
+    const tmRef = isUtc ? _gmtime64(ReferenceOf(timeInSec)) : _localtime64(ReferenceOf(timeInSec));
     if (tmRef == null)
         return null;
 
