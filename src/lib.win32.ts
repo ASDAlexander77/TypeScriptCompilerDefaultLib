@@ -1,9 +1,26 @@
 /// <reference path="types/lib.types.d.ts" />
 
+const LC_TIME = 5;
+
+// locale
+declare function _create_locale (category: int, locale: string): Opaque;
+declare function _free_locale (locale: Opaque);
+// LC_TIME
+
 @varargs
 declare function sprintf_s(out: string, n: index, format: string);
 
-export function convertNum(bufferSize: int, format: string, value: number): string
+export function convertNumber(bufferSize: int, format: string, value: number): string
+{
+    //return convertf(bufferSize, format, value);
+    let buffer : char[] = [];
+    buffer.length = bufferSize;
+    const s = <string> <Opaque> ReferenceOf(buffer[0]);
+    sprintf_s(s, bufferSize, format, value);
+    return s;
+}
+
+export function convertInteger(bufferSize: int, format: string, value: i32): string
 {
     //return convertf(bufferSize, format, value);
     let buffer : char[] = [];
@@ -104,3 +121,37 @@ export function time_to_utcstring(time: long): string | null {
     return asctime(tmRef);
 }
 
+declare function strftime(out: string, maxsize: index, format: string, tm: Reference<tm>);
+export function time_format(bufferSize: int, format: string, time: long): string | null
+{
+    let timeInSec: long = time / 1000;
+    const tmRef = _localtime64(ReferenceOf(timeInSec));
+    if (tmRef == null)
+        return null;
+
+    let buffer : char[] = [];
+    buffer.length = bufferSize;
+    const s = <string> <Opaque> ReferenceOf(buffer[0]);
+    strftime(s, bufferSize, format, tmRef);
+    return s;
+}
+
+declare function _strftime_l(out: string, maxsize: index, format: string, tm: Reference<tm>, locale: string);
+export function time_format_locale(bufferSize: int, format: string, time: long, locale: string): string | null
+{
+    let timeInSec: long = time / 1000;
+    const tmRef = _localtime64(ReferenceOf(timeInSec));
+    if (tmRef == null)
+        return null;
+
+    const locale_t = _create_locale(LC_TIME, locale);
+
+    let buffer : char[] = [];
+    buffer.length = bufferSize;
+    const s = <string> <Opaque> ReferenceOf(buffer[0]);
+    _strftime_l(s, bufferSize, format, tmRef, locale_t);
+
+    _free_locale(locale_t);
+
+    return s;
+}

@@ -1,4 +1,5 @@
-declare function convertNum(bufferSize: int, format: string, value: number): string;
+declare function convertNumber(bufferSize: int, format: string, value: number): string;
+declare function convertInteger(bufferSize: int, format: string, value: long): string;
 
 declare function init_time();
 
@@ -18,3 +19,6 @@ declare function timestamp_to_string(time: long): string | null;
 declare function time_to_string(time: long): string | null;
 
 declare function time_to_utcstring(time: long): string | null;
+
+declare function time_format(bufferSize: int, format: string, time: long): string | null;
+declare function time_format_locale(bufferSize: int, format: string, time: long, locale: string): string | null;

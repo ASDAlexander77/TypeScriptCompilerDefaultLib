@@ -3,7 +3,7 @@
 @varargs
 declare function snprintf(out: string, n: index, format: string);
 
-export function convertNum(bufferSize: int, format: string, value: number): string
+export function convertNumber(bufferSize: int, format: string, value: number): string
 {
     //return convertf(bufferSize, format, value);
     let buffer : char[] = [];

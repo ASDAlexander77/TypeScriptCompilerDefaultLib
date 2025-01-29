@@ -44,21 +44,21 @@ export class Boolean {
 namespace __Number {
 
     function toExponential(this: number, fractionDigits = 0) {
-        return convertNum(50, `%.${fractionDigits}e`, this);
+        return convertNumber(50, `%.${fractionDigits}e`, this);
     }
 
     function toFixed(this: number, digits = 0) {
-        return convertNum(50, `%.${digits}f`, this);
+        return convertNumber(50, `%.${digits}f`, this);
     }
 
     function toPrecision(this: number, precision = 0) {
-        return convertNum(50, `%.${precision}g`, this);
+        return convertNumber(50, `%.${precision}g`, this);
     }
 
     function toString(this: number, radix = 10) {
         switch (radix) {
             case 16:
-                return convertNum(50, "%a", this);
+                return convertNumber(50, "%a", this);
             default:
                 return <string>this;
         }
@@ -148,7 +148,7 @@ namespace __BigInt {
     
     function toLocaleString(this: bigint, locale = "") {
         setlocale (LC_COLLATE, locale);        
-        return convertNum(50, "%a", this);
+        return convertNumber(50, "%a", this);
     }  
 
     function toString(this: bigint) {
@@ -362,11 +362,28 @@ export class Date {
     }      
 
     toDateString() {
-        return timestamp_to_string(this.timestamp);
+        return time_format(100, "%#x", this.timestamp);
     }
 
+    toISOString() {
+        const ms = convertInteger(50, ".%03.dZ", this.timestamp % 1000);
+        return time_format(100, "%FT%T", this.timestamp) + ms;
+    }
+
+    toJSON() {
+        return time_format(100, "%#c", this.timestamp);
+    }
+
+    toLocaleDateString(locale = "") {
+        return time_format_locale(100, "%#x", this.timestamp, locale);
+    }
+
+    toLocaleString(locale = "") {
+        return time_format_locale(100, "%#c", this.timestamp, locale);
+    }    
+
     toString() {
-        return time_to_string(this.timestamp);
+        return timestamp_to_string(this.timestamp);
     }
 
     toUTCString() {

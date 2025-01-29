@@ -194,6 +194,14 @@ declare class Date {
 
     toDateString(): string;
 
+    toISOString(): string;
+
+    toJSON(): string;
+
+    toLocaleDateString(locale?: string): string; 
+
+    toLocaleString(locale?: string): string;
+
     toString(): string;
 
     toUTCString(): string;
