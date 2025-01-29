@@ -192,6 +192,8 @@ declare class Date {
 
     setYear(year: i32);
 
+    toDateString(): string;
+
     toString(): string;
 
     toUTCString(): string;

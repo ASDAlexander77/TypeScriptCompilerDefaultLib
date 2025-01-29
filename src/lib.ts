@@ -361,6 +361,10 @@ export class Date {
         this.timestamp = maketime(year, lt.tm_mon, lt.tm_mday, lt.tm_hour, lt.tm_min, lt.tm_sec, this.timestamp % 1000); 
     }      
 
+    toDateString() {
+        return timestamp_to_string(this.timestamp);
+    }
+
     toString() {
         return time_to_string(this.timestamp);
     }
