@@ -1,11 +1,13 @@
 /// <reference path="types/lib.types.d.ts" />
 
-const LC_TIME = 2; // linux ubuntu value
+const LC_TIME_MASK = 1 << 2; // linux ubuntu value
 type errno_t = i32;
 type time_t = long; 
 
 // locale
+declare function setlocale (category: int, locale: string);
 declare function newlocale (category: int, locale: string, base: Opaque | null): Opaque;
+declare function uselocale (locale: Opaque): Opaque;
 declare function freelocale (locale: Opaque);
 // LC_TIME
 
@@ -129,18 +131,21 @@ export function time_format(maxsize: index, format: string, time: long, isUtc: b
     return s;
 }
 
-declare function strftime_l(out: string, maxsize: index, format: string, tm: Reference<tm>, locale: string): index;
+declare function strftime_l(out: string, maxsize: index, format: string, tm: Reference<tm>, locale: Opaque): index;
 export function time_format_locale(maxsize: index, format: string, time: long, locale: string, isUtc: boolean): string {
     let tm = isUtc ? gmtime(time) : localtime(time);
 
-    const locale_t = newlocale(LC_TIME, locale, null);
+    setlocale(LC_TIME_MASK, locale);
+    //const locale_t = newlocale(LC_TIME_MASK, locale, null);
 
     let buffer : char[] = [];
     buffer.length = maxsize;
     const s = <string> <Opaque> ReferenceOf(buffer[0]);
-    const len = strftime_l(s, maxsize, format, ReferenceOf(tm), locale_t);
+    //const len = strftime_l(s, maxsize, format, ReferenceOf(tm), locale_t);
+    const len = strftime(s, maxsize, format, ReferenceOf(tm));
 
-    freelocale(locale_t);
+    setlocale(LC_TIME_MASK, "");
+    //freelocale(locale_t);
 
     return s;
 }

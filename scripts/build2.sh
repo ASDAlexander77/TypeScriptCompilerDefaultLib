@@ -5,10 +5,14 @@ BUILD=debug
 PIC=
 TOOL=gcc
 ARC=ar
+DBG_OPTS=--di\ --opt_level=0
+DBG_GCC=
 
 if [ "$1" == "release" ] ; then
 	TOOL_BUILD=release
 	BUILD=release
+	DBG_OPTS=--opt\ --opt_level=3
+	DBG_GCC=-g -O3
 fi
 
 if [ "$2" == "clang" ] ; then
@@ -46,14 +50,14 @@ fi
 
 mkdir -p dll/$BUILD
 mkdir -p lib/$BUILD
-$BIN_PATH/tsc --emit=obj --export=none --no-default-lib $SRC/src/lib.linux.ts $PIC -o $OUTPUT/lib/$BUILD/lib.linux.o
+$BIN_PATH/tsc $DBG_OPTS --emit=obj --export=none --no-default-lib $SRC/src/lib.linux.ts $PIC -o $OUTPUT/lib/$BUILD/lib.linux.o
 
 # Build Lib
-$BIN_PATH/tsc --emit=obj --export=none --no-default-lib $SRC/src/lib.ts $PIC -o $OUTPUT/lib/$BUILD/lib.o
+$BIN_PATH/tsc $DBG_OPTS --emit=obj --export=none --no-default-lib $SRC/src/lib.ts $PIC -o $OUTPUT/lib/$BUILD/lib.o
 $ARC rcs $OUTPUT/lib/$BUILD/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o
 
 # Build DLL
-gcc -shared $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o -o $OUTPUT/dll/$BUILD/libTypeScriptDefaultLib.so
+gcc -shared $DBG_GCC $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o -o $OUTPUT/dll/$BUILD/libTypeScriptDefaultLib.so
 
 # Copy
 BUILD_LIB_PATH=./__build/$BUILD/defaultlib/

@@ -148,7 +148,9 @@ namespace __BigInt {
     
     function toLocaleString(this: bigint, locale = "") {
         setlocale (LC_COLLATE, locale);        
-        return convertNumber(50, "%a", this);
+        const result = convertNumber(50, "%a", this);
+        setlocale (LC_COLLATE, "");        
+        return result;
     }  
 
     function toString(this: bigint) {
@@ -389,10 +391,10 @@ export class Date {
 
     toLocaleTimeString(locale = "", options?: { timeZone?: string }) {
         if (options != undefined && options.timeZone == 'UTC') {
-            return time_format_locale(50, "%X", this.timestamp, locale, true);
+            return time_format_locale(100, "%X", this.timestamp, locale, true);
         }
         
-        return time_format_locale(50, "%X", this.timestamp, locale, false);
+        return time_format_locale(100, "%X", this.timestamp, locale, false);
     }    
 
     toString() {
@@ -400,7 +402,8 @@ export class Date {
     }
 
     toTimeString() {
-        return time_format(50, "%T %Z", this.timestamp, false);
+        // TODO: in linux %Z is not returning right value and crashes  "%T %Z"
+        return time_format(100, "%T", this.timestamp, false);
     }   
 
     toUTCString() {
@@ -567,7 +570,9 @@ namespace __String {
 
     export function localeCompare(this: string, compareString: string, locale = ""): int {
         setlocale (LC_COLLATE, locale);        
-        return strcoll(this, compareString);
+        const result = strcoll(this, compareString);
+        setlocale (LC_COLLATE, "");   
+        return result;
     }
 
     export function match(this: string, expr: RegExp): string[] {
@@ -765,6 +770,7 @@ namespace __String {
         setlocale (LC_COLLATE, locale); 
         const lower = this.clone();
         for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);
+        setlocale (LC_COLLATE, "");   
         return lower;
     }
 
@@ -772,6 +778,7 @@ namespace __String {
         setlocale (LC_COLLATE, locale); 
         const upper = this.clone();
         for (let i = 0; i < this.length; i++) upper[i] = toupper(this[i]);
+        setlocale (LC_COLLATE, "");   
         return upper;
     }
 
