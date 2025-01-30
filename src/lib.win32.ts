@@ -92,7 +92,7 @@ export function localtime(time: long): tm {
 }
 
 declare function _get_timezone(time: Reference<i32>): int;
-export function timezone(): i32 {
+export function gettimezone(): i32 {
     let time = 0;
     const error = _get_timezone(ReferenceOf(time));
     return time;
@@ -130,7 +130,7 @@ export function time_format(maxsize: index, format: string, time: long, isUtc: b
     return s;
 }
 
-declare function _strftime_l(out: string, maxsize: index, format: string, tm: Reference<tm>, locale: string): index;
+declare function _strftime_l(out: string, maxsize: index, format: string, tm: Reference<tm>, locale: Opaque): index;
 export function time_format_locale(maxsize: index, format: string, time: long, locale: string, isUtc: boolean): string {
     let tm = isUtc ? gmtime(time) : localtime(time);
 

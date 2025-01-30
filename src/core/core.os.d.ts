@@ -12,7 +12,7 @@ type tm = [tm_sec: i32, tm_min: i32, tm_hour: i32, tm_mday: i32, tm_mon: i32, tm
 declare function localtime(time: long): tm;
 declare function gmtime(time: long): tm;
 
-declare function timezone(): i32;
+declare function gettimezone(): i32;
 
 declare function timestamp_to_string(maxsize: index, time: long): string;
 declare function time_to_string(maxsize: index, time: long, isUtc: boolean): string;
