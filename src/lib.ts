@@ -239,7 +239,7 @@ export class Date {
     } 
 
     getTimezoneOffset(): i32 {
-        return timezone();
+        return gettimezone();
     }
     
     getUTCDate(): i32 {

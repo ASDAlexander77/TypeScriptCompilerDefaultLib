@@ -92,7 +92,7 @@ export function localtime(time: long): tm {
 }
 
 declare function _get_timezone(time: Reference<i32>): int;
-export function timezone(): i32 {
+export function gettimezone(): i32 {
     let time = 0;
     const error = _get_timezone(ReferenceOf(time));
     return time;
