@@ -6,13 +6,13 @@ PIC=
 TOOL=gcc
 ARC=ar
 DBG_OPTS=--di\ --opt_level=0
-DBG_GCC=
+DBG_GCC=-g
 
 if [ "$1" == "release" ] ; then
 	TOOL_BUILD=release
 	BUILD=release
 	DBG_OPTS=--opt\ --opt_level=3
-	DBG_GCC=-g\ -O3
+	DBG_GCC=-O3
 fi
 
 if [ "$2" == "clang" ] ; then
