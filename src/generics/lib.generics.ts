@@ -260,8 +260,7 @@ namespace __Array {
                 return undefined;
             }
 
-            if (__is<V, T>(this[0]))
-            {
+            if (__is<V, T>(this[0])) {
                 let result = <V>this[0];
                 for (let i = 1; i in this; i++) result = func(result, this[i]);
                 return result;
@@ -282,9 +281,11 @@ namespace __Array {
                 return undefined;
             }
 
-            let result = <V>this[this.length - 1];
-            for (let i = this.length - 2; i in this; i--) result = func(result, this[i]);
-            return result;
+            if (__is<V, T>(this[0])) {
+                let result = <V>this[this.length - 1];
+                for (let i = this.length - 2; i in this; i--) result = func(result, this[i]);
+                return result;
+            }
         }
         else
         {
