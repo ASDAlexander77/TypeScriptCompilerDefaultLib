@@ -616,12 +616,16 @@ namespace HashHelpers
         let power = 1;
         const mod = 10 ** 9 + 7;
 
+        let keyLocal = key;
         const size = sizeof<K>();
-        const valueRef: Opaque = ReferenceOf(key);
+        const valueRef = ReferenceOf(keyLocal);
 
         switch (size) {
-            case 4: return (<Reference<i32>>valueRef)[0];
-            case 8: return (<Reference<i64>>valueRef)[0] >> 32;
+            case 4: return LoadReference(<Reference<i32>>valueRef);
+            case 8: 
+                const valueRef32 = <Reference<i32>>valueRef;
+                const hash32 = (LoadReference(valueRef32[1]) >> 1) ^ LoadReference(valueRef32[0]);
+                return hash32;
         }
 
         const valueByteRef: Reference<byte> = valueRef;
