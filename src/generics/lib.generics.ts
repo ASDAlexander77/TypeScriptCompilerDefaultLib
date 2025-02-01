@@ -660,7 +660,7 @@ class Map<K, V> {
     private freeCount: int;
     private version: int;
     
-    Map<K, V>() {
+    constructor() {
         this.initialize(0);
     }
 
@@ -690,13 +690,13 @@ class Map<K, V> {
     private getBucket(hashCode: int): int
     {
         const buckets = this.buckets;
-        return ReferenceOf(buckets[hashCode % buckets.length]);
+        return buckets[hashCode % buckets.length];
     }    
 
     private setBucket(hashCode: int, value: int)
     {
         const buckets = this.buckets;
-        return buckets[hashCode % buckets.length] = value;
+        buckets[hashCode % buckets.length] = value;
     } 
 
     private newHashCodes(entries: Entry<K, V>[]) {
@@ -751,13 +751,8 @@ class Map<K, V> {
         let bucket = this.getBucket(hashCode);
         let i = bucket - 1; // Value in _buckets is 1-based
 
-        while (true)
+        while (<uint>i < <uint>entries.length)
         {
-            if (<uint>i >= <uint>entries.length)
-            {
-                break;
-            }            
-
             if (entries[i].hashCode == hashCode && entries[i].key == key)
             {
                 if (behavior == InsertionBehavior.OverwriteExisting)
@@ -773,13 +768,13 @@ class Map<K, V> {
 
                 return false;
             }            
-        }        
 
-        i = entries[i].next;
-        collisionCount++;
-        if (collisionCount > <uint>entries.length)
-        {
-            // throw exception
+            i = entries[i].next;
+            collisionCount++;
+            if (collisionCount > <uint>entries.length)
+            {
+                // throw exception
+            }        
         }        
 
         let index = 0;
@@ -822,7 +817,7 @@ class Map<K, V> {
         return true;
     }
 
-    private findValue(key: K): Reference<V> | null
+    private findValue(key: K): V | null
     {
         const hashCode = <uint>HashHelpers.hashCode(key);
         let i = this.getBucket(hashCode);
@@ -838,11 +833,11 @@ class Map<K, V> {
                 return null;
             }
 
-            const entry = entries[i];
+            const entry = ReferenceOf(entries[i]);
             if (entry.hashCode == hashCode && entry.key == key)
             {
                 // found
-                return ReferenceOf(entries[i].value);
+                return entry.value;
             }
 
             i = entry.next;
