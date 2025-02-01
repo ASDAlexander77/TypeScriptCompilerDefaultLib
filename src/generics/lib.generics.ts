@@ -579,7 +579,7 @@ class TypedArray<T> extends Array<T> {
     constructor(data: T[] = []) {
         super(data);
     }    
-};
+}
 
 type Int8Array = TypedArray<s8>;
 
@@ -600,3 +600,214 @@ type BigUint64Array = TypedArray<u64>;
 type Float32Array = TypedArray<f32>;
 
 type Float64Array = TypedArray<f64>;
+
+enum InsertionBehavior
+{
+  None,
+  OverwriteExisting,
+  ThrowOnExisting,
+}
+
+namespace HashHelpers
+{
+    function hashCode<K>(key: K): int {
+        let hashValue = 0;
+        let power = 1;
+        const mod = 10 ** 9 + 7;
+
+        const size = sizeof<K>();
+        const valueRef: Opaque = ReferenceOf(key);
+
+        switch (size) {
+            case 4: return (<Reference<i32>>valueRef)[0];
+            case 8: return (<Reference<i64>>valueRef)[0] >> 32;
+        }
+
+        const valueByteRef: Reference<byte> = valueRef;
+        for (let offset = 0; offset < size; offset ++) {
+            const byte = valueByteRef[offset];
+            hashValue = (hashValue + byte * power) % mod;
+            power = (power * PrimeHelpers.hashPrime) % mod
+        }
+    
+        return hashValue        
+    }
+}
+
+type Entry<TKey, TValue> =
+{
+    hashCode: uint,
+    /// <summary>
+    /// 0-based index of next entry in chain: -1 means end of chain
+    /// also encodes whether this entry _itself_ is part of the free list by changing sign and subtracting 3,
+    /// so -2 means end of free list, -3 means index 0 but on free list, -4 means index 1 but on free list, etc.
+    /// </summary>
+    next: int;
+    key: TKey;     // Key of entry
+    value: TValue; // Value of entry
+};
+
+class Map<K, V> {
+
+    const StartOfFreeList = -3;
+
+    private buckets: int[];
+    private entries: Entry<K, V>[];    
+    private freeList: int;
+    private count: int;
+    private freeList: int;
+    private freeCount: int;
+    private version: int;
+    private keys: K[];
+    private values: V[];
+
+    Map<K, V>() {
+        this.initialize(0);
+    }
+
+    set (k: K, v: V) {        
+        this.tryInsert(k, v, InsertionBehavior.ThrowOnExisting);
+        return this;
+    }
+
+    private initialize(capacity: int) {
+        const size = PrimeHelpers.getPrime(capacity);
+        let buckets: int[] = [];
+        buckets.length = size;
+        let entries: Entry<K, V>[] = [];
+        entries.length = size;
+
+        this.freeList = -1;
+        this.buckets = buckets;
+        this.entries = entries;
+
+        return size;
+    }
+
+    private getBucket(hashCode: int): Reference<int>
+    {
+        const buckets = this.buckets;
+        return ReferenceOf(buckets[hashCode % buckets.length]);
+    }    
+
+    private newHashCodes(entries: Entry<K, V>[]) {
+        const count = entries.length;
+        for (let i = 0; i < count; i++) {
+            if (entries[i].next >= -1)
+            {
+                entries[i].hashCode = <uint>HashHelpers.hashCode(entries[i].key);
+            }
+        }
+    }
+
+    private resizeHelper(newSize: int, forceNewHashCodes: boolean)
+    {
+        let entries: Entry<K, V>[] = [];
+        entries.length = newSize;
+
+        const count = this.count;
+        memcpy(ReferenceOf(entries[0]), ReferenceOf(this.entries[0]), sizeof<typeof entries[0]>() * count);
+
+        if (forceNewHashCodes)
+        {
+            this.newHashCodes(entries);
+        }
+
+        // Assign member variables after both arrays allocated to guard against corruption from OOM if second fails
+        this.buckets = [];
+        this.buckets.length = newSize;
+        for (let i = 0; i < count; i++)
+        {
+            if (entries[i].next >= -1)
+            {
+                let bucket = this.getBucket(entries[i].hashCode);
+                entries[i].next = bucket - 1; // Value in _buckets is 1-based
+                bucket = i + 1;
+            }
+        }
+
+        this.entries = entries;
+    }
+
+    private resize() {
+        this.resizeHelper(PrimeHelpers.expandPrime(this.count), false);
+    }
+
+    private tryInsert(key: K, value: V, behavior: InsertionBehavior): boolean {
+        const hashCode = <uint>HashHelpers.hashCode(key);
+
+        let entries = this.entries;
+
+        let collisionCount: uint = 0;
+        let bucket: Reference<int> = this.getBucket(hashCode);
+        let i = bucket - 1; // Value in _buckets is 1-based
+
+        while (true)
+        {
+            if (<uint>i >= <uint>entries.length)
+            {
+                break;
+            }            
+
+            if (entries[i].hashCode == hashCode && entries[i].key == key)
+            {
+                if (behavior == InsertionBehavior.OverwriteExisting)
+                {
+                    entries[i].value = value;
+                    return true;
+                }
+
+                if (behavior == InsertionBehavior.ThrowOnExisting)
+                {
+                    // throw error
+                }
+
+                return false;
+            }            
+        }        
+
+        i = entries[i].next;
+        collisionCount++;
+        if (collisionCount > <uint>entries.length)
+        {
+            // throw exception
+        }        
+
+        let index = 0;
+        if (this.freeCount > 0)
+        {
+            index = this.freeList;
+            this.freeList = this.StartOfFreeList - entries[this.freeList].next;
+            this.freeCount--;
+        }
+        else
+        {
+            let count = this.count;
+            if (count == entries.length)
+            {
+                this.resize();
+                bucket = this.getBucket(hashCode);
+            }
+
+            index = count;
+            this.count = count + 1;
+            entries = this.entries;
+        }
+
+        const entry = ReferenceOf(entries[index]);
+        entry.hashCode = hashCode;
+        entry.next = bucket - 1; // Value in _buckets is 1-based
+        entry.key = key;
+        entry.value = value;
+        bucket = index + 1; // Value in _buckets is 1-based
+        this.version++;
+
+        // Value types never rehash
+        if (collisionCount > PrimeHelpers.hashCollisionThreshold)
+        {
+            this.newHashCodes(entries);
+        }
+
+        return true;
+    }
+}
