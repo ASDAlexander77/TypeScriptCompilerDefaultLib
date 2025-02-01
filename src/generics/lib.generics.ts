@@ -669,6 +669,10 @@ class Map<K, V> {
         return this;
     }
 
+    get (k: K): V | null {        
+        return this.findValue(k);
+    }
+    
     private initialize(capacity: int) {
         const size = PrimeHelpers.getPrime(capacity);
         let buckets: int[] = [];
@@ -683,11 +687,17 @@ class Map<K, V> {
         return size;
     }
 
-    private getBucket(hashCode: int): Reference<int>
+    private getBucket(hashCode: int): int
     {
         const buckets = this.buckets;
         return ReferenceOf(buckets[hashCode % buckets.length]);
     }    
+
+    private setBucket(hashCode: int, value: int)
+    {
+        const buckets = this.buckets;
+        return buckets[hashCode % buckets.length] = value;
+    } 
 
     private newHashCodes(entries: Entry<K, V>[]) {
         const count = entries.length;
@@ -719,9 +729,9 @@ class Map<K, V> {
         {
             if (entries[i].next >= -1)
             {
-                let bucket = this.getBucket(entries[i].hashCode);
-                entries[i].next = bucket - 1; // Value in _buckets is 1-based
-                bucket = i + 1;
+                const hashCode = entries[i].hashCode;
+                entries[i].next = this.getBucket(hashCode) - 1; // Value in _buckets is 1-based
+                this.setBucket(hashCode, i + 1);
             }
         }
 
@@ -738,7 +748,7 @@ class Map<K, V> {
         let entries = this.entries;
 
         let collisionCount: uint = 0;
-        let bucket: Reference<int> = this.getBucket(hashCode);
+        let bucket = this.getBucket(hashCode);
         let i = bucket - 1; // Value in _buckets is 1-based
 
         while (true)
@@ -793,12 +803,14 @@ class Map<K, V> {
             entries = this.entries;
         }
 
-        const entry = ReferenceOf(entries[index]);
-        entry.hashCode = hashCode;
-        entry.next = bucket - 1; // Value in _buckets is 1-based
-        entry.key = key;
-        entry.value = value;
-        bucket = index + 1; // Value in _buckets is 1-based
+        entries[index] = {
+            hashCode: hashCode,
+            next: bucket - 1, // Value in _buckets is 1-based
+            key: key,
+            value: value,
+        };
+
+        this.setBucket(hashCode, index + 1); // Value in _buckets is 1-based
         this.version++;
 
         // Value types never rehash
@@ -810,14 +822,8 @@ class Map<K, V> {
         return true;
     }
 
-    private findValue(key: K): Reference<V>
+    private findValue(key: K): Reference<V> | null
     {
-        if (key == null)
-        {
-            return null;
-        }
-
-        let entry: Entry<K, V>;
         const hashCode = <uint>HashHelpers.hashCode(key);
         let i = this.getBucket(hashCode);
         let entries = this.entries;
@@ -832,11 +838,11 @@ class Map<K, V> {
                 return null;
             }
 
-            entry = ReferenceOf(entries[i]);
+            const entry = entries[i];
             if (entry.hashCode == hashCode && entry.key == key)
             {
                 // found
-                return ReferenceOf(entry.value);
+                return ReferenceOf(entries[i].value);
             }
 
             i = entry.next;
