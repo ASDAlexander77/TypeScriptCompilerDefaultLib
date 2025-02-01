@@ -659,9 +659,7 @@ class Map<K, V> {
     private freeList: int;
     private freeCount: int;
     private version: int;
-    private keys: K[];
-    private values: V[];
-
+    
     Map<K, V>() {
         this.initialize(0);
     }
@@ -811,4 +809,44 @@ class Map<K, V> {
 
         return true;
     }
+
+    private findValue(key: K): Reference<V>
+    {
+        if (key == null)
+        {
+            return null;
+        }
+
+        let entry: Entry<K, V>;
+        const hashCode = <uint>HashHelpers.hashCode(key);
+        let i = this.getBucket(hashCode);
+        let entries = this.entries;
+        let collisionCount: uint = 0;
+
+        i--; // Value in _buckets is 1-based; subtract 1 from i. We do it here so it fuses with the following conditional.
+        do
+        {
+            if (<uint>i >= <uint>entries.length)
+            {
+                // not found
+                return null;
+            }
+
+            entry = ReferenceOf(entries[i]);
+            if (entry.hashCode == hashCode && entry.key == key)
+            {
+                // found
+                return ReferenceOf(entry.value);
+            }
+
+            i = entry.next;
+
+            collisionCount++;
+        } while (collisionCount <= <uint>entries.length);
+
+        // The chain of entries forms a loop; which means a concurrent update has happened.
+        // Break out of the loop and throw, rather than looping forever.
+        // TODO: throw exception
+        return null;
+    }    
 }
