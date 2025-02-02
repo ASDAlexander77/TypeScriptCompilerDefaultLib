@@ -611,7 +611,7 @@ enum InsertionBehavior
 
 namespace HashHelpers
 {
-    function hashCode<K>(key: K): int {
+    function hashCodeGeneral<K>(key: K): int {
         let hashValue = 0;
         let power = 1;
         const mod = 10 ** 9 + 7;
@@ -628,14 +628,18 @@ namespace HashHelpers
                 return hash32;
         }
 
-        const valueByteRef: Reference<byte> = valueRef;
-        for (let offset = 0; offset < size; offset ++) {
-            const byte = valueByteRef[offset];
-            hashValue = (hashValue + byte * power) % mod;
-            power = (power * PrimeHelpers.hashPrime) % mod
+        return hashCodeBinary(valueRef, size);
+    }
+
+    function hashCode<K>(key: K): int {
+        if (__is<K, string>(key))
+        { 
+            return hashCodeString(key);
         }
-    
-        return hashValue        
+        else
+        {
+            return hashCodeGeneral(key);
+        }
     }
 }
 
@@ -652,7 +656,7 @@ type Entry<TKey, TValue> =
     value: TValue; // Value of entry
 };
 
-class Map<K, V> {
+class Map<K = any, V = any> {
 
     const StartOfFreeList = -3;
 
@@ -855,3 +859,5 @@ class Map<K, V> {
         return null;
     }    
 }
+
+//type Map = Map<any, any>;

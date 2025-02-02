@@ -19,3 +19,10 @@ declare namespace PrimeHelpers
 
     declare function expandPrime(oldSize: int): int;
 }
+
+declare namespace HashHelpers
+{
+    declare function hashCodeBinary(key: Opaque, size: index): int;
+    
+    declare function hashCodeString(key: string): int;
+}
