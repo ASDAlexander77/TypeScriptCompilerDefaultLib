@@ -672,6 +672,10 @@ class Map<K = any, V = any> {
         this.initialize(0);
     }
 
+    get size() {
+        return this.count;
+    }
+
     clear() {
         const count = this.count;
         if (count > 0)
@@ -981,25 +985,13 @@ class Map<K = any, V = any> {
     }    
 
     private *iter() {
-        let i = 1;
-        let entries = this._entries;
-        let collisionCount: uint = 0;
-
-        i--; // Value in _buckets is 1-based; subtract 1 from i. We do it here so it fuses with the following conditional.
-        do
+        const entries = this._entries;
+        for (let i = 0; i < this.count; i++)
         {
-            if (<uint>i >= <uint>entries.length)
+            if (entries[i].next >= -1)
             {
-                // not found
-                break;
+                yield <[key: K, value: V]> [entries[i].key, entries[i].value];
             }
-
-            const entry = ReferenceOf(entries[i]);
-            yield <[key: K, value: V]>[entry.key, entry.value];
-
-            i = entry.next;
-
-            collisionCount++;
-        } while (collisionCount <= <uint>entries.length);
+        }
     }
 }
