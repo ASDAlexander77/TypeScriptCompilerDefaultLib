@@ -668,8 +668,16 @@ class Map<K = any, V = any> {
     private freeCount: int;
     private version: int;
     
-    constructor() {
-        this.initialize(0);
+    constructor(values?: [K, V][]) {
+        if (values == undefined)
+        {
+            this.initialize(0);
+        }
+        else
+        {
+            this.initialize(values.length);
+            for (const [k, v] of values) this.tryInsert(k, v, InsertionBehavior.ThrowOnExisting);
+        }
     }
 
     get size() {
@@ -706,16 +714,16 @@ class Map<K = any, V = any> {
         return this.removeValue(k);
     }
 
-    *entries() {
-        for (const entry of this.iter()) yield [entry.key, entry.value];
+    entries() {
+        return this.iter();
     }
     
-    *keys() {
-        for (const entry of this.iter()) yield entry.key;
+    keys() {
+        return this.iterKey();
     }
 
-    *values() {
-        for (const entry of this.iter()) yield entry.value;
+    values() {
+        return this.iterValue();
     }
 
     forEach(f: (value: V, key: K, map: Map<K, V>) => void) {
@@ -955,6 +963,7 @@ class Map<K = any, V = any> {
                 if (last < 0)
                 {
                     bucket = entry.next + 1; // Value in buckets is 1-based
+                    this.setBucket(hashCode, bucket);
                 }
                 else
                 {
@@ -994,4 +1003,26 @@ class Map<K = any, V = any> {
             }
         }
     }
+
+    private *iterKey() {
+        const entries = this._entries;
+        for (let i = 0; i < this.count; i++)
+        {
+            if (entries[i].next >= -1)
+            {
+                yield entries[i].key;
+            }
+        }
+    }    
+
+    private *iterValue() {
+        const entries = this._entries;
+        for (let i = 0; i < this.count; i++)
+        {
+            if (entries[i].next >= -1)
+            {
+                yield entries[i].value;
+            }
+        }
+    }    
 }
