@@ -697,6 +697,10 @@ class Map<K = any, V = any> {
     has (k: K): boolean {        
         return this.hasValue(k);
     }    
+
+    delete (k: K): boolean {
+        return this.removeValue(k);
+    }
     
     private initialize(capacity: int) {
         const size = PrimeHelpers.getPrime(capacity);
@@ -908,7 +912,53 @@ class Map<K = any, V = any> {
         // Break out of the loop and throw, rather than looping forever.
         // TODO: throw exception
         return false;
-    }     
+    } 
+    
+    private removeValue(key: K): boolean
+    {
+        const hashCode = <uint>HashHelpers.hashCode(key);
+        let bucket = this.getBucket(hashCode);
+        let entries = this.entries;
+        let collisionCount: uint = 0;
+
+        let last = -1;
+        let i = bucket - 1; // Value in buckets is 1-based
+        while (i >= 0)
+        {
+            const entry = ReferenceOf(entries[i]);
+            if (entry.hashCode == hashCode && entry.key == key)
+            {
+                if (last < 0)
+                {
+                    bucket = entry.next + 1; // Value in buckets is 1-based
+                }
+                else
+                {
+                    entries[last].next = entry.next;
+                }
+
+                entry.next = this.StartOfFreeList - this.freeList;
+
+                this.freeList = i;
+                this.freeCount++;
+                return true;
+            }
+
+            last = i;
+            i = entry.next;
+
+            collisionCount++;
+            if (collisionCount > <uint>entries.length)
+            {
+                // The chain of entries forms a loop; which means a concurrent update has happened.
+                // Break out of the loop and throw, rather than looping forever.
+                // throw exception
+                return false;
+            }
+        }
+
+        return false;
+    }    
 }
 
 //type Map = Map<any, any>;
