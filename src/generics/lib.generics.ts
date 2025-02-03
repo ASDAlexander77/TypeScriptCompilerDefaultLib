@@ -661,7 +661,7 @@ class Map<K = any, V = any> {
     const StartOfFreeList = -3;
 
     private buckets: int[];
-    private entries: Entry<K, V>[];    
+    private _entries: Entry<K, V>[];    
     private freeList: int;
     private count: int;
     private freeList: int;
@@ -681,7 +681,7 @@ class Map<K = any, V = any> {
             this.count = 0;
             this.freeList = -1;
             this.freeCount = 0;
-            this.entries.length = 0;
+            this._entries.length = 0;
         }        
     }
 
@@ -701,7 +701,27 @@ class Map<K = any, V = any> {
     delete (k: K): boolean {
         return this.removeValue(k);
     }
+
+    *entries() {
+        for (const entry of this.iter()) yield [entry.key, entry.value];
+    }
     
+    *keys() {
+        for (const entry of this.iter()) yield entry.key;
+    }
+
+    *values() {
+        for (const entry of this.iter()) yield entry.value;
+    }
+
+    forEach(f: (value: V, key: K, map: Map<K, V>) => void) {
+        for (const entry of this.iter()) f(entry.value, entry.key, this);
+    }
+
+    [Symbol.iterator]() {
+        return this.entries();
+    }
+
     private initialize(capacity: int) {
         const size = PrimeHelpers.getPrime(capacity);
         let buckets: int[] = [];
@@ -711,7 +731,7 @@ class Map<K = any, V = any> {
 
         this.freeList = -1;
         this.buckets = buckets;
-        this.entries = entries;
+        this._entries = entries;
 
         return size;
     }
@@ -744,7 +764,7 @@ class Map<K = any, V = any> {
         entries.length = newSize;
 
         const count = this.count;
-        memcpy(ReferenceOf(entries[0]), ReferenceOf(this.entries[0]), sizeof<typeof entries[0]>() * count);
+        memcpy(ReferenceOf(entries[0]), ReferenceOf(this._entries[0]), sizeof<typeof entries[0]>() * count);
 
         if (forceNewHashCodes)
         {
@@ -764,7 +784,7 @@ class Map<K = any, V = any> {
             }
         }
 
-        this.entries = entries;
+        this._entries = entries;
     }
 
     private resize() {
@@ -774,7 +794,7 @@ class Map<K = any, V = any> {
     private tryInsert(key: K, value: V, behavior: InsertionBehavior): boolean {
         const hashCode = <uint>HashHelpers.hashCode(key);
 
-        let entries = this.entries;
+        let entries = this._entries;
 
         let collisionCount: uint = 0;
         let bucket = this.getBucket(hashCode);
@@ -824,7 +844,7 @@ class Map<K = any, V = any> {
 
             index = count;
             this.count = count + 1;
-            entries = this.entries;
+            entries = this._entries;
         }
 
         entries[index] = {
@@ -850,7 +870,7 @@ class Map<K = any, V = any> {
     {
         const hashCode = <uint>HashHelpers.hashCode(key);
         let i = this.getBucket(hashCode);
-        let entries = this.entries;
+        let entries = this._entries;
         let collisionCount: uint = 0;
 
         i--; // Value in _buckets is 1-based; subtract 1 from i. We do it here so it fuses with the following conditional.
@@ -884,7 +904,7 @@ class Map<K = any, V = any> {
     {
         const hashCode = <uint>HashHelpers.hashCode(key);
         let i = this.getBucket(hashCode);
-        let entries = this.entries;
+        let entries = this._entries;
         let collisionCount: uint = 0;
 
         i--; // Value in _buckets is 1-based; subtract 1 from i. We do it here so it fuses with the following conditional.
@@ -918,7 +938,7 @@ class Map<K = any, V = any> {
     {
         const hashCode = <uint>HashHelpers.hashCode(key);
         let bucket = this.getBucket(hashCode);
-        let entries = this.entries;
+        let entries = this._entries;
         let collisionCount: uint = 0;
 
         let last = -1;
@@ -959,6 +979,27 @@ class Map<K = any, V = any> {
 
         return false;
     }    
-}
 
-//type Map = Map<any, any>;
+    private *iter() {
+        let i = 1;
+        let entries = this._entries;
+        let collisionCount: uint = 0;
+
+        i--; // Value in _buckets is 1-based; subtract 1 from i. We do it here so it fuses with the following conditional.
+        do
+        {
+            if (<uint>i >= <uint>entries.length)
+            {
+                // not found
+                break;
+            }
+
+            const entry = ReferenceOf(entries[i]);
+            yield <[key: K, value: V]>[entry.key, entry.value];
+
+            i = entry.next;
+
+            collisionCount++;
+        } while (collisionCount <= <uint>entries.length);
+    }
+}
