@@ -672,6 +672,19 @@ class Map<K = any, V = any> {
         this.initialize(0);
     }
 
+    clear() {
+        const count = this.count;
+        if (count > 0)
+        {
+            this.buckets.length = 0;
+
+            this.count = 0;
+            this.freeList = -1;
+            this.freeCount = 0;
+            this.entries.length = 0;
+        }        
+    }
+
     set (k: K, v: V) {        
         this.tryInsert(k, v, InsertionBehavior.ThrowOnExisting);
         return this;
@@ -680,6 +693,10 @@ class Map<K = any, V = any> {
     get (k: K): V | null {        
         return this.findValue(k);
     }
+    
+    has (k: K): boolean {        
+        return this.hasValue(k);
+    }    
     
     private initialize(capacity: int) {
         const size = PrimeHelpers.getPrime(capacity);
@@ -858,6 +875,40 @@ class Map<K = any, V = any> {
         // TODO: throw exception
         return null;
     }    
+
+    private hasValue(key: K): boolean
+    {
+        const hashCode = <uint>HashHelpers.hashCode(key);
+        let i = this.getBucket(hashCode);
+        let entries = this.entries;
+        let collisionCount: uint = 0;
+
+        i--; // Value in _buckets is 1-based; subtract 1 from i. We do it here so it fuses with the following conditional.
+        do
+        {
+            if (<uint>i >= <uint>entries.length)
+            {
+                // not found
+                return false;
+            }
+
+            const entry = ReferenceOf(entries[i]);
+            if (entry.hashCode == hashCode && entry.key == key)
+            {
+                // found
+                return true;
+            }
+
+            i = entry.next;
+
+            collisionCount++;
+        } while (collisionCount <= <uint>entries.length);
+
+        // The chain of entries forms a loop; which means a concurrent update has happened.
+        // Break out of the loop and throw, rather than looping forever.
+        // TODO: throw exception
+        return false;
+    }     
 }
 
 //type Map = Map<any, any>;
