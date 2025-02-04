@@ -56,5 +56,6 @@ declare function sqrt(x: number): number;
 declare function tan(x: number): number;
 
 // memory
-declare function memcpy(dest: Opaque, src: Opaque, bytes: int): Opaque;
-declare function memmove(dest: Opaque, src: Opaque, bytes: int): Opaque;
+declare function memcpy(dest: Opaque, src: Opaque, bytes: index): Opaque;
+declare function memmove(dest: Opaque, src: Opaque, bytes: index): Opaque;
+declare function memcmp(dest: Opaque, src: Opaque, bytes: index): int;

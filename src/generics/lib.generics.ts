@@ -21,6 +21,11 @@ function __is<V extends T, T>(t: T): t is V
     return true;
 }
 
+function __is_any<V extends never>(t: V): t is any
+{
+    return true;
+}
+
 namespace __Array {
     function at<T>(this: T[], index: int) {
         return this[index];
@@ -632,14 +637,26 @@ namespace HashHelpers
     }
 
     function hashCode<K>(key: K): int {
-        if (__is<K, string>(key))
+        if (typeof(key) == "string")
         { 
-            return hashCodeString(key);
+            return hashCodeString(<string>key);
         }
         else
         {
             return hashCodeGeneral(key);
         }
+    }
+}
+
+namespace EqualityHelper
+{
+    function equals<K>(l: K, r: K): boolean {
+        if (typeof(l) == "string")
+        { 
+            return <string>l == <string>r;
+        }        
+
+        return l == r;
     }
 }
 
@@ -814,7 +831,7 @@ class Map<K = any, V = any> {
 
         while (<uint>i < <uint>entries.length)
         {
-            if (entries[i].hashCode == hashCode && entries[i].key == key)
+            if (entries[i].hashCode == hashCode && EqualityHelper.equals(entries[i].key, key))
             {
                 if (behavior == InsertionBehavior.OverwriteExisting)
                 {
@@ -895,7 +912,7 @@ class Map<K = any, V = any> {
             }
 
             const entry = ReferenceOf(entries[i]);
-            if (entry.hashCode == hashCode && entry.key == key)
+            if (entry.hashCode == hashCode && EqualityHelper.equals(entry.key, key))
             {
                 // found
                 return entry.value;
@@ -929,7 +946,7 @@ class Map<K = any, V = any> {
             }
 
             const entry = ReferenceOf(entries[i]);
-            if (entry.hashCode == hashCode && entry.key == key)
+            if (entry.hashCode == hashCode && EqualityHelper.equals(entry.key, key))
             {
                 // found
                 return true;
@@ -958,7 +975,7 @@ class Map<K = any, V = any> {
         while (i >= 0)
         {
             const entry = ReferenceOf(entries[i]);
-            if (entry.hashCode == hashCode && entry.key == key)
+            if (entry.hashCode == hashCode && EqualityHelper.equals(entry.key, key))
             {
                 if (last < 0)
                 {
