@@ -88,16 +88,16 @@ export namespace HashHelpers
         const value4BytesRef: Reference<i32> = key;
         const count4 = size >> 2;
         for (let offset = 0; offset < count4; offset ++) {
-            const int32 = LoadReference(value4BytesRef[offset]);
-            hashValue = (hashValue + int32 * power) % mod;
+            const v32 = LoadReference(value4BytesRef[offset]);
+            hashValue = (hashValue + v32 * power) % mod;
             power = (power * PrimeHelpers.hashPrime) % mod
         }        
 
         const start4 = count4 << 2;
         const valueByteRef: Reference<byte> = key;
         for (let offset = start4; offset < size; offset ++) {
-            const byte = LoadReference(valueByteRef[offset]);
-            hashValue = (hashValue + byte * power) % mod;
+            const v8 = LoadReference(valueByteRef[offset]);
+            hashValue = (hashValue + v8 * power) % mod;
             power = (power * PrimeHelpers.hashPrime) % mod
         }
 
