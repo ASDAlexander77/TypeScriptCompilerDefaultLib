@@ -21,7 +21,7 @@ function __is<V extends T, T>(t: T): t is V
     return true;
 }
 
-function __is_any<V extends never>(t: V): t is any
+function __is_any<V extends never>(t: V): t is V
 {
     return true;
 }
@@ -617,10 +617,6 @@ enum InsertionBehavior
 namespace HashHelpers
 {
     function hashCodeGeneral<K>(key: K): int {
-        let hashValue = 0;
-        let power = 1;
-        const mod = 10 ** 9 + 7;
-
         let keyLocal = key;
         const size = sizeof<K>();
         const valueRef = ReferenceOf(keyLocal);
@@ -641,10 +637,13 @@ namespace HashHelpers
         { 
             return hashCodeString(<string>key);
         }
-        else
+
+        if (__is_any(key))
         {
-            return hashCodeGeneral(key);
+            return hashCodeAny(key);
         }
+
+        return hashCodeGeneral(key);
     }
 }
 

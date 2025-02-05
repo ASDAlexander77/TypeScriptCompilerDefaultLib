@@ -25,4 +25,6 @@ declare namespace HashHelpers
     declare function hashCodeBinary(key: Opaque, size: index): int;
     
     declare function hashCodeString(key: string): int;
+
+    declare function hashCodeAny(key: any): int;
 }

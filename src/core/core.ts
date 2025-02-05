@@ -107,4 +107,11 @@ export namespace HashHelpers
     export function hashCodeString(key: string): int {
         return hashCodeBinary(ReferenceOf(key[0]), key.length);
     }
+
+    export function hashCodeAny(key: any): int {
+        let keyLocal = key;
+        const anyPtr = LoadReference(<Reference<Opaque>> ReferenceOf(keyLocal));
+        let anyStruct: Reference<[size: index, type: string, data: byte]> = anyPtr;
+        return hashCodeBinary(ReferenceOf(anyStruct.data), anyStruct.size);
+    }
 }
