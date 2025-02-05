@@ -1022,7 +1022,7 @@ class Set<V = any> {
         }
         else {
             this.initialize(values.length);
-            for (const v of values) this.tryInsert(v, InsertionBehavior.ThrowOnExisting);
+            for (const v of values) this.AddIfNotPresent(v, InsertionBehavior.ThrowOnExisting);
         }
     }
 
@@ -1042,8 +1042,8 @@ class Set<V = any> {
         }
     }
 
-    set(v: V) {
-        this.tryInsert(v, InsertionBehavior.ThrowOnExisting);
+    add(v: V) {
+        this.AddIfNotPresent(v, InsertionBehavior.ThrowOnExisting);
         return this;
     }
 
@@ -1083,7 +1083,7 @@ class Set<V = any> {
         const result = new Set<V>();
         for (const value of this.iter()) {
             if (other.has(value)) continue;
-            result.set(value);
+            result.add(value);
         }
 
         return result;
@@ -1092,16 +1092,16 @@ class Set<V = any> {
     intersection(other: Set<V>): Set<V> {
         const result = new Set<V>();
         for (const value of this.iter())
-            if (other.has(value)) result.set(value);
+            if (other.has(value)) result.add(value);
         return result;
     }
 
     union(other: Set<V>): Set<V> {
         const result = new Set<V>();
         for (const value of this.iter())
-            result.set(value);
+            result.add(value);
         for (const value of other)
-            result.set(value);
+            result.add(value);
         return result;
     }
 
@@ -1109,12 +1109,12 @@ class Set<V = any> {
         const result = new Set<V>();
         for (const value of this.iter()) {
             if (other.has(value)) continue;
-            result.set(value);
+            result.add(value);
         }
 
         for (const value of other) {
             if (this.has(value)) continue;
-            result.set(value);
+            result.add(value);
         }
 
         return result;
@@ -1127,6 +1127,22 @@ class Set<V = any> {
 
         return true;
     }
+
+    isSubsetOf(other: Set<V>): boolean {
+        for (const value of this.iter()) {
+            if (!other.has(value)) return false;
+        }
+
+        return true;
+    }    
+
+    isSupersetOf(other: Set<V>): boolean {
+        for (const value of other) {
+            if (!this.has(value)) return false;
+        }
+
+        return true;
+    }    
 
     private join(): string {
         let result = "";
@@ -1202,7 +1218,7 @@ class Set<V = any> {
         this.resizeHelper(PrimeHelpers.expandPrime(this.count), false);
     }
 
-    private tryInsert(value: V, behavior: InsertionBehavior): boolean {
+    private AddIfNotPresent(value: V, behavior: InsertionBehavior): boolean {
         const hashCode = <uint>HashHelpers.hashCode(value);
 
         let entries = this._entries;
