@@ -659,7 +659,7 @@ namespace EqualityHelper
     }
 }
 
-type Entry<TKey, TValue> =
+type MapEntry<TKey, TValue> =
 {
     hashCode: uint,
     /// <summary>
@@ -677,7 +677,7 @@ class Map<K = any, V = any> {
     const StartOfFreeList = -3;
 
     private buckets: int[];
-    private _entries: Entry<K, V>[];    
+    private _entries: MapEntry<K, V>[];    
     private freeList: int;
     private count: int;
     private freeList: int;
@@ -754,7 +754,7 @@ class Map<K = any, V = any> {
         const size = PrimeHelpers.getPrime(capacity);
         let buckets: int[] = [];
         buckets.length = size;
-        let entries: Entry<K, V>[] = [];
+        let entries: MapEntry<K, V>[] = [];
         entries.length = size;
 
         this.freeList = -1;
@@ -776,7 +776,7 @@ class Map<K = any, V = any> {
         buckets[hashCode % buckets.length] = value;
     } 
 
-    private newHashCodes(entries: Entry<K, V>[]) {
+    private newHashCodes(entries: MapEntry<K, V>[]) {
         const count = entries.length;
         for (let i = 0; i < count; i++) {
             if (entries[i].next >= -1)
@@ -788,7 +788,7 @@ class Map<K = any, V = any> {
 
     private resizeHelper(newSize: int, forceNewHashCodes: boolean)
     {
-        let entries: Entry<K, V>[] = [];
+        let entries: MapEntry<K, V>[] = [];
         entries.length = newSize;
 
         const count = this.count;
@@ -1041,4 +1041,327 @@ class Map<K = any, V = any> {
             }
         }
     }    
+}
+
+
+type SetEntry<TValue> =
+{
+    hashCode: uint,
+    /// <summary>
+    /// 0-based index of next entry in chain: -1 means end of chain
+    /// also encodes whether this entry _itself_ is part of the free list by changing sign and subtracting 3,
+    /// so -2 means end of free list, -3 means index 0 but on free list, -4 means index 1 but on free list, etc.
+    /// </summary>
+    next: int;
+    value: TValue; // Value of entry
+};
+
+class Set<V = any> {
+
+    const StartOfFreeList = -3;
+
+    private buckets: int[];
+    private _entries: SetEntry<V>[];    
+    private freeList: int;
+    private count: int;
+    private freeList: int;
+    private freeCount: int;
+    private version: int;
+    
+    constructor(values?: V[]) {
+        if (values == undefined)
+        {
+            this.initialize(0);
+        }
+        else
+        {
+            this.initialize(values.length);
+            for (const v of values) this.tryInsert(v, InsertionBehavior.ThrowOnExisting);
+        }
+    }
+
+    get size() {
+        return this.count;
+    }
+
+    clear() {
+        const count = this.count;
+        if (count > 0)
+        {
+            this.buckets.length = 0;
+
+            this.count = 0;
+            this.freeList = -1;
+            this.freeCount = 0;
+            this._entries.length = 0;
+        }        
+    }
+
+    set (v: V) {        
+        this.tryInsert(v, InsertionBehavior.ThrowOnExisting);
+        return this;
+    }
+
+    has (v: V): boolean {        
+        return this.hasValue(v);
+    }    
+
+    delete (v: V): boolean {
+        return this.removeValue(v);
+    }
+
+    entries() {
+        return this.iter();
+    }
+    
+    keys() {
+        return this.iter();
+    }
+
+    values() {
+        return this.iter();
+    }
+
+    forEach(f: (value: V, map: Set<V>) => void) {
+        for (const value of this.iter()) f(value, this);
+    }
+
+    [Symbol.iterator]() {
+        return this.entries();
+    }
+
+    private initialize(capacity: int) {
+        const size = PrimeHelpers.getPrime(capacity);
+        let buckets: int[] = [];
+        buckets.length = size;
+        let entries: SetEntry<V>[] = [];
+        entries.length = size;
+
+        this.freeList = -1;
+        this.buckets = buckets;
+        this._entries = entries;
+
+        return size;
+    }
+
+    private getBucket(hashCode: int): int
+    {
+        const buckets = this.buckets;
+        return buckets[hashCode % buckets.length];
+    }    
+
+    private setBucket(hashCode: int, value: int)
+    {
+        const buckets = this.buckets;
+        buckets[hashCode % buckets.length] = value;
+    } 
+
+    private newHashCodes(entries: SetEntry<V>[]) {
+        const count = entries.length;
+        for (let i = 0; i < count; i++) {
+            if (entries[i].next >= -1)
+            {
+                entries[i].hashCode = <uint>HashHelpers.hashCode(entries[i].value);
+            }
+        }
+    }
+
+    private resizeHelper(newSize: int, forceNewHashCodes: boolean)
+    {
+        let entries: SetEntry<V>[] = [];
+        entries.length = newSize;
+
+        const count = this.count;
+        memcpy(ReferenceOf(entries[0]), ReferenceOf(this._entries[0]), sizeof<typeof entries[0]>() * count);
+
+        if (forceNewHashCodes)
+        {
+            this.newHashCodes(entries);
+        }
+
+        // Assign member variables after both arrays allocated to guard against corruption from OOM if second fails
+        this.buckets = [];
+        this.buckets.length = newSize;
+        for (let i = 0; i < count; i++)
+        {
+            if (entries[i].next >= -1)
+            {
+                const hashCode = entries[i].hashCode;
+                entries[i].next = this.getBucket(hashCode) - 1; // Value in _buckets is 1-based
+                this.setBucket(hashCode, i + 1);
+            }
+        }
+
+        this._entries = entries;
+    }
+
+    private resize() {
+        this.resizeHelper(PrimeHelpers.expandPrime(this.count), false);
+    }
+
+    private tryInsert(value: V, behavior: InsertionBehavior): boolean {
+        const hashCode = <uint>HashHelpers.hashCode(value);
+
+        let entries = this._entries;
+
+        let collisionCount: uint = 0;
+        let bucket = this.getBucket(hashCode);
+        let i = bucket - 1; // Value in _buckets is 1-based
+
+        while (<uint>i < <uint>entries.length)
+        {
+            if (entries[i].hashCode == hashCode && EqualityHelper.equals(entries[i].value, value))
+            {
+                if (behavior == InsertionBehavior.OverwriteExisting)
+                {
+                    entries[i].value = value;
+                    return true;
+                }
+
+                if (behavior == InsertionBehavior.ThrowOnExisting)
+                {
+                    // throw error
+                }
+
+                return false;
+            }            
+
+            i = entries[i].next;
+            collisionCount++;
+            if (collisionCount > <uint>entries.length)
+            {
+                // throw exception
+            }        
+        }        
+
+        let index = 0;
+        if (this.freeCount > 0)
+        {
+            index = this.freeList;
+            this.freeList = this.StartOfFreeList - entries[this.freeList].next;
+            this.freeCount--;
+        }
+        else
+        {
+            let count = this.count;
+            if (count == entries.length)
+            {
+                this.resize();
+                bucket = this.getBucket(hashCode);
+            }
+
+            index = count;
+            this.count = count + 1;
+            entries = this._entries;
+        }
+
+        entries[index] = {
+            hashCode: hashCode,
+            next: bucket - 1, // Value in _buckets is 1-based
+            value: value,
+        };
+
+        this.setBucket(hashCode, index + 1); // Value in _buckets is 1-based
+        this.version++;
+
+        // Value types never rehash
+        if (collisionCount > PrimeHelpers.hashCollisionThreshold)
+        {
+            this.newHashCodes(entries);
+        }
+
+        return true;
+    }
+
+    private hasValue(value: V): boolean
+    {
+        const hashCode = <uint>HashHelpers.hashCode(value);
+        let i = this.getBucket(hashCode);
+        let entries = this._entries;
+        let collisionCount: uint = 0;
+
+        i--; // Value in _buckets is 1-based; subtract 1 from i. We do it here so it fuses with the following conditional.
+        do
+        {
+            if (<uint>i >= <uint>entries.length)
+            {
+                // not found
+                return false;
+            }
+
+            const entry = ReferenceOf(entries[i]);
+            if (entry.hashCode == hashCode && EqualityHelper.equals(entry.value, value))
+            {
+                // found
+                return true;
+            }
+
+            i = entry.next;
+
+            collisionCount++;
+        } while (collisionCount <= <uint>entries.length);
+
+        // The chain of entries forms a loop; which means a concurrent update has happened.
+        // Break out of the loop and throw, rather than looping forever.
+        // TODO: throw exception
+        return false;
+    } 
+    
+    private removeValue(value: V): boolean
+    {
+        const hashCode = <uint>HashHelpers.hashCode(value);
+        let bucket = this.getBucket(hashCode);
+        let entries = this._entries;
+        let collisionCount: uint = 0;
+
+        let last = -1;
+        let i = bucket - 1; // Value in buckets is 1-based
+        while (i >= 0)
+        {
+            const entry = ReferenceOf(entries[i]);
+            if (entry.hashCode == hashCode && EqualityHelper.equals(entry.value, value))
+            {
+                if (last < 0)
+                {
+                    bucket = entry.next + 1; // Value in buckets is 1-based
+                    this.setBucket(hashCode, bucket);
+                }
+                else
+                {
+                    entries[last].next = entry.next;
+                }
+
+                entry.next = this.StartOfFreeList - this.freeList;
+
+                this.freeList = i;
+                this.freeCount++;
+                return true;
+            }
+
+            last = i;
+            i = entry.next;
+
+            collisionCount++;
+            if (collisionCount > <uint>entries.length)
+            {
+                // The chain of entries forms a loop; which means a concurrent update has happened.
+                // Break out of the loop and throw, rather than looping forever.
+                // throw exception
+                return false;
+            }
+        }
+
+        return false;
+    }    
+
+    private *iter() {
+        const entries = this._entries;
+        for (let i = 0; i < this.count; i++)
+        {
+            if (entries[i].next >= -1)
+            {
+                yield entries[i].value;
+            }
+        }
+    }
 }

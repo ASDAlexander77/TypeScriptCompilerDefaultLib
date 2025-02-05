@@ -90,6 +90,7 @@ export namespace HashHelpers
         for (let offset = 0; offset < count4; offset ++) {
             const v32 = LoadReference(value4BytesRef[offset]);
             hashValue = (hashValue + v32 * power) % mod;
+            //print("v32=", v32, "offset=", offset, "addr=", value4BytesRef[offset], "hash=", hashValue);
             power = (power * PrimeHelpers.hashPrime) % mod
         }        
 
@@ -98,6 +99,7 @@ export namespace HashHelpers
         for (let offset = start4; offset < size; offset ++) {
             const v8 = LoadReference(valueByteRef[offset]);
             hashValue = (hashValue + v8 * power) % mod;
+            //print("v8=", v8, "offset=", offset, "addr=", value4BytesRef[offset], "hash=", hashValue);
             power = (power * PrimeHelpers.hashPrime) % mod
         }
 
