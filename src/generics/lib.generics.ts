@@ -137,8 +137,9 @@ namespace __Array {
         for (const v of this) if (func(v)) yield v;
     }
 
-    function find<T>(this: T[], func: (v: T) => boolean) {
+    function find<T>(this: T[], func: (v: T) => boolean): T | undefined {
         for (const v of this) if (func(v)) return v;
+        return undefined;
     }
 
     function findIndex<T>(this: T[], func: (v: T) => boolean) {
@@ -1362,4 +1363,49 @@ class Set<V = any> {
             }
         }
     }
+}
+
+namespace __Iterator
+{
+    // example how to restrict to iterators only
+    // function *take<TIter extends { next(): {value: any, done: boolean} >(iter: TIter, limit: index) {
+
+    function *take<TIter extends { next(): {value: any, done: boolean} } >(iter: TIter, limit: index) {
+        let count: index = 0;
+        for (const v of iter) {
+            if (count ++ >= limit) 
+                break;
+            yield v;
+        }
+    }
+
+    function drop<TIter extends { next(): {value: any, done: boolean} } >(iter: TIter, limit: index) {
+        for (let i: index = 0; i < limit; i++)
+            iter.next();
+
+        return iter;
+    }
+
+    type ElementType<T> = T extends { next(): {value: infer TElem, done: boolean} } ? TElem : never;  
+    function every<TIter extends { next(): {value: any, done: boolean} }>(iter: TIter, callbackFn: (e: ElementType<TIter>) => boolean): boolean {
+        for (const v of iter) {
+            if (!callbackFn(v)) 
+                return false;
+        }
+
+        return true;
+    }    
+
+    function *filter<TIter extends { next(): {value: any, done: boolean} }>(iter: TIter, callbackFn: (e: ElementType<TIter>) => boolean) {
+        for (const v of iter) {
+            if (!callbackFn(v)) 
+                continue;
+            yield v;
+        }
+    }      
+
+    function find<TIter extends { next(): {value: any, done: boolean} }>(iter: TIter, callbackFn: (e: ElementType<TIter>) => boolean): ElementType<TIter> | undefined {
+        for (const v of iter) if (callbackFn(v)) return v;
+        return undefined;
+    }    
 }
