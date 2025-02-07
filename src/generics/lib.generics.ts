@@ -1408,4 +1408,18 @@ namespace __Iterator
         for (const v of iter) if (callbackFn(v)) return v;
         return undefined;
     }    
+
+    function forEach<TIter extends { next(): {value: any, done: boolean} }>(iter: TIter, callbackFn: (e: ElementType<TIter>) => void) {
+        for (const v of iter) callbackFn(v);
+    }     
+
+    function *map<TIter extends { next(): {value: any, done: boolean} }, R>(iter: TIter, callbackFn: (e: ElementType<TIter>) => R) {
+        for (const v of iter) yield callbackFn(v);
+    }
+
+    function reduce<TIter extends { next(): {value: any, done: boolean} }, V = ElementType<TIter>>(iter: TIter, callbackFn: (v: V, t: ElementType<TIter>) => V, initial?: V) {
+        let result = initial ?? iter.next().value;
+        for (const v of iter) result = callbackFn(result, v);
+        return result;
+    }
 }
