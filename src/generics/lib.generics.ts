@@ -1422,4 +1422,19 @@ namespace __Iterator
         for (const v of iter) result = callbackFn(result, v);
         return result;
     }
+
+    function some<TIter extends { next(): {value: any, done: boolean} }>(iter: TIter, callbackFn: (e: ElementType<TIter>) => boolean): boolean {
+        for (const v of iter) {
+            if (callbackFn(v)) 
+                return true;
+        }
+
+        return false;
+    }      
+
+    function toArray<TIter extends { next(): {value: any, done: boolean} }>(iter: TIter) {
+        let result: ElementType<TIter>[] = [];
+        for (const v of iter) result.push(v);
+        return result;
+    }
 }
