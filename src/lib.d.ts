@@ -216,9 +216,21 @@ declare class Date {
 }
 
 declare class RegExp {
+    public lastIndex: index;
+
+    private match: Opaque | null;
+
     private expr: string;
 
-    constructor(expr: string);
+    private flags?: string;
+
+    constructor(expr: string, flags?: string);
+
+    test(s: string): boolean;
+
+    exec(s: string): void;
+
+    [Symbol.dispose](): void;
 }
 
 declare namespace __String {

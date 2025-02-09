@@ -429,8 +429,30 @@ export class Date {
 
 export class RegExp
 {
-    public constructor(private expr: string) {
+    public lastIndex: index = 0;
+
+    private match: Opaque | null = null;
+
+    constructor(private expr: string, private flags = "") {
     }
+
+    test(s: string) {
+        return regexp_test(this.expr, s);
+    }
+
+    exec(s: string): void {
+        const cmatch = regexp_exec(this.expr, s, this.match);
+
+        this.lastIndex = regexp_exec_lastIndex(cmatch);
+
+        this.match = cmatch;
+    }
+
+    // other methods
+    [Symbol.dispose]() {
+        // Close object.
+        regexp_free(this.match);
+    }    
 }
 
 namespace __String {
