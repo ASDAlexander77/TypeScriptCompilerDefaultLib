@@ -427,9 +427,30 @@ export class Date {
     }
 }
 
+export class MatchIndicesResults
+{
+    constructor(private match: Opaque | null = null, private lastIndex: index = 0) {
+    }       
+
+    [index: number]: [index, index];
+
+    get(index: number) {        
+        const pos = regexp_match_results_sub_match_position(this.match, index);
+        const len = regexp_match_results_sub_match_length(this.match, index);
+        const res: [index, index] = [pos + this.lastIndex, pos + len + this.lastIndex];
+        return res;
+    }
+
+    get length() {
+        return regexp_match_results_size(this.match);
+    }    
+}
+
 export class MatchResults
 {
-    constructor(private match: Opaque | null = null) {
+    private indices_: MatchIndicesResults = null;
+
+    constructor(private match: Opaque | null = null, private hasIndices = false, private lastIndex: index = 0) {
     }    
 
     [index: number]: string;
@@ -443,6 +464,13 @@ export class MatchResults
 
     get length() {
         return regexp_match_results_size(this.match);
+    }
+
+    get indices() {
+        // TODO: finish it
+        //if (!this.hasIndices)
+        //    return undefined;
+        return this.indices_ ??= new MatchIndicesResults(this.match, this.lastIndex);
     }
 }
 
@@ -488,19 +516,38 @@ export class RegExp
     }
 
     test(s: string) {
-        return regexp_test(this.source, this.flags, s);
+        if (this.global) {
+            const result = regexp_test(this.source, this.flags, ReferenceOf(s[this.lastIndex]));
+            if (result > 0)
+            {
+                this.lastIndex = <index> result;
+                return true;
+            }
+
+            this.lastIndex = 0;
+            return false;
+        }
+
+        return regexp_test(this.source, this.flags, s) >= 0;
     }
 
     exec(s: string): MatchResults | null {
         const cmatch = regexp_exec(this.source, this.flags, ReferenceOf(s[this.lastIndex]), this.match);
         if (!cmatch)
-            return null;
+        {
+            if (this.global) 
+                this.lastIndex = 0;
 
-        this.lastIndex += regexp_match_results_prefix_length(cmatch);
+            return null;
+        }
+
+        const lastIndex = this.lastIndex;
+        if (this.global) 
+            this.lastIndex += regexp_match_results_prefix_length(cmatch);
 
         this.match = cmatch;
 
-        return new MatchResults(cmatch);
+        return new MatchResults(cmatch, this.hasIndices, lastIndex);
     }
 
     // other methods
@@ -656,12 +703,25 @@ namespace __String {
 
     export function match(this: string, expr: RegExp): string[] {
         // TODO: finish match
-        return null;
+        const result = expr.exec(this);
+        if (result != null)
+        {
+            return [...result];
+        }
+        
+        return null;        
     }
 
-    export function matchAll(this: string, expr: RegExp): string[] {
-        // TODO: finish matchAll
-        return null;
+    export function *matchAll(this: string, expr: RegExp): Iterator<string[]> {
+
+        while (true)
+        {
+            const result = expr.exec(this);
+            if (result == null)
+                break;
+
+            yield [...result];
+        }
     }
 
     export function normalize(this: string, form?: string): string {
@@ -987,7 +1047,7 @@ export class String {
         return this.value.match(expr);
     }
 
-    public matchAll(expr: RegExp): string[] {
+    public matchAll(expr: RegExp): Iterator<string[]> {
         return this.value.matchAll(expr);
     }
 

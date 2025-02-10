@@ -215,17 +215,40 @@ declare class Date {
     [Symbol.toPrimitive](hint: string) : string | number;
 }
 
-declare class MatchResults
+declare class MatchIndicesResults
 {
     private match?: Opaque | null;
 
-    constructor(match?: Opaque | null);
+    private lastIndex?: index;
+
+    constructor(match?: Opaque | null, lastIndex?: index);
+
+    [index: number]: [index, index];
+
+    get(index: number): [index, index];
+
+    get length(): index;
+}
+
+declare class MatchResults
+{
+    private indices_: MatchIndicesResults;
+
+    private match?: Opaque | null;
+
+    private hasIndices?: boolean;
+
+    private lastIndex?: index;
+
+    constructor(match?: Opaque | null, lastIndex?: index);
 
     [index: number]: string;
 
     get(index: number): string;
 
     get length(): index;
+
+    get indices(): MatchIndicesResults/* | undefined*/;    
 }
 
 declare class RegExp {
@@ -281,7 +304,7 @@ declare namespace __String {
 
     function match(this: string, expr: RegExp): string[];
 
-    function matchAll(this: string, expr: RegExp): string[];
+    function matchAll(this: string, expr: RegExp): Iterator<string[]>;
 
     function normalize(this: string, form?: string): string;
     
@@ -355,7 +378,7 @@ declare class String {
 
     match(this: string, expr: RegExp): string[];
 
-    matchAll(this: string, expr: RegExp): string[];
+    matchAll(this: string, expr: RegExp): Iterator<string[]>;
 
     normalize(this: string, form?: string): string;
     

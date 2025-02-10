@@ -5,19 +5,55 @@ void regexp_error(int code);
 std::regex::flag_type get_flags(const char *flags);
 std::regex_constants::match_flag_type get_match_flags(const char *flags);
 
-extern "C" bool regexp_test(const char *expr, const char *flags, const char *s)
+extern "C" size_t regexp_match_results_size(std::cmatch *cm)
+{
+    // TODO: fix it, somehow it is different to MDN RegExp test
+    return static_cast<size_t>(cm->size());
+}
+
+extern "C" size_t regexp_match_results_prefix_length(std::cmatch *cm)
+{
+    return static_cast<size_t>(cm->prefix().length() + cm->operator[](0).length());
+}
+
+extern "C" void regexp_match_results_sub_match_str_copy_to(std::cmatch *cm, size_t subIndex, char *buffer, size_t count)
+{
+    cm->operator[](subIndex).str().copy(buffer, count);
+}
+
+extern "C" size_t regexp_match_results_sub_match_str_length(std::cmatch *cm, size_t subIndex)
+{
+    return cm->operator[](subIndex).str().size();
+}
+
+extern "C" size_t regexp_match_results_sub_match_position(std::cmatch *cm, size_t subIndex)
+{
+    return static_cast<size_t>(cm->position(subIndex));
+}
+
+extern "C" size_t regexp_match_results_sub_match_length(std::cmatch *cm, size_t subIndex)
+{
+    return static_cast<size_t>(cm->length(subIndex));
+}
+
+extern "C" int regexp_test(const char *expr, const char *flags, const char *s)
 {
     try
     {
         std::cmatch cm;
-        return std::regex_search(s, cm, std::regex(expr, get_flags(flags)), get_match_flags(flags));
+        if (std::regex_search(s, cm, std::regex(expr, get_flags(flags)), get_match_flags(flags)))
+        {
+            return static_cast<int>(regexp_match_results_prefix_length(&cm));
+        }
+
+        return -1;
     }
     catch (std::regex_error &e)
     {
         regexp_error(e.code());
     }
 
-    return 0;
+    return -1;
 }
 
 extern "C" std::cmatch *regexp_exec(const char *expr, const char *flags, const char *s, std::cmatch *cm)
@@ -40,27 +76,6 @@ extern "C" std::cmatch *regexp_exec(const char *expr, const char *flags, const c
     }
 
     return nullptr;
-}
-
-extern "C" size_t regexp_match_results_size(std::cmatch *cm)
-{
-    // TODO: fix it, somehow it is different to MDN RegExp test
-    return static_cast<size_t>(cm->size());
-}
-
-extern "C" size_t regexp_match_results_prefix_length(std::cmatch *cm)
-{
-    return static_cast<size_t>(cm->prefix().length() + cm->operator[](0).length());
-}
-
-extern "C" void regexp_match_results_sub_match_str_copy_to(std::cmatch *cm, size_t subIndex, char *buffer, size_t count)
-{
-    cm->operator[](subIndex).str().copy(buffer, count);
-}
-
-extern "C" size_t regexp_match_results_sub_match_str_length(std::cmatch *cm, size_t subIndex)
-{
-    return cm->operator[](subIndex).str().size();
 }
 
 extern "C" void regexp_free(std::cmatch *cm)
