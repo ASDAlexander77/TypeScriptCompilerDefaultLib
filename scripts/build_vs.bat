@@ -8,6 +8,7 @@ set BUILD1=Debug
 set LLVM_BUILD=Debug
 set ARCH=x64
 set DBG=--di --opt_level=0
+set DBG_CL=/Zi /std:c++latest
 
 if "%1"=="release" (
 	set TOOL_BUILD=release
@@ -15,6 +16,7 @@ if "%1"=="release" (
 	set BUILD1=release
 	set LLVM_BUILD=Release
 	set DBG=--opt --opt_level=3
+	set DBG_CL=/std:c++latest
 )
 
 set SRC=.
@@ -56,7 +58,7 @@ call %VSPATH%
 rem echo on
 
 rem Build native wrappers for C++ code
-cl /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\regex.cpp
+cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\regex.cpp
 
 rem Build OS-specific Lib
 %TOOL_PATH%\tsc.exe %DBG% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.win32.ts -o %OUTPUT%\lib\%BUILD%\lib.win32.obj

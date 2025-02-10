@@ -61,7 +61,8 @@ declare function memmove(dest: Opaque, src: Opaque, bytes: index): Opaque;
 declare function memcmp(dest: Opaque, src: Opaque, bytes: index): int;
 
 // regex
-declare function regexp_test(expr: string, s: string): boolean;
+declare function regexp_test(expr: string, s: string): int;
 declare function regexp_exec(expr: string, s: string, cm: Opaque): Opaque;
-declare function regexp_exec_lastIndex(cm: Opaque): index;
+declare function regexp_match_results_size(cm: Opaque): index;
+declare function regexp_match_results_prefix_length(cm: Opaque): index;
 declare function regexp_free(cm: Opaque): void;

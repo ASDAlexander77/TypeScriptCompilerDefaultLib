@@ -427,6 +427,16 @@ export class Date {
     }
 }
 
+export class MatchResults
+{
+    constructor(private match: Opaque | null = null) {
+    }    
+
+    size() {
+        return regexp_match_results_size(this.match);
+    }
+}
+
 export class RegExp
 {
     public lastIndex: index = 0;
@@ -437,21 +447,25 @@ export class RegExp
     }
 
     test(s: string) {
-        return regexp_test(this.expr, s);
+        return regexp_test(this.expr, s) > 0;
     }
 
-    exec(s: string): void {
+    exec(s: string): MatchResults {
         const cmatch = regexp_exec(this.expr, s, this.match);
 
-        this.lastIndex = regexp_exec_lastIndex(cmatch);
+        this.lastIndex = regexp_match_results_prefix_length(cmatch);
 
         this.match = cmatch;
+
+        return new MatchResults(cmatch);
     }
 
     // other methods
     [Symbol.dispose]() {
         // Close object.
-        regexp_free(this.match);
+        const ptr = this.match;
+        this.match = null;
+        regexp_free(ptr);
     }    
 }
 

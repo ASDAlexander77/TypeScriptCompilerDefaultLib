@@ -215,6 +215,15 @@ declare class Date {
     [Symbol.toPrimitive](hint: string) : string | number;
 }
 
+declare class MatchResults
+{
+    private match?: Opaque | null;
+
+    constructor(match?: Opaque | null);
+
+    size(): index;
+}
+
 declare class RegExp {
     public lastIndex: index;
 
@@ -228,7 +237,7 @@ declare class RegExp {
 
     test(s: string): boolean;
 
-    exec(s: string): void;
+    exec(s: string): MatchResults;
 
     [Symbol.dispose](): void;
 }
