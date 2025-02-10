@@ -241,7 +241,7 @@ declare class RegExp {
 
     test(s: string): boolean;
 
-    exec(s: string): MatchResults;
+    exec(s: string): MatchResults | null;
 
     [Symbol.dispose](): void;
 }

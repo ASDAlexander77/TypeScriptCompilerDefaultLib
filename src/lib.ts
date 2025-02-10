@@ -459,10 +459,12 @@ export class RegExp
         return regexp_test(this.expr, s) > 0;
     }
 
-    exec(s: string): MatchResults {
-        const cmatch = regexp_exec(this.expr, s, this.match);
+    exec(s: string): MatchResults | null {
+        const cmatch = regexp_exec(this.expr, ReferenceOf(s[this.lastIndex]), this.match);
+        if (!cmatch)
+            return null;
 
-        this.lastIndex = regexp_match_results_prefix_length(cmatch);
+        this.lastIndex += regexp_match_results_prefix_length(cmatch);
 
         this.match = cmatch;
 
