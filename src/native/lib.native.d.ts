@@ -65,4 +65,6 @@ declare function regexp_test(expr: string, s: string): int;
 declare function regexp_exec(expr: string, s: string, cm: Opaque): Opaque;
 declare function regexp_match_results_size(cm: Opaque): index;
 declare function regexp_match_results_prefix_length(cm: Opaque): index;
+declare function regexp_match_results_sub_match_str_length(cm: Opaque, subIndex: index): index;
+declare function regexp_match_results_sub_match_str_copy_to(cm: Opaque, subIndex: index, buffer: string, count: index);
 declare function regexp_free(cm: Opaque): void;

@@ -221,6 +221,10 @@ declare class MatchResults
 
     constructor(match?: Opaque | null);
 
+    [index: number]: string;
+
+    get(index: number): string;
+
     size(): index;
 }
 

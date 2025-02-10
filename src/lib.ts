@@ -432,6 +432,15 @@ export class MatchResults
     constructor(private match: Opaque | null = null) {
     }    
 
+    [index: number]: string;
+
+    public get(index: number) {
+        const len = regexp_match_results_sub_match_str_length(this.match, index);
+        let buffer = "".clone().resize(len);
+        regexp_match_results_sub_match_str_copy_to(this.match, index, ReferenceOf(buffer[0]), len);
+        return buffer;
+    }
+
     size() {
         return regexp_match_results_size(this.match);
     }
