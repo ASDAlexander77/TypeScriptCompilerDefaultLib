@@ -434,33 +434,65 @@ export class MatchResults
 
     [index: number]: string;
 
-    public get(index: number) {
+    get(index: number) {
         const len = regexp_match_results_sub_match_str_length(this.match, index);
         let buffer = "".clone().resize(len);
         regexp_match_results_sub_match_str_copy_to(this.match, index, ReferenceOf(buffer[0]), len);
         return buffer;
     }
 
-    size() {
+    get length() {
         return regexp_match_results_size(this.match);
     }
 }
 
 export class RegExp
 {
-    public lastIndex: index = 0;
+    dotAll = false;
+    global = false;
+    hasIndices = false;
+    ignoreCase = false;
+    multiline = false;
+    sticky = false;
+    unicode = false;
+    unicodeSets = false;
+
+    lastIndex: index = 0;
 
     private match: Opaque | null = null;
 
-    constructor(private expr: string, private flags = "") {
+    constructor(private source: string, private flags = "") {
+        // TODO: finish flags - g, if it is provided it should change lastIndex
+        // for now all regex changes lastIndex;
+        for (const c of flags)
+        {
+            switch (c) {
+                case "s": this.dotAll = true;
+                    break;
+                case "g": this.global = true;
+                    break;
+                case "d": this.hasIndices = true;
+                    break;
+                case "i": this.ignoreCase = true;
+                    break;
+                case "m": this.multiline = true;
+                    break;
+                case "y": this.sticky = true;
+                    break;
+                case "u": this.unicode = true;
+                    break;
+                case "v": this.unicodeSets = true;
+                    break;
+            }
+        }
     }
 
     test(s: string) {
-        return regexp_test(this.expr, s) > 0;
+        return regexp_test(this.source, this.flags, s);
     }
 
     exec(s: string): MatchResults | null {
-        const cmatch = regexp_exec(this.expr, ReferenceOf(s[this.lastIndex]), this.match);
+        const cmatch = regexp_exec(this.source, this.flags, ReferenceOf(s[this.lastIndex]), this.match);
         if (!cmatch)
             return null;
 

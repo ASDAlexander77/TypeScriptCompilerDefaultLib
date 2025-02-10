@@ -225,11 +225,21 @@ declare class MatchResults
 
     get(index: number): string;
 
-    size(): index;
+    get length(): index;
 }
 
 declare class RegExp {
-    public lastIndex: index;
+
+    dotAll: boolean;
+    global: boolean;
+    hasIndices: boolean;
+    ignoreCase: boolean;
+    multiline: boolean;
+    sticky: boolean;
+    unicode: boolean;
+    unicodeSets: boolean;
+
+    lastIndex: index;
 
     private match: Opaque | null;
 
@@ -237,7 +247,7 @@ declare class RegExp {
 
     private flags?: string;
 
-    constructor(expr: string, flags?: string);
+    constructor(source: string, flags?: string);
 
     test(s: string): boolean;
 

@@ -6,11 +6,14 @@ PIC=
 TOOL=gcc
 ARC=ar
 DBG_OPTS=--di --opt_level=0
+DBG_GCC=-g
+CPP_FLAGS=-std=c++11 -stdlib=libstdc++
 
 if [ "$1" == "release" ] ; then
 	TOOL_BUILD=release
 	BUILD=release
 	DBG_OPTS=--opt --opt_level=3
+	DBG_GCC=-O3
 fi
 
 if [ "$2" == "clang" ] ; then
@@ -48,14 +51,16 @@ fi
 
 mkdir -p dll/$BUILD
 mkdir -p lib/$BUILD
+$TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/regex.ts -o $OUTPUT/lib/$BUILD/regex.o
+
 $BIN_PATH/tsc $DBG_OPTS --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.linux.ts $PIC -o $OUTPUT/lib/$BUILD/lib.linux.o
 
 # Build DLL
-$BIN_PATH/tsc $DBG_OPTS --emit=dll --embed-declarations=false --nowarn --no-default-lib $SRC/src/lib.ts --obj=$OUTPUT/lib/$BUILD/lib.linux.o $PIC -verbose -o $OUTPUT/dll/$BUILD/libTypeScriptDefaultLib.so
+$BIN_PATH/tsc $DBG_OPTS --emit=dll --embed-declarations=false --nowarn --no-default-lib $SRC/src/lib.ts --obj=$OUTPUT/lib/$BUILD/lib.linux.o --obj=$OUTPUT/lib/$BUILD/regex.o $PIC -verbose -o $OUTPUT/dll/$BUILD/libTypeScriptDefaultLib.so
 
 # Build Lib
 $BIN_PATH/tsc $DBG_OPTS --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.ts $PIC -o $OUTPUT/lib/$BUILD/lib.o
-$ARC rcs $OUTPUT/lib/$BUILD/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o
+$ARC rcs $OUTPUT/lib/$BUILD/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o $OUTPUT/lib/$BUILD/regex.o
 
 # Copy
 BUILD_LIB_PATH=./__build/$BUILD/defaultlib/

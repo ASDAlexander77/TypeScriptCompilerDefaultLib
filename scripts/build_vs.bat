@@ -77,6 +77,7 @@ echo off
 
 del %OUTPUT%\lib\%BUILD%\lib.obj
 del %OUTPUT%\lib\%BUILD%\lib.win32.obj
+del %OUTPUT%\lib\%BUILD%\regex.obj
 
 set BUILD_LIB_PATH=.\__build\%BUILD%\defaultlib
 rd /S /Q %BUILD_LIB_PATH%
