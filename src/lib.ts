@@ -702,7 +702,6 @@ namespace __String {
     }
 
     export function match(this: string, expr: RegExp): string[] {
-        // TODO: finish match
         const result = expr.exec(this);
         if (result != null)
         {
