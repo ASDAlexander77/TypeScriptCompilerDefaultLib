@@ -531,6 +531,12 @@ export class RegExp
         return regexp_test(this.source, this.flags, s) >= 0;
     }
 
+    search(s: string): int {
+        const r = regexp_test(this.source, this.flags, s);
+        // TODO: clean this mess
+        return r > 0 ? r - 1 : -1;
+    }    
+
     exec(s: string): MatchResults | null {
         const cmatch = regexp_exec(this.source, this.flags, ReferenceOf(s[this.lastIndex]), this.match);
         if (!cmatch)
@@ -798,9 +804,8 @@ namespace __String {
         return this;
     }    
 
-    export function search(this: string, regexp: RegExp): index {
-        // TODO: finish search
-        return -1;
+    export function search(this: string, regexp: RegExp): int {
+        return regexp.search(this);
     }
 
     export function slice(this: string, indexStart: int, indexEnd = this.length): string {
@@ -1089,7 +1094,7 @@ export class String {
         return this.value.replaceAll(pattern, replacement);
     }
     
-    public search(regexp: RegExp): index {
+    public search(regexp: RegExp): int {
         return this.value.search(regexp);
     }
 

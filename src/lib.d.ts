@@ -274,6 +274,8 @@ declare class RegExp {
 
     test(s: string): boolean;
 
+    search(s: string): int;
+
     exec(s: string): MatchResults | null;
 
     [Symbol.dispose](): void;
@@ -318,7 +320,7 @@ declare namespace __String {
 
     function replaceAll(this: string, pattern: string | RegExp, replacement: string): string;
     
-    function search(this: string, regexp: RegExp): index;
+    function search(this: string, regexp: RegExp): int;
 
     function slice(this: string, indexStart: int, indexEnd?: int): string;
 
@@ -392,7 +394,7 @@ declare class String {
 
     replaceAll(this: string, pattern: string | RegExp, replacement: string): string;
     
-    search(this: string, regexp: RegExp): index;
+    search(this: string, regexp: RegExp): int;
 
     slice(this: string, indexStart: int, indexEnd?: int): string;
 
