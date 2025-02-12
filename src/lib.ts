@@ -515,10 +515,29 @@ export class RegExp
         }
     }
 
+    exec(s: string): MatchResults | null {
+        const cmatch = regexp_exec(this.source, this.flags, ReferenceOf(s[this.lastIndex]), this.match);
+        if (!cmatch)
+        {
+            if (this.global) 
+                this.lastIndex = 0;
+
+            return null;
+        }
+
+        const lastIndex = this.lastIndex;
+        if (this.global) 
+            this.lastIndex += regexp_match_results_suffix_position(cmatch);
+
+        this.match = cmatch;
+
+        return new MatchResults(cmatch, this.hasIndices, lastIndex);
+    }
+
     test(s: string) {
         if (this.global) {
             const result = regexp_test(this.source, this.flags, ReferenceOf(s[this.lastIndex]));
-            if (result > 0)
+            if (result >= 0)
             {
                 this.lastIndex += <index> result;
                 return true;
@@ -533,27 +552,40 @@ export class RegExp
 
     search(s: string): int {
         const r = regexp_test(this.source, this.flags, s);
-        // TODO: clean this mess
-        return r > 0 ? r - 1 : -1;
+        return r > 0 ? r - 1 : r;
     }    
 
-    exec(s: string): MatchResults | null {
-        const cmatch = regexp_exec(this.source, this.flags, ReferenceOf(s[this.lastIndex]), this.match);
-        if (!cmatch)
+    replace(s: string, replacement: string): string {
+        const cmatch = regexp_exec(this.source, this.flags, s, null);
+        if (cmatch)
         {
-            if (this.global) 
-                this.lastIndex = 0;
+            const r = regexp_match_results_format(cmatch, replacement);
 
-            return null;
+            const index = regexp_match_results_prefix_length(cmatch);
+            const lastIndex = regexp_match_results_suffix_position(cmatch);
+
+            // get formatted replacement
+            const len = r.length;
+            let result = "".clone().resize(len);
+            memcpy(ReferenceOf(result[0]), r, len);
+            
+            regexp_free_string(r);
+            regexp_free(cmatch);
+
+            // do replacement
+            return s.substring(0, index) + result + s.substring(lastIndex);
         }
 
-        const lastIndex = this.lastIndex;
-        if (this.global) 
-            this.lastIndex += regexp_match_results_prefix_length(cmatch);
+        return null;
+    }
 
-        this.match = cmatch;
-
-        return new MatchResults(cmatch, this.hasIndices, lastIndex);
+    replaceAll(s: string, replacement: string): string {
+        const r = regexp_replace(this.source, this.flags, s);
+        const len = r.length;
+        let result = "".clone().resize(len);
+        memcpy(ReferenceOf(result[0]), r, len);
+        regexp_free_string(r);
+        return result;
     }
 
     // other methods
@@ -620,6 +652,21 @@ namespace __String {
 
         return newString;
     }       
+
+    // internal
+    function join(parts: string[]): string {
+        let count = 0;
+        for (const item of parts)
+            count += item.length;
+        const newString = "".clone().resize(count);        
+        let index = 0;
+        for (const item of parts) {
+            memcpy(ReferenceOf(newString[index]), ReferenceOf(item[0]), sizeof<char>() * item.length);
+            index += item.length;
+        }
+
+        return newString;
+    }      
 
     export function endsWith(this: string, searchString: string, endPosition = this.length): boolean {
         if (!searchString)
@@ -795,13 +842,42 @@ namespace __String {
     }
 
     export function replace(this: string, pattern: string | RegExp, replacement: string): string {
-        // TODO: finish replace
-        return this;
+        if (typeof pattern == "string") {
+            const index = this.indexOf(pattern);
+            if (index == -1)
+                return this;
+            return this.substring(0, index) + replacement + this.substring(index + pattern.length);
+        }
+        else
+        {
+            return pattern.replace(this, replacement);
+        }
     }
     
     export function replaceAll(this: string, pattern: string | RegExp, replacement: string): string {
-        // TODO: finish replace
-        return this;
+        if (typeof pattern == "string") {
+            let index = 0;
+            let parts: string[] = [];
+            let len = this.length;
+            while (true)
+            {
+                const found = this.indexOf(pattern, index);
+                if (found == -1 || found >= len)
+                {
+                    parts.push( this.substring(index) );
+                    break;
+                }
+
+                parts.push( this.substring(index, found) + replacement );
+                index = found + pattern.length + (index == found ? 1 : 0);
+            }
+
+            return join(parts);
+        }
+        else
+        {            
+            return pattern.replaceAll(this, replacement);
+        }
     }    
 
     export function search(this: string, regexp: RegExp): int {

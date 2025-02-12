@@ -1,5 +1,6 @@
 #include <iostream>
 #include <regex>
+#include <string>
 
 void regexp_error(int code);
 std::regex::flag_type get_flags(const char *flags);
@@ -11,6 +12,11 @@ extern "C" size_t regexp_match_results_size(std::cmatch *cm)
 }
 
 extern "C" size_t regexp_match_results_prefix_length(std::cmatch *cm)
+{
+    return static_cast<size_t>(cm->prefix().length());
+}
+
+extern "C" size_t regexp_match_results_suffix_position(std::cmatch *cm)
 {
     return static_cast<size_t>(cm->prefix().length() + cm->operator[](0).length());
 }
@@ -35,6 +41,22 @@ extern "C" size_t regexp_match_results_sub_match_length(std::cmatch *cm, size_t 
     return static_cast<size_t>(cm->length(subIndex));
 }
 
+extern "C" char* regexp_match_results_format(std::cmatch *cm, const char *replacement) 
+{
+    auto result = cm->format(replacement);
+
+    auto len = result.size();
+
+    std::allocator<char> alloc;
+    char* buffer = alloc.allocate(len + 1);
+
+    std::memcpy(buffer, result.c_str(), len);
+
+    buffer[len] = 0;
+    
+    return buffer;    
+}
+
 extern "C" int regexp_test(const char *expr, const char *flags, const char *s)
 {
     try
@@ -42,7 +64,7 @@ extern "C" int regexp_test(const char *expr, const char *flags, const char *s)
         std::cmatch cm;
         if (std::regex_search(s, cm, std::regex(expr, get_flags(flags)), get_match_flags(flags)))
         {
-            return static_cast<int>(regexp_match_results_prefix_length(&cm));
+            return static_cast<int>(regexp_match_results_suffix_position(&cm));
         }
 
         return -1;
@@ -77,12 +99,47 @@ extern "C" std::cmatch *regexp_exec(const char *expr, const char *flags, const c
     return nullptr;
 }
 
+extern "C" char* regexp_replace(const char *expr, const char *flags, const char *s, const char* replacement)
+{
+    try
+    {
+        std::string text(s);
+        auto result = std::regex_replace(text, std::regex(expr, get_flags(flags)), replacement, get_match_flags(flags));
+        
+        auto len = result.size();
+
+        std::allocator<char> alloc;
+        char* buffer = alloc.allocate(len + 1);
+
+        std::memcpy(buffer, result.c_str(), len);
+
+        buffer[len] = 0;
+        
+        return buffer;
+    }
+    catch (std::regex_error &e)
+    {
+        regexp_error(e.code());
+    }
+
+    return nullptr;
+}
+
 extern "C" void regexp_free(std::cmatch *cm)
 {
     if (cm != nullptr)
     {
         delete cm;
         cm = nullptr;
+    }
+}
+
+extern "C" void regexp_free_string(char *c)
+{
+    if (c != nullptr)
+    {
+        std::allocator<char> alloc;
+        alloc.deallocate(c, 1);
     }
 }
 

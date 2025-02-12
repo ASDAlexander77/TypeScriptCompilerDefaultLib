@@ -272,11 +272,15 @@ declare class RegExp {
 
     constructor(source: string, flags?: string);
 
+    exec(s: string): MatchResults | null;
+
     test(s: string): boolean;
 
     search(s: string): int;
 
-    exec(s: string): MatchResults | null;
+    replace(s: string, replacement: string): string;
+
+    replaceAll(s: string, replacement: string): string;
 
     [Symbol.dispose](): void;
 }
