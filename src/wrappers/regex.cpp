@@ -7,7 +7,6 @@ std::regex_constants::match_flag_type get_match_flags(const char *flags);
 
 extern "C" size_t regexp_match_results_size(std::cmatch *cm)
 {
-    // TODO: fix it, somehow it is different to MDN RegExp test
     return static_cast<size_t>(cm->size());
 }
 

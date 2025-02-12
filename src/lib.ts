@@ -520,7 +520,7 @@ export class RegExp
             const result = regexp_test(this.source, this.flags, ReferenceOf(s[this.lastIndex]));
             if (result > 0)
             {
-                this.lastIndex = <index> result;
+                this.lastIndex += <index> result;
                 return true;
             }
 
@@ -702,13 +702,28 @@ namespace __String {
     }
 
     export function match(this: string, expr: RegExp): string[] {
-        const result = expr.exec(this);
-        if (result != null)
+        if (!expr.global)
         {
-            return [...result];
+            const result = expr.exec(this);
+            if (result != null)
+            {
+                return [...result];
+            }
+
+            return null;
         }
-        
-        return null;        
+
+        let results: string[] = [];
+        while (true)
+        {
+            const result = expr.exec(this);
+            if (result == null)
+                break;
+
+            results.push(result[0]);
+        }
+
+        return results;        
     }
 
     export function *matchAll(this: string, expr: RegExp): Iterator<string[]> {
