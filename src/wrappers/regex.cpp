@@ -168,16 +168,16 @@ std::regex_constants::match_flag_type get_match_flags(const char *flags)
     auto result = std::regex_constants::match_default;
     auto str = std::string(flags);
 
-    result |= std::regex_constants::match_not_bol;
-    result |= std::regex_constants::match_not_eol;
+    //result |= std::regex_constants::match_not_bol;
+    //result |= std::regex_constants::match_not_eol;
 
     for (auto c : str) 
     {
         switch (c)
         {
             case 'm': 
-                result &= ~std::regex_constants::match_not_bol;
-                result &= ~std::regex_constants::match_not_eol;
+                //result &= ~std::regex_constants::match_not_bol;
+                //result &= ~std::regex_constants::match_not_eol;
                 break;
         }
     }

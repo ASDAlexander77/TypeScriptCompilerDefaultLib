@@ -119,6 +119,8 @@ declare class Date {
     constructor (valueOrYear?: long | i32, monthIndex?: i32, day?: i32, hours?: i32, minutes?: i32, seconds?: i32, milliseconds?: i32);
 
     static now(): long;
+    
+    static parse(dateString: string): long;
 
     static UTC(year: i32, monthIndex?: i32, day?: i32, hours?: i32, minutes?: i32, seconds?: i32, milliseconds?: i32): long;
 
