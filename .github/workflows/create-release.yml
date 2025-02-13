@@ -18,7 +18,7 @@ jobs:
     runs-on: windows-2022
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Build project # This would actually build your project, using zip for an example artifact
         run: echo 'SELECTED_COLOR=green Build project (Windows)' >> "$GITHUB_OUTPUT"
@@ -64,7 +64,7 @@ jobs:
         shell: pwsh
 
       - name: Archive Zip of Windows Asset
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: tsc-windows-defaultlib-asset
           path: defaultlib.zip
@@ -75,7 +75,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Build project # This would actually build your project, using zip for an example artifact
         run: echo 'SELECTED_COLOR=green Build project (Windows)' >> "$GITHUB_OUTPUT"
@@ -125,7 +125,7 @@ jobs:
         run: tar -czvhf ../defaultlib.tar.gz ./*
   
       - name: Archive Tar.GZ of Linux Asset
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: tsc-linux-defaultlib-asset
           path: defaultlib.tar.gz
@@ -136,7 +136,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Build project # This would actually build your project, using zip for an example artifact
         run: echo 'SELECTED_COLOR=green Build project (Windows)' >> "$GITHUB_OUTPUT"
@@ -186,7 +186,7 @@ jobs:
         run: tar -czvhf ../defaultlib-ub20.tar.gz ./*
   
       - name: Archive Tar.GZ of Linux Asset
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: tsc-linux-defaultlib-asset-ub20
           path: defaultlib-ub20.tar.gz
@@ -216,7 +216,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Download Release Asset from Store
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: tsc-windows-defaultlib-asset
 
@@ -237,7 +237,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Release Asset from Store
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: tsc-linux-defaultlib-asset
 
@@ -258,7 +258,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Release Asset from Store
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: tsc-linux-defaultlib-asset-ub20
 
