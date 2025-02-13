@@ -7,7 +7,7 @@ TOOL=gcc
 ARC=ar
 DBG_OPTS=--di --opt_level=0
 DBG_GCC=-g
-CPP_FLAGS=-std=c++11 -stdlib=libstdc++
+CPP_FLAGS=-std=c++17
 
 if [ "$1" == "release" ] ; then
 	TOOL_BUILD=release
@@ -23,6 +23,7 @@ fi
 
 if [ "$3" == "pic" ] ; then
 	PIC=-relocation-model=pic
+	CPP_FLAGS=$CPP_FLAGS\ -fPIC
 fi
 
 SRC=.
@@ -51,7 +52,7 @@ fi
 
 mkdir -p dll/$BUILD
 mkdir -p lib/$BUILD
-$TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/regex.ts -o $OUTPUT/lib/$BUILD/regex.o
+$TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/regex.cpp -o $OUTPUT/lib/$BUILD/regex.o
 
 $BIN_PATH/tsc $DBG_OPTS --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.linux.ts $PIC -o $OUTPUT/lib/$BUILD/lib.linux.o
 

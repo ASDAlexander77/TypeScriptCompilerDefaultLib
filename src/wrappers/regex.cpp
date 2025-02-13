@@ -227,12 +227,14 @@ void regexp_error(int code)
         case std::regex_constants::error_stack: 
             std::cerr << "There was insufficient memory to determine whether the regular expression could match the specified character sequence.\n";
             break;
+#ifdef WIN32            
         case std::regex_constants::error_parse: 
             std::cerr << "There was parsing error.\n";
             break;
         case std::regex_constants::error_syntax: 
             std::cerr << "There was syntax error.\n";
             break;
+#endif            
         default:
             std::cerr << "Some other regex exception happened.\n";
             break;
