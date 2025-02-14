@@ -49,7 +49,6 @@ function test_script() {
 
         run_output=$( "$SRC/tests/$test" 2>&1 )
         run_code=$?
-        rm -f "$SRC/tests/$test."*
     fi
 
     if [ "$mode" == "jit" ]; then
@@ -67,7 +66,7 @@ function test_script() {
 function tests() {
     config="$1"
     mode="$2"
-    echo "Testing..."
+    echo "Testing... $config, $mode"
 
     count=$(find ./tests -name "*.ts" | wc -l)
     index=0
@@ -96,7 +95,7 @@ function tests() {
         echo "$runtime sec"
     done
 
-    find "$SRC/tests" -type f \( -not -name "*.ts" \) -delete
+    find "$SRC/tests" -not -name "*.ts" -type f -delete
     echo "Finished $config, $mode"
 }
 
