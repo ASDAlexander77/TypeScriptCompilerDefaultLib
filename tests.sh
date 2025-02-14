@@ -96,7 +96,7 @@ function tests() {
         echo "$runtime sec"
     done
 
-    #find "$SRC/tests" -type f \( -name "*.pdb" -o -name "*.ilk" -o -name "*.exe" \) -delete
+    find "$SRC/tests" -type f \( -not -name "*.ts" \) -delete
     echo "Finished $config, $mode"
 }
 
