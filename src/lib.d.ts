@@ -334,7 +334,7 @@ declare namespace __String {
 
     function substring(this: string, indexStart: int, indexEnd?: int): string;
 
-    function startsWith(this: string, searchString: string, position?: int);
+    function startsWith(this: string, searchString: string, position?: int): boolean;
 
     function toLocaleLowerCase(this: string, locale?: string): string;
 
