@@ -41,4 +41,4 @@ for (const n of fibonacci().take(5).drop(2)) {
 const result = new Set([1, 2, 3]).values().drop(4).next();
 console.log(result);
 
-assert(<string>result == "{ value: undefined done: true }");
+assert(<string>result == "{ value: undefined, done: true }");
