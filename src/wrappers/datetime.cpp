@@ -46,10 +46,6 @@ static std::vector<const char*> formats {
     "%d %b %Y %R", // 01 Jan 1970 00:00
     "%d %b %Y %r", // 01 Jan 1970 00:00:00 pm
 
-    "%d %b %Y %T %Z", // 01 Jan 1970 00:00:00 UTC
-    "%d %b %Y %R %Z", // 01 Jan 1970 00:00 UTC
-    "%d %b %Y %r %Z", // 01 Jan 1970 00:00:00 pm UTC
-
     "%B %d, %Y, %T", // August 19, 1975, 00:00:00
     "%B %d, %Y, %R", // August 19, 1975, 00:00
     "%B %d, %Y, %r", // August 19, 1975, 00:00:00 pm
