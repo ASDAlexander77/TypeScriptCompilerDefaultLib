@@ -114,15 +114,15 @@ declare class BigInt {
 }
 
 declare class Date {
-    private timestamp: long;
+    private timestamp: time_t;
     
-    constructor (valueOrYear?: long | i32, monthIndex?: i32, day?: i32, hours?: i32, minutes?: i32, seconds?: i32, milliseconds?: i32);
+    constructor (valueOrYear?: time_t | i32, monthIndex?: i32, day?: i32, hours?: i32, minutes?: i32, seconds?: i32, milliseconds?: i32);
 
-    static now(): long;
+    static now(): time_t;
     
-    static parse(dateString: string): long;
+    static parse(dateString: string): time_t;
 
-    static UTC(year: i32, monthIndex?: i32, day?: i32, hours?: i32, minutes?: i32, seconds?: i32, milliseconds?: i32): long;
+    static UTC(year: i32, monthIndex?: i32, day?: i32, hours?: i32, minutes?: i32, seconds?: i32, milliseconds?: i32): time_t;
 
     getDate(): i32;
 
@@ -212,7 +212,7 @@ declare class Date {
 
     toUTCString(): string;
 
-    valueOf(): long;
+    valueOf(): time_t;
 
     [Symbol.toPrimitive](hint: string) : string | number;
 }

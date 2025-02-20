@@ -9,3 +9,5 @@ interface Iterator<T> {
 interface ClassIterator<T> {
     next(): IterateResult<T>;
 }
+
+type time_t = long;

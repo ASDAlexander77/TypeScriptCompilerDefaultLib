@@ -46,24 +46,26 @@ md lib\%BUILD%
 echo on
 
 rem Build native wrappers for C++ code
+clang-cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\datetime.cpp
 clang-cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\regex.cpp
 
 rem Build OS-specific Lib
 %TOOL_PATH%\tsc.exe %DBG% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.win32.ts -o %OUTPUT%\lib\%BUILD%\lib.win32.obj
 
 rem Build DLL
-%TOOL_PATH%\tsc.exe %DBG% --emit=dll --embed-declarations=false --nowarn --no-default-lib %SRC%\src\lib.ts --obj=%OUTPUT%\lib\%BUILD%\lib.win32.obj --obj=%OUTPUT%\lib\%BUILD%\regex.obj -o %OUTPUT%\dll\%BUILD%\TypeScriptDefaultLib.dll
+%TOOL_PATH%\tsc.exe %DBG% --emit=dll --embed-declarations=false --nowarn --no-default-lib %SRC%\src\lib.ts --obj=%OUTPUT%\lib\%BUILD%\lib.win32.obj --obj=%OUTPUT%\lib\%BUILD%\datetime.obj --obj=%OUTPUT%\lib\%BUILD%\regex.obj -o %OUTPUT%\dll\%BUILD%\TypeScriptDefaultLib.dll
 
 rem Build Lib
 %TOOL_PATH%\tsc.exe %DBG% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.obj
 rem %TOOL_PATH%\tsc.exe %DBG% --emit=llvm --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.ll
 
-llvm-lib.exe /out:%OUTPUT%\lib\%BUILD%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\lib.obj %OUTPUT%\lib\%BUILD%\regex.obj
+llvm-lib.exe /out:%OUTPUT%\lib\%BUILD%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\lib.obj %OUTPUT%\lib\%BUILD%\datetime.obj %OUTPUT%\lib\%BUILD%\regex.obj
 
 echo off
 
 del %OUTPUT%\lib\%BUILD%\lib.obj
 del %OUTPUT%\lib\%BUILD%\lib.win32.obj
+del %OUTPUT%\lib\%BUILD%\datetime.obj
 del %OUTPUT%\lib\%BUILD%\regex.obj
 
 set BUILD_LIB_PATH=.\__build\%BUILD%\defaultlib

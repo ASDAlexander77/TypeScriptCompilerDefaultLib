@@ -64,6 +64,8 @@
         "xutility": "cpp",
         "charconv": "cpp",
         "format": "cpp",
-        "ios": "cpp"
+        "ios": "cpp",
+        "iomanip": "cpp",
+        "sstream": "cpp"
     }
 }

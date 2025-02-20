@@ -52,16 +52,17 @@ fi
 
 mkdir -p dll/$BUILD
 mkdir -p lib/$BUILD
+$TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/datetime.cpp -o $OUTPUT/lib/$BUILD/datetime.o
 $TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/regex.cpp -o $OUTPUT/lib/$BUILD/regex.o
 
 $BIN_PATH/tsc $DBG_OPTS --emit=obj --export=none --no-default-lib $SRC/src/lib.linux.ts $PIC -o $OUTPUT/lib/$BUILD/lib.linux.o
 
 # Build Lib
 $BIN_PATH/tsc $DBG_OPTS --emit=obj --export=none --no-default-lib $SRC/src/lib.ts $PIC -o $OUTPUT/lib/$BUILD/lib.o
-$ARC rcs $OUTPUT/lib/$BUILD/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o $OUTPUT/lib/$BUILD/regex.o
+$ARC rcs $OUTPUT/lib/$BUILD/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o $OUTPUT/lib/$BUILD/datetime.o $OUTPUT/lib/$BUILD/regex.o
 
 # Build DLL
-gcc -shared $DBG_GCC $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o $OUTPUT/lib/$BUILD/regex.o -o $OUTPUT/dll/$BUILD/libTypeScriptDefaultLib.so
+gcc -shared $DBG_GCC $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o $OUTPUT/lib/$BUILD/datetime.o $OUTPUT/lib/$BUILD/regex.o -o $OUTPUT/dll/$BUILD/libTypeScriptDefaultLib.so
 
 # Copy
 BUILD_LIB_PATH=./__build/$BUILD/defaultlib/

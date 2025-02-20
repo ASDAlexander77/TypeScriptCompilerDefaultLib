@@ -84,6 +84,9 @@ declare function memcpy(dest: Opaque, src: Opaque, bytes: index): Opaque;
 declare function memmove(dest: Opaque, src: Opaque, bytes: index): Opaque;
 declare function memcmp(dest: Opaque, src: Opaque, bytes: index): int;
 
+// datetime
+declare function parse_date(dateStr: string): time_t;
+
 // regex
 declare function regexp_test(expr: string, flags: string, s: string): int;
 declare function regexp_exec(expr: string, flags: string, s: string, cm: Opaque): Opaque;
