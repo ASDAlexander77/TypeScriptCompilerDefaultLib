@@ -377,12 +377,12 @@ export class Date {
     }
 
     toISOString() {
-        const ms = convertInteger(50, ".%03.dZ", this.timestamp % 1000);
+        const ms = convertInteger(50, ".%03dZ", this.timestamp % 1000);
         return time_format(100, "%FT%T", this.timestamp, true) + ms;
     }
 
     toJSON() {
-        const ms = convertInteger(50, ".%03.dZ", this.timestamp % 1000);
+        const ms = convertInteger(50, ".%03dZ", this.timestamp % 1000);
         return time_format(100, "%FT%T", this.timestamp, false) + ms;
     }
 
