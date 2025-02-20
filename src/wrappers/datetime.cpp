@@ -73,7 +73,7 @@ extern "C" long long parse_date(const char* dateStr)
             char zSeparator = 0;
             int milliseconds = 0;
             ss >> separator >> milliseconds >> zSeparator;
-            if (separator != '.' || zSeparator != 'Z')
+            if (separator != '.' || !(zSeparator == 'Z' || zSeparator == '\0' || zSeparator == ' '))
             {
                 milliseconds = 0;
             }
