@@ -80,7 +80,7 @@ function Tests([string]$config, [string]$mode)
 
     $index = 0
     $success = 0
-    Get-ChildItem ".\tests" -Filter sleep.ts | Foreach-Object {
+    Get-ChildItem ".\tests" -Filter *.ts | Foreach-Object {
         $index++
 
         $testName = "$_ ".PadRight(40, '.')
