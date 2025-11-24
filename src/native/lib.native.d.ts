@@ -101,3 +101,6 @@ declare function regexp_match_results_format(cm: Opaque, replacement: string): s
 declare function regexp_replace(expr: string, flags: string, s: string, replacement: string): string;
 declare function regexp_free_string(s: string): void;
 declare function regexp_free(cm: Opaque): void;
+
+// thread
+declare function sleep(milliseconds: u32): void;

@@ -3,6 +3,7 @@ rem call clean.bat
 echo off
 
 set TOOL_BUILD=release
+set VER=-2026
 set BUILD=debug
 set BUILD1=Debug
 set LLVM_BUILD=Debug
@@ -24,7 +25,7 @@ set OUTPUT=.
 
 if "%TOOL_PATH%"=="" (
 	set BUILD_PATH=..\TypeScriptCompiler\__build
-	set TOOL_PATH=..\TypeScriptCompiler\__build\tsc\windows-msbuild-%TOOL_BUILD%\bin
+	set TOOL_PATH=..\TypeScriptCompiler\__build\tsc\windows-msbuild%VER%-%TOOL_BUILD%\bin
 ) else (
 	set BUILD_PATH=%TOOL_PATH%
 )
@@ -36,7 +37,7 @@ if "%LLVM_LIB_PATH%"=="" (
 	set LLVM_LIB_PATH=%BUILD_PATH%\llvm\msbuild\%ARCH%\%BUILD%\%BUILD1%\lib
 )
 if "%TSC_LIB_PATH%"=="" (
-	set TSC_LIB_PATH=%BUILD_PATH%\tsc\windows-msbuild-%BUILD%\lib
+	set TSC_LIB_PATH=%BUILD_PATH%\tsc\windows-msbuild%VER%-%BUILD%\lib
 )
 
 if "%VSWHERE_PATH%"=="" (
@@ -60,19 +61,20 @@ rem echo on
 rem Build native wrappers for C++ code
 cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\datetime.cpp
 cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\regex.cpp
+cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\thread.cpp
 
 rem Build OS-specific Lib
 %TOOL_PATH%\tsc.exe %DBG% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.win32.ts -o %OUTPUT%\lib\%BUILD%\lib.win32.obj
 
 rem Build DLL
-%TOOL_PATH%\tsc.exe %DBG% --emit=dll --embed-declarations=false --nowarn --no-default-lib %SRC%\src\lib.ts --obj=%OUTPUT%\lib\%BUILD%\lib.win32.obj --obj=%OUTPUT%\lib\%BUILD%\datetime.obj --obj=%OUTPUT%\lib\%BUILD%\regex.obj -o %OUTPUT%\dll\%BUILD%\TypeScriptDefaultLib.dll
+%TOOL_PATH%\tsc.exe %DBG% --emit=dll --embed-declarations=false --nowarn --no-default-lib %SRC%\src\lib.ts --obj=%OUTPUT%\lib\%BUILD%\lib.win32.obj --obj=%OUTPUT%\lib\%BUILD%\datetime.obj --obj=%OUTPUT%\lib\%BUILD%\regex.obj --obj=%OUTPUT%\lib\%BUILD%\thread.obj -o %OUTPUT%\dll\%BUILD%\TypeScriptDefaultLib.dll
 
 rem Build Lib
 %TOOL_PATH%\tsc.exe %DBG% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.obj
 rem %TOOL_PATH%\tsc.exe %DBG% --emit=llvm --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.ll
 rem %TOOL_PATH%\tsc.exe %DBG% --emit=mlir --export=none %SRC%\src\lib.ts 2> %OUTPUT%\lib\%BUILD%\lib.mlir
 
-lib.exe /out:%OUTPUT%\lib\%BUILD%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\lib.obj %OUTPUT%\lib\%BUILD%\lib.win32.obj %OUTPUT%\lib\%BUILD%\datetime.obj %OUTPUT%\lib\%BUILD%\regex.obj
+lib.exe /out:%OUTPUT%\lib\%BUILD%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\lib.obj %OUTPUT%\lib\%BUILD%\lib.win32.obj %OUTPUT%\lib\%BUILD%\datetime.obj %OUTPUT%\lib\%BUILD%\regex.obj %OUTPUT%\lib\%BUILD%\thread.obj
 
 echo off
 
@@ -80,6 +82,7 @@ del %OUTPUT%\lib\%BUILD%\lib.obj
 del %OUTPUT%\lib\%BUILD%\lib.win32.obj
 del %OUTPUT%\lib\%BUILD%\datetime.obj
 del %OUTPUT%\lib\%BUILD%\regex.obj
+del %OUTPUT%\lib\%BUILD%\thread.obj
 
 set BUILD_LIB_PATH=.\__build\%BUILD%\defaultlib
 rd /S /Q %BUILD_LIB_PATH%
