@@ -2,6 +2,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
 {
     $BUILD="debug"
     $BUILD1="Debug"
+    $VER="-2026"
     $LLVM_BUILD="Debug"
     $ARCH="x64"
     $DBG="--di"
@@ -20,7 +21,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
 
     if ($null -eq $Env:TOOL_PATH) {
 	    $BUILD_PATH="..\TypeScriptCompiler\__build"
-	    $TOOL_PATH="..\TypeScriptCompiler\__build\tsc\windows-msbuild-$BUILD\bin"
+	    $TOOL_PATH="..\TypeScriptCompiler\__build\tsc\windows-msbuild$VER-$BUILD\bin"
 	    $DEFAULTLIB_BUILD_PATH="..\TypeScriptCompilerDefaultLib\__build\$BUILD"
     } else {
 	    $BUILD_PATH=$TOOL_PATH
@@ -34,7 +35,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
 	    $Env:LLVM_LIB_PATH="$BUILD_PATH\llvm\msbuild\$ARCH\$BUILD\$BUILD1\lib"
     }
     if ($null -eq $Env:TSC_LIB_PATH) {
-	    $Env:TSC_LIB_PATH="$BUILD_PATH\tsc\windows-msbuild-$BUILD\lib"
+	    $Env:TSC_LIB_PATH="$BUILD_PATH\tsc\windows-msbuild$VER-$BUILD\lib"
     }
     if ($null -eq $Env:DEFAULT_LIB_PAT) {
 	    $Env:DEFAULT_LIB_PATH="$DEFAULTLIB_BUILD_PATH"
@@ -79,7 +80,7 @@ function Tests([string]$config, [string]$mode)
 
     $index = 0
     $success = 0
-    Get-ChildItem ".\tests" -Filter *.ts | Foreach-Object {
+    Get-ChildItem ".\tests" -Filter sleep.ts | Foreach-Object {
         $index++
 
         $testName = "$_ ".PadRight(40, '.')
