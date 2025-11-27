@@ -4,6 +4,7 @@ echo off
 
 set TOOL_BUILD=release
 set VER=-2026
+set VER=
 set BUILD=debug
 set BUILD1=Debug
 set LLVM_BUILD=Debug
@@ -63,6 +64,8 @@ cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\datetime.
 cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\regex.cpp
 cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\thread.cpp
 
+echo on
+
 rem Build OS-specific Lib
 %TOOL_PATH%\tsc.exe %DBG% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.win32.ts -o %OUTPUT%\lib\%BUILD%\lib.win32.obj
 
@@ -75,8 +78,6 @@ rem %TOOL_PATH%\tsc.exe %DBG% --emit=llvm --export=none %SRC%\src\lib.ts -o %OUT
 rem %TOOL_PATH%\tsc.exe %DBG% --emit=mlir --export=none %SRC%\src\lib.ts 2> %OUTPUT%\lib\%BUILD%\lib.mlir
 
 lib.exe /out:%OUTPUT%\lib\%BUILD%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\lib.obj %OUTPUT%\lib\%BUILD%\lib.win32.obj %OUTPUT%\lib\%BUILD%\datetime.obj %OUTPUT%\lib\%BUILD%\regex.obj %OUTPUT%\lib\%BUILD%\thread.obj
-
-echo off
 
 del %OUTPUT%\lib\%BUILD%\lib.obj
 del %OUTPUT%\lib\%BUILD%\lib.win32.obj
