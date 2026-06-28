@@ -51,23 +51,26 @@ md dll\%BUILD%
 md lib\%BUILD%
 
 rem Check if Visual Studio is installed at default locations
-if "%VSWHERE_PATH%"=="vswhere" (
-	if exist "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" (
-		set VSWHERE_PATH="%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
-	) else if exist "%ProgramFiles%\Microsoft Visual Studio\Installer\vswhere.exe" (
-		set VSWHERE_PATH="%ProgramFiles%\Microsoft Visual Studio\Installer\vswhere.exe"
-	) else (
-		where vswhere >nul 2>nul
-		if errorlevel 1 (
-			echo ""
-			echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-			echo "XXX Visual Studio was not found XXX"
-			echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-			echo ""
-			exit /b 1
-		)
-	)
+if not "%VSWHERE_PATH%"=="vswhere" goto vswhere_done
+
+if exist "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" (
+	set VSWHERE_PATH="%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+	goto vswhere_done
 )
+if exist "%ProgramFiles%\Microsoft Visual Studio\Installer\vswhere.exe" (
+	set VSWHERE_PATH="%ProgramFiles%\Microsoft Visual Studio\Installer\vswhere.exe"
+	goto vswhere_done
+)
+for /f "delims=" %%v in ('where vswhere 2^>nul') do set VSWHERE_PATH="%%v"
+if "%VSWHERE_PATH%"=="vswhere" (
+	echo ""
+	echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+	echo "XXX Visual Studio was not found XXX"
+	echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+	echo ""
+	exit /b 1
+)
+:vswhere_done
 
 for /f "usebackq tokens=*" %%i in (`%VSWHERE_PATH% -legacy -latest -property installationPath`) do (
   set VSPATH="%%i\VC\Auxiliary\Build\vcvars64.bat"
