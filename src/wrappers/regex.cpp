@@ -154,8 +154,8 @@ std::regex::flag_type get_flags(const char *flags)
             case 'i': 
                 result |= std::regex::icase;
                 break;
-            case 'm': 
-                result |= std::regex::extended;
+            case 'm':
+                result |= std::regex::multiline;
                 break;
         }
     }
