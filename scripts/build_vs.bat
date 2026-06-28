@@ -1,6 +1,6 @@
 rem call clean.bat
 
-echo off
+echo on
 
 set TOOL_BUILD=release
 set VER=-2026
