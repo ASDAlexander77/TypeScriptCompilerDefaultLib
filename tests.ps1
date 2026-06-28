@@ -3,7 +3,6 @@ function Test([string]$config, [string]$mode, [string]$fileName)
     $BUILD="debug"
     $BUILD1="Debug"
     $VER="-2026"
-    $VER=""
     $LLVM_BUILD="Debug"
     $ARCH="x64"
     $DBG="--di"

@@ -4,7 +4,6 @@ echo off
 
 set TOOL_BUILD=release
 set VER=-2026
-set VER=
 set BUILD=debug
 set BUILD1=Debug
 set LLVM_BUILD=Debug
