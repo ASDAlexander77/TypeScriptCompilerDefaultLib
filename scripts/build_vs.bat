@@ -40,10 +40,6 @@ if "%TSC_LIB_PATH%"=="" (
 	set TSC_LIB_PATH=%BUILD_PATH%\tsc\windows-msbuild%VER%-%BUILD%\lib
 )
 
-if "%VSWHERE_PATH%"=="" (
-	set VSWHERE_PATH=vswhere
-)
-
 rd /S /Q dll\%BUILD%
 rd /S /Q lib\%BUILD%
 
@@ -51,7 +47,7 @@ md dll\%BUILD%
 md lib\%BUILD%
 
 rem Check if Visual Studio is installed at default locations
-if not "%VSWHERE_PATH%"=="vswhere" goto vswhere_done
+if not "%VSWHERE_PATH%"=="" goto vswhere_done
 
 if exist "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" (
 	set VSWHERE_PATH="%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
@@ -62,7 +58,7 @@ if exist "%ProgramFiles%\Microsoft Visual Studio\Installer\vswhere.exe" (
 	goto vswhere_done
 )
 for /f "delims=" %%v in ('where vswhere 2^>nul') do set VSWHERE_PATH="%%v"
-if "%VSWHERE_PATH%"=="vswhere" (
+if "%VSWHERE_PATH%"=="" (
 	echo ""
 	echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 	echo "XXX Visual Studio was not found XXX"
