@@ -72,7 +72,7 @@ if "%VSWHERE_PATH%"=="vswhere" (
 )
 :vswhere_done
 
-for /f "usebackq tokens=*" %%i in (`%VSWHERE_PATH% -legacy -latest -property installationPath`) do (
+for /f "usebackq tokens=*" %%i in (`"%VSWHERE_PATH%" -legacy -latest -property installationPath`) do (
   set VSPATH="%%i\VC\Auxiliary\Build\vcvars64.bat"
 )
 
