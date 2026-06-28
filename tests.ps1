@@ -41,8 +41,10 @@ function Test([string]$config, [string]$mode, [string]$fileName)
 	    $Env:DEFAULT_LIB_PATH="$DEFAULTLIB_BUILD_PATH"
     }
 
+    $DBG_ARGS = if ($DBG -ne "") { @($DBG) } else { @() }
+
     if ($mode -eq "compile") {
-        $compile_error_output = ($compile_output = & $TOOL_PATH\tsc.exe $DBG $OPTIONS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=exe $SRC\tests\$test.ts) 2>&1
+        $compile_error_output = ($compile_output = & $TOOL_PATH\tsc.exe @DBG_ARGS $OPTIONS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=exe $SRC\tests\$test.ts) 2>&1
 
         $compile_code = $LASTEXITCODE
 
@@ -60,7 +62,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
     }
 
     if ($mode -eq "jit") {
-        $run_error_output = ($run_output = & $TOOL_PATH\tsc.exe $DBG $OPTIONS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=jit $SRC\tests\$test.ts) 2>&1
+        $run_error_output = ($run_output = & $TOOL_PATH\tsc.exe @DBG_ARGS $OPTIONS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=jit $SRC\tests\$test.ts) 2>&1
 
         $run_code = $LASTEXITCODE
     }
