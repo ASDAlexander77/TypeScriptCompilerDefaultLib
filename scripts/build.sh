@@ -8,6 +8,7 @@ ARC=ar
 DBG_OPTS=--di --opt_level=0
 DBG_GCC=-g
 CPP_FLAGS=-std=c++17
+TOOL_NAME=tslang
 
 if [ "$1" == "release" ] ; then
 	TOOL_BUILD=release
@@ -32,7 +33,7 @@ OUTPUT=.
 if [ -z "${TOOL_PATH}" ]; then
 	ROOT=..
 	BUILD_PATH=$ROOT/TypeScriptCompiler/__build
-	BIN_PATH=$BUILD_PATH/tsc/linux-ninja-$TOOL-$TOOL_BUILD/bin
+	BIN_PATH=$BUILD_PATH/$TOOL_NAME/linux-ninja-$TOOL-$TOOL_BUILD/bin
 else
 	BUILD_PATH=$TOOL_PATH
 	BIN_PATH=$TOOL_PATH
@@ -46,8 +47,8 @@ if [ -z "${LLVM_LIB_PATH}" ]; then
 	export LLVM_LIB_PATH=$BUILD_PATH/llvm/ninja/$BUILD/lib
 fi
 
-if [ -z "${TSC_LIB_PATH}" ]; then
-	export TSC_LIB_PATH=$BUILD_PATH/tsc/linux-ninja-$TOOL-$BUILD/lib
+if [ -z "${TSLANG_LIB_PATH}" ]; then
+	export TSLANG_LIB_PATH=$BUILD_PATH/$TOOL_NAME/linux-ninja-$TOOL-$BUILD/lib
 fi
 
 mkdir -p dll/$BUILD
@@ -56,13 +57,13 @@ $TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/datetime.cpp -o $OUTPUT/lib/$BUIL
 $TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/regex.cpp -o $OUTPUT/lib/$BUILD/regex.o
 $TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/thread.cpp -o $OUTPUT/lib/$BUILD/thread.o
 
-$BIN_PATH/tsc $DBG_OPTS --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.linux.ts $PIC -o $OUTPUT/lib/$BUILD/lib.linux.o
+$BIN_PATH/$TOOL_NAME $DBG_OPTS --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.linux.ts $PIC -o $OUTPUT/lib/$BUILD/lib.linux.o
 
 # Build DLL
-$BIN_PATH/tsc $DBG_OPTS --emit=dll --embed-declarations=false --nowarn --no-default-lib $SRC/src/lib.ts --obj=$OUTPUT/lib/$BUILD/lib.linux.o --obj=$OUTPUT/lib/$BUILD/datetime.o --obj=$OUTPUT/lib/$BUILD/regex.o --obj=$OUTPUT/lib/$BUILD/thread.o $PIC -verbose -o $OUTPUT/dll/$BUILD/libTypeScriptDefaultLib.so
+$BIN_PATH/$TOOL_NAME $DBG_OPTS --emit=dll --embed-declarations=false --nowarn --no-default-lib $SRC/src/lib.ts --obj=$OUTPUT/lib/$BUILD/lib.linux.o --obj=$OUTPUT/lib/$BUILD/datetime.o --obj=$OUTPUT/lib/$BUILD/regex.o --obj=$OUTPUT/lib/$BUILD/thread.o $PIC -verbose -o $OUTPUT/dll/$BUILD/libTypeScriptDefaultLib.so
 
 # Build Lib
-$BIN_PATH/tsc $DBG_OPTS --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.ts $PIC -o $OUTPUT/lib/$BUILD/lib.o
+$BIN_PATH/$TOOL_NAME $DBG_OPTS --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.ts $PIC -o $OUTPUT/lib/$BUILD/lib.o
 $ARC rcs $OUTPUT/lib/$BUILD/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o $OUTPUT/lib/$BUILD/datetime.o $OUTPUT/lib/$BUILD/regex.o $OUTPUT/lib/$BUILD/thread.o
 # Copy
 BUILD_LIB_PATH=./__build/$BUILD/defaultlib/
