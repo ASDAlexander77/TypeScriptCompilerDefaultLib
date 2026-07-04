@@ -51,14 +51,14 @@ rem Check if Visual Studio is installed at default locations
 if not "%VSWHERE_PATH%"=="" goto vswhere_done
 
 if exist "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" (
-	set VSWHERE_PATH="%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+	set "VSWHERE_PATH=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 	goto vswhere_done
 )
 if exist "%ProgramFiles%\Microsoft Visual Studio\Installer\vswhere.exe" (
-	set VSWHERE_PATH="%ProgramFiles%\Microsoft Visual Studio\Installer\vswhere.exe"
+	set "VSWHERE_PATH=%ProgramFiles%\Microsoft Visual Studio\Installer\vswhere.exe"
 	goto vswhere_done
 )
-for /f "delims=" %%v in ('where vswhere 2^>nul') do set VSWHERE_PATH="%%v"
+for /f "delims=" %%v in ('where vswhere 2^>nul') do set "VSWHERE_PATH=%%v"
 if "%VSWHERE_PATH%"=="" (
 	echo ""
 	echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
@@ -69,8 +69,10 @@ if "%VSWHERE_PATH%"=="" (
 )
 :vswhere_done
 
+set "VSWHERE_PATH=%VSWHERE_PATH:"=%"
+
 for /f "usebackq tokens=*" %%i in (`"%VSWHERE_PATH%" -legacy -latest -property installationPath`) do (
-  set VSPATH="%%i\VC\Auxiliary\Build\vcvars64.bat"
+  set "VSPATH="%%i\VC\Auxiliary\Build\vcvars64.bat""
 )
 
 call %VSPATH%
