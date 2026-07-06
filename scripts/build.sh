@@ -56,15 +56,16 @@ mkdir -p lib/$BUILD
 $TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/datetime.cpp -o $OUTPUT/lib/$BUILD/datetime.o
 $TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/regex.cpp -o $OUTPUT/lib/$BUILD/regex.o
 $TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/thread.cpp -o $OUTPUT/lib/$BUILD/thread.o
+$TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/http_linux.cpp -o $OUTPUT/lib/$BUILD/http_linux.o
 
 $BIN_PATH/$TOOL_NAME $DBG_OPTS --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.linux.ts $PIC -o $OUTPUT/lib/$BUILD/lib.linux.o
 
 # Build DLL
-$BIN_PATH/$TOOL_NAME $DBG_OPTS --emit=dll --embed-declarations=false --nowarn --no-default-lib $SRC/src/lib.ts --obj=$OUTPUT/lib/$BUILD/lib.linux.o --obj=$OUTPUT/lib/$BUILD/datetime.o --obj=$OUTPUT/lib/$BUILD/regex.o --obj=$OUTPUT/lib/$BUILD/thread.o $PIC -verbose -o $OUTPUT/dll/$BUILD/libTypeScriptDefaultLib.so
+$BIN_PATH/$TOOL_NAME $DBG_OPTS --emit=dll --embed-declarations=false --nowarn --no-default-lib $SRC/src/lib.ts --obj=$OUTPUT/lib/$BUILD/lib.linux.o --obj=$OUTPUT/lib/$BUILD/datetime.o --obj=$OUTPUT/lib/$BUILD/regex.o --obj=$OUTPUT/lib/$BUILD/thread.o --obj=$OUTPUT/lib/$BUILD/http_linux.o $PIC -verbose -o $OUTPUT/dll/$BUILD/libTypeScriptDefaultLib.so -lcurl
 
 # Build Lib
 $BIN_PATH/$TOOL_NAME $DBG_OPTS --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.ts $PIC -o $OUTPUT/lib/$BUILD/lib.o
-$ARC rcs $OUTPUT/lib/$BUILD/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o $OUTPUT/lib/$BUILD/datetime.o $OUTPUT/lib/$BUILD/regex.o $OUTPUT/lib/$BUILD/thread.o
+$ARC rcs $OUTPUT/lib/$BUILD/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o $OUTPUT/lib/$BUILD/datetime.o $OUTPUT/lib/$BUILD/regex.o $OUTPUT/lib/$BUILD/thread.o $OUTPUT/lib/$BUILD/http_linux.o
 # Copy
 BUILD_LIB_PATH=./__build/$BUILD/defaultlib/
 mkdir -p $BUILD_LIB_PATH/dll/

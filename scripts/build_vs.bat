@@ -83,6 +83,7 @@ rem Build native wrappers for C++ code
 cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\datetime.cpp
 cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\regex.cpp
 cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\thread.cpp
+cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\http.cpp
 
 rem Build OS-specific Lib
 echo Build OS-specific Lib
@@ -90,7 +91,7 @@ echo Build OS-specific Lib
 
 rem Build DLL
 echo Build DLL
-%TOOL_PATH%\%TOOL_NAME%.exe %DBG% --emit=dll --embed-declarations=false --nowarn --no-default-lib %SRC%\src\lib.ts --obj=%OUTPUT%\lib\%BUILD%\lib.win32.obj --obj=%OUTPUT%\lib\%BUILD%\datetime.obj --obj=%OUTPUT%\lib\%BUILD%\regex.obj --obj=%OUTPUT%\lib\%BUILD%\thread.obj -o %OUTPUT%\dll\%BUILD%\TypeScriptDefaultLib.dll
+%TOOL_PATH%\%TOOL_NAME%.exe %DBG% --emit=dll --embed-declarations=false --nowarn --no-default-lib %SRC%\src\lib.ts --obj=%OUTPUT%\lib\%BUILD%\lib.win32.obj --obj=%OUTPUT%\lib\%BUILD%\datetime.obj --obj=%OUTPUT%\lib\%BUILD%\regex.obj --obj=%OUTPUT%\lib\%BUILD%\thread.obj --obj=%OUTPUT%\lib\%BUILD%\http.obj -o %OUTPUT%\dll\%BUILD%\TypeScriptDefaultLib.dll
 
 rem Build Lib
 echo Build Lib
@@ -98,13 +99,14 @@ echo Build Lib
 rem %TOOL_PATH%\%TOOL_NAME%.exe %DBG% --emit=llvm --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.ll
 rem %TOOL_PATH%\%TOOL_NAME%.exe %DBG% --emit=mlir --export=none %SRC%\src\lib.ts 2> %OUTPUT%\lib\%BUILD%\lib.mlir
 
-lib.exe /out:%OUTPUT%\lib\%BUILD%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\lib.obj %OUTPUT%\lib\%BUILD%\lib.win32.obj %OUTPUT%\lib\%BUILD%\datetime.obj %OUTPUT%\lib\%BUILD%\regex.obj %OUTPUT%\lib\%BUILD%\thread.obj
+lib.exe /out:%OUTPUT%\lib\%BUILD%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\lib.obj %OUTPUT%\lib\%BUILD%\lib.win32.obj %OUTPUT%\lib\%BUILD%\datetime.obj %OUTPUT%\lib\%BUILD%\regex.obj %OUTPUT%\lib\%BUILD%\thread.obj %OUTPUT%\lib\%BUILD%\http.obj
 
 del %OUTPUT%\lib\%BUILD%\lib.obj
 del %OUTPUT%\lib\%BUILD%\lib.win32.obj
 del %OUTPUT%\lib\%BUILD%\datetime.obj
 del %OUTPUT%\lib\%BUILD%\regex.obj
 del %OUTPUT%\lib\%BUILD%\thread.obj
+del %OUTPUT%\lib\%BUILD%\http.obj
 
 set BUILD_LIB_PATH=.\__build\%BUILD%\defaultlib
 rd /S /Q %BUILD_LIB_PATH%
