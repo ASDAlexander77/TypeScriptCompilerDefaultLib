@@ -88,7 +88,7 @@ export namespace HashHelpers
         const value4BytesRef: Reference<i32> = key;
         const count4 = size >> 2;
         for (let offset = 0; offset < count4; offset ++) {
-            const v32 = LoadReference(value4BytesRef[offset]);
+            const v32 = Deref(value4BytesRef[offset]);
             hashValue = (hashValue + v32 * power) % mod;
             //print("v32=", v32, "offset=", offset, "addr=", value4BytesRef[offset], "hash=", hashValue);
             power = (power * PrimeHelpers.hashPrime) % mod
@@ -97,7 +97,7 @@ export namespace HashHelpers
         const start4 = count4 << 2;
         const valueByteRef: Reference<byte> = key;
         for (let offset = start4; offset < size; offset ++) {
-            const v8 = LoadReference(valueByteRef[offset]);
+            const v8 = Deref(valueByteRef[offset]);
             hashValue = (hashValue + v8 * power) % mod;
             //print("v8=", v8, "offset=", offset, "addr=", value4BytesRef[offset], "hash=", hashValue);
             power = (power * PrimeHelpers.hashPrime) % mod
@@ -107,13 +107,13 @@ export namespace HashHelpers
     }
 
     export function hashCodeString(key: string): int {
-        return hashCodeBinary(ReferenceOf(key[0]), key.length);
+        return hashCodeBinary(Ref(key[0]), key.length);
     }
 
     export function hashCodeAny(key: any): int {
         let keyLocal = key;
-        const anyPtr = LoadReference(<Reference<Opaque>> ReferenceOf(keyLocal));
+        const anyPtr = Deref(<Reference<Opaque>> Ref(keyLocal));
         let anyStruct: Reference<[size: index, type: string, data: byte]> = anyPtr;
-        return hashCodeBinary(ReferenceOf(anyStruct.data), anyStruct.size);
+        return hashCodeBinary(Ref(anyStruct.data), anyStruct.size);
     }
 }

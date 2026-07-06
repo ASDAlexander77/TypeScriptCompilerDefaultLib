@@ -19,7 +19,7 @@ export function convertNumber(bufferSize: int, format: string, value: number): s
     //return convertf(bufferSize, format, value);
     let buffer : char[] = [];
     buffer.length = bufferSize;
-    const s = <string> <Opaque> ReferenceOf(buffer[0]);
+    const s = <string> <Opaque> Ref(buffer[0]);
     snprintf(s, bufferSize, format, value);
     return s;
 }
@@ -29,7 +29,7 @@ export function convertInteger(bufferSize: int, format: string, value: i32): str
     //return convertf(bufferSize, format, value);
     let buffer : char[] = [];
     buffer.length = bufferSize;
-    const s = <string> <Opaque> ReferenceOf(buffer[0]);
+    const s = <string> <Opaque> Ref(buffer[0]);
     snprintf(s, bufferSize, format, value);
     return s;
 }
@@ -47,7 +47,7 @@ declare function timespec_get(tv: Reference<timeval>, base: int): int;
 const TIME_UTC = 1;
 export function getMilliseconds(): i64 {
     let timestamp: timeval = [0, 0];
-    const retBase = timespec_get(ReferenceOf(timestamp), TIME_UTC);
+    const retBase = timespec_get(Ref(timestamp), TIME_UTC);
     return timestamp.tv_sec * 1000 + timestamp.tv_usec / 1000000;
 }
 
@@ -55,7 +55,7 @@ type tm = [tm_sec: i32, tm_min: i32, tm_hour: i32, tm_mday: i32, tm_mon: i32, tm
 declare function timegm(tv: Reference<tm>): long;
 export function makegmtime(year: i32, month: i32, day: i32, hour: i32, minutes: i32, seconds: i32, milliseconds: i32): i64 {
     let tm1: tm = [seconds, minutes, hour, day, month, year, 0, 0, 0];
-    const sec = timegm(ReferenceOf(tm1));
+    const sec = timegm(Ref(tm1));
     if (sec == -1)
     {
         // error
@@ -68,7 +68,7 @@ export function makegmtime(year: i32, month: i32, day: i32, hour: i32, minutes: 
 declare function mktime(tv: Reference<tm>): long;
 export function maketime(year: i32, month: i32, day: i32, hour: i32, minutes: i32, seconds: i32, milliseconds: i32): i64 {
     let tm1: tm = [seconds, minutes, hour, day, month, year, 0, 0, 0];
-    const sec = mktime(ReferenceOf(tm1));
+    const sec = mktime(Ref(tm1));
     if (sec == -1)
     {
         // error
@@ -82,7 +82,7 @@ declare function gmtime_r(time: Reference<time_t>, tm: Reference<tm>) : Referenc
 export function gmtime(time: long): tm {
     let tmDest: tm = [0, 0, 0, 0, 0, 0, 0, 0, 0];
     let timeInSec: long = time / 1000;
-    const result = gmtime_r(ReferenceOf(timeInSec), ReferenceOf(tmDest));
+    const result = gmtime_r(Ref(timeInSec), Ref(tmDest));
     return tmDest; // return ms
 }
 
@@ -90,7 +90,7 @@ declare function localtime_r(time: Reference<time_t>, tm: Reference<tm>) : Refer
 export function localtime(time: long): tm {
     let tmDest: tm = [0, 0, 0, 0, 0, 0, 0, 0, 0];
     let timeInSec: long = time / 1000;
-    const result = localtime_r(ReferenceOf(timeInSec), ReferenceOf(tmDest));
+    const result = localtime_r(Ref(timeInSec), Ref(tmDest));
     return tmDest; // return ms
 }
 
@@ -104,8 +104,8 @@ export function timestamp_to_string(maxsize: index, time: long): string {
     let timeInSec: time_t = time / 1000;
     let buffer : char[] = [];
     buffer.length = maxsize;
-    const s = <string> <Opaque> ReferenceOf(buffer[0]);
-    const result = ctime_r(ReferenceOf(timeInSec), s);
+    const s = <string> <Opaque> Ref(buffer[0]);
+    const result = ctime_r(Ref(timeInSec), s);
     return s;
 }
 
@@ -115,8 +115,8 @@ export function time_to_string(maxsize: index, time: long, isUtc: boolean): stri
 
     let buffer : char[] = [];
     buffer.length = maxsize;
-    const s = <string> <Opaque> ReferenceOf(buffer[0]);    
-    const result = asctime_r(ReferenceOf(tm), s);
+    const s = <string> <Opaque> Ref(buffer[0]);    
+    const result = asctime_r(Ref(tm), s);
     return s;
 }
 
@@ -126,8 +126,8 @@ export function time_format(maxsize: index, format: string, time: long, isUtc: b
 
     let buffer : char[] = [];
     buffer.length = maxsize;
-    const s = <string> <Opaque> ReferenceOf(buffer[0]);
-    const len = strftime(s, maxsize, format, ReferenceOf(tm));
+    const s = <string> <Opaque> Ref(buffer[0]);
+    const len = strftime(s, maxsize, format, Ref(tm));
     return s;
 }
 
@@ -140,9 +140,9 @@ export function time_format_locale(maxsize: index, format: string, time: long, l
 
     let buffer : char[] = [];
     buffer.length = maxsize;
-    const s = <string> <Opaque> ReferenceOf(buffer[0]);
-    //const len = strftime_l(s, maxsize, format, ReferenceOf(tm), locale_t);
-    const len = strftime(s, maxsize, format, ReferenceOf(tm));
+    const s = <string> <Opaque> Ref(buffer[0]);
+    //const len = strftime_l(s, maxsize, format, Ref(tm), locale_t);
+    const len = strftime(s, maxsize, format, Ref(tm));
 
     setlocale(LC_TIME_MASK, "");
     //freelocale(locale_t);

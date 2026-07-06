@@ -7,6 +7,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
     $ARCH="x64"
     $DBG="--di"
     $OPTIONS="--nowarn"
+    $TOOL="tslang"
 
     $test=$fileName
     if ($config -eq "release") {
@@ -21,7 +22,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
 
     if ($null -eq $Env:TOOL_PATH) {
 	    $BUILD_PATH="..\TypeScriptCompiler\__build"
-	    $TOOL_PATH="..\TypeScriptCompiler\__build\tsc\windows-msbuild$VER-$BUILD\bin"
+	    $TOOL_PATH="..\TypeScriptCompiler\__build\$TOOL\windows-msbuild$VER-$BUILD\bin"
 	    $DEFAULTLIB_BUILD_PATH="..\TypeScriptCompilerDefaultLib\__build\$BUILD"
     } else {
 	    $BUILD_PATH=$TOOL_PATH
@@ -35,7 +36,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
 	    $Env:LLVM_LIB_PATH="$BUILD_PATH\llvm\msbuild\$ARCH\$BUILD\$BUILD1\lib"
     }
     if ($null -eq $Env:TSC_LIB_PATH) {
-	    $Env:TSC_LIB_PATH="$BUILD_PATH\tsc\windows-msbuild$VER-$BUILD\lib"
+	    $Env:TSC_LIB_PATH="$BUILD_PATH\$TOOL\windows-msbuild$VER-$BUILD\lib"
     }
     if ($null -eq $Env:DEFAULT_LIB_PAT) {
 	    $Env:DEFAULT_LIB_PATH="$DEFAULTLIB_BUILD_PATH"
@@ -44,7 +45,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
     $DBG_ARGS = if ($DBG -ne "") { @($DBG) } else { @() }
 
     if ($mode -eq "compile") {
-        $compile_error_output = ($compile_output = & $TOOL_PATH\tsc.exe @DBG_ARGS $OPTIONS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=exe $SRC\tests\$test.ts) 2>&1
+        $compile_error_output = ($compile_output = & $TOOL_PATH\$TOOL.exe @DBG_ARGS $OPTIONS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=exe $SRC\tests\$test.ts) 2>&1
 
         $compile_code = $LASTEXITCODE
 
@@ -62,7 +63,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
     }
 
     if ($mode -eq "jit") {
-        $run_error_output = ($run_output = & $TOOL_PATH\tsc.exe @DBG_ARGS $OPTIONS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=jit $SRC\tests\$test.ts) 2>&1
+        $run_error_output = ($run_output = & $TOOL_PATH\$TOOL.exe @DBG_ARGS $OPTIONS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=jit $SRC\tests\$test.ts) 2>&1
 
         $run_code = $LASTEXITCODE
     }

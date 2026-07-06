@@ -467,7 +467,7 @@ export class MatchResults
     get(index: number) {
         const len = regexp_match_results_sub_match_str_length(this.match, index);
         let buffer = "".clone().resize(len);
-        regexp_match_results_sub_match_str_copy_to(this.match, index, ReferenceOf(buffer[0]), len);
+        regexp_match_results_sub_match_str_copy_to(this.match, index, Ref(buffer[0]), len);
         return buffer;
     }
 
@@ -525,7 +525,7 @@ export class RegExp
     }
 
     exec(s: string): MatchResults | null {
-        const cmatch = regexp_exec(this.source, this.flags, ReferenceOf(s[this.lastIndex]), this.match);
+        const cmatch = regexp_exec(this.source, this.flags, Ref(s[this.lastIndex]), this.match);
         if (!cmatch)
         {
             if (this.global) 
@@ -545,7 +545,7 @@ export class RegExp
 
     test(s: string) {
         if (this.global) {
-            const result = regexp_test(this.source, this.flags, ReferenceOf(s[this.lastIndex]));
+            const result = regexp_test(this.source, this.flags, Ref(s[this.lastIndex]));
             if (result >= 0)
             {
                 this.lastIndex += <index> result;
@@ -576,7 +576,7 @@ export class RegExp
             // get formatted replacement
             const len = r.length;
             let result = "".clone().resize(len);
-            memcpy(ReferenceOf(result[0]), r, len);
+            memcpy(Ref(result[0]), r, len);
             
             regexp_free_string(r);
             regexp_free(cmatch);
@@ -592,7 +592,7 @@ export class RegExp
         const r = regexp_replace(this.source, this.flags, s);
         const len = r.length;
         let result = "".clone().resize(len);
-        memcpy(ReferenceOf(result[0]), r, len);
+        memcpy(Ref(result[0]), r, len);
         regexp_free_string(r);
         return result;
     }
@@ -655,7 +655,7 @@ namespace __String {
         const newString = this.clone().resize(count);        
         let index = this.length;
         for (const item of other) {
-            memcpy(ReferenceOf(newString[index]), ReferenceOf(item[0]), sizeof<char>() * item.length);
+            memcpy(Ref(newString[index]), Ref(item[0]), sizeof<char>() * item.length);
             index += item.length;
         }
 
@@ -670,7 +670,7 @@ namespace __String {
         const newString = "".clone().resize(count);        
         let index = 0;
         for (const item of parts) {
-            memcpy(ReferenceOf(newString[index]), ReferenceOf(item[0]), sizeof<char>() * item.length);
+            memcpy(Ref(newString[index]), Ref(item[0]), sizeof<char>() * item.length);
             index += item.length;
         }
 
@@ -690,7 +690,7 @@ namespace __String {
             return false;
         }
 
-        return strncmp(<string>ReferenceOf(this[lenstr - lensuffix]), searchString, lensuffix) == 0;
+        return strncmp(<string>Ref(this[lenstr - lensuffix]), searchString, lensuffix) == 0;
     }    
 
     export function includes(this: string, searchString: string, position = 0): boolean {    
@@ -699,7 +699,7 @@ namespace __String {
             return false;
         }
 
-        return strstr(<string>ReferenceOf(this[position]), searchString) != null;
+        return strstr(<string>Ref(this[position]), searchString) != null;
     }      
 
     export function indexOf(this: string, searchString: string, position = 0): int {    
@@ -713,13 +713,13 @@ namespace __String {
             return this.length;
         }
         
-        const found = strstr(<string>ReferenceOf(this[position]), searchString);
+        const found = strstr(<string>Ref(this[position]), searchString);
         if (found == null)
         {
             return -1;
         }
 
-        return <index>ReferenceOf(found[0]) - <index>ReferenceOf(this[0]);
+        return <index>Ref(found[0]) - <index>Ref(this[0]);
     }        
 
     export function isWellFormed(this: string): boolean {    
@@ -746,10 +746,10 @@ namespace __String {
         
         for (let i = position; i >= 0; i--)
         {
-            const found = strncmp(<string>ReferenceOf(this[i]), searchString, searchStringLen);
+            const found = strncmp(<string>Ref(this[i]), searchString, searchStringLen);
             if (found == 0)
             {
-                return <index>ReferenceOf(this[i]) - <index>ReferenceOf(this[0]);
+                return <index>Ref(this[i]) - <index>Ref(this[0]);
             }
         }
 
@@ -843,7 +843,7 @@ namespace __String {
         let index = this.length;
         const byteSize = sizeof<char>() * this.length;
         for (let i = 0; i < count; i++) {
-            memcpy(ReferenceOf(newString[index]), this, byteSize);
+            memcpy(Ref(newString[index]), this, byteSize);
             index += this.length;
         }
 
@@ -917,7 +917,7 @@ namespace __String {
 
         const count = indexEnd - indexStart;
         const newString = "".clone().resize(count);
-        memcpy(ReferenceOf(newString[0]), ReferenceOf(this[indexStart]), sizeof<char>() * count);
+        memcpy(Ref(newString[0]), Ref(this[indexStart]), sizeof<char>() * count);
         return newString;
     }
 
@@ -979,7 +979,7 @@ namespace __String {
             return false;
         }
 
-        return strncmp(<string>ReferenceOf(this[position]), searchString, lensuffix) == 0;
+        return strncmp(<string>Ref(this[position]), searchString, lensuffix) == 0;
     }    
 
     export function substring(this: string, indexStart: int, indexEnd = this.length): string {
@@ -1005,7 +1005,7 @@ namespace __String {
 
         const count = indexEnd - indexStart;
         const newString = "".clone().resize(count);
-        memcpy(ReferenceOf(newString[0]), ReferenceOf(this[indexStart]), sizeof<char>() * count);
+        memcpy(Ref(newString[0]), Ref(this[indexStart]), sizeof<char>() * count);
         return newString;        
     }
 

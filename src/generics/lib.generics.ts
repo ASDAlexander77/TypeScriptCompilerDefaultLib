@@ -61,7 +61,7 @@ namespace __Array {
             end = this.length;
         }
 
-        memmove(ReferenceOf(this[target]), ReferenceOf(this[start]), sizeof<T>() * (end - start));
+        memmove(Ref(this[target]), Ref(this[start]), sizeof<T>() * (end - start));
         return this;
     }
 
@@ -73,10 +73,10 @@ namespace __Array {
         let newArray: T[] = [];
         newArray.length = count;
         let index = 0;
-        memcpy(ReferenceOf(newArray[index]), ReferenceOf(this[0]), sizeof<T>() * this.length);
+        memcpy(Ref(newArray[index]), Ref(this[0]), sizeof<T>() * this.length);
         index += this.length;
         for (const item of other) {
-            memcpy(ReferenceOf(newArray[index]), ReferenceOf(item[0]), sizeof<T>() * item.length);
+            memcpy(Ref(newArray[index]), Ref(item[0]), sizeof<T>() * item.length);
             index += item.length;
         }
 
@@ -330,7 +330,7 @@ namespace __Array {
 
         let newArray: T[] = [];
         newArray.length = end - start;
-        memcpy(ReferenceOf(newArray[0]), ReferenceOf(this[start]), sizeof<T>() * (end - start));
+        memcpy(Ref(newArray[0]), Ref(this[start]), sizeof<T>() * (end - start));
         return newArray;
     }
 
@@ -611,13 +611,13 @@ namespace HashHelpers {
     function hashCodeGeneral<K>(key: K): int {
         let keyLocal = key;
         const size = sizeof<K>();
-        const valueRef = ReferenceOf(keyLocal);
+        const valueRef = Ref(keyLocal);
 
         switch (size) {
-            case 4: return LoadReference(<Reference<i32>>valueRef);
+            case 4: return Deref(<Reference<i32>>valueRef);
             case 8:
                 const valueRef32 = <Reference<i32>>valueRef;
-                const hash32 = (LoadReference(valueRef32[1]) >> 1) ^ LoadReference(valueRef32[0]);
+                const hash32 = (Deref(valueRef32[1]) >> 1) ^ Deref(valueRef32[0]);
                 return hash32;
         }
 
@@ -773,7 +773,7 @@ class Map<K = any, V = any> {
         entries.length = newSize;
 
         const count = this.count;
-        memcpy(ReferenceOf(entries[0]), ReferenceOf(this._entries[0]), sizeof<typeof entries[0]>() * count);
+        memcpy(Ref(entries[0]), Ref(this._entries[0]), sizeof<typeof entries[0]>() * count);
 
         if (forceNewHashCodes) {
             this.newHashCodes(entries);
@@ -876,7 +876,7 @@ class Map<K = any, V = any> {
                 return null;
             }
 
-            const entry = ReferenceOf(entries[i]);
+            const entry = Ref(entries[i]);
             if (entry.hashCode == hashCode && EqualityHelper.equals(entry.key, key)) {
                 // found
                 return entry.value;
@@ -906,7 +906,7 @@ class Map<K = any, V = any> {
                 return false;
             }
 
-            const entry = ReferenceOf(entries[i]);
+            const entry = Ref(entries[i]);
             if (entry.hashCode == hashCode && EqualityHelper.equals(entry.key, key)) {
                 // found
                 return true;
@@ -932,7 +932,7 @@ class Map<K = any, V = any> {
         let last = -1;
         let i = bucket - 1; // Value in buckets is 1-based
         while (i >= 0) {
-            const entry = ReferenceOf(entries[i]);
+            const entry = Ref(entries[i]);
             if (entry.hashCode == hashCode && EqualityHelper.equals(entry.key, key)) {
                 if (last < 0) {
                     bucket = entry.next + 1; // Value in buckets is 1-based
@@ -1195,7 +1195,7 @@ class Set<V = any> {
         entries.length = newSize;
 
         const count = this.count;
-        memcpy(ReferenceOf(entries[0]), ReferenceOf(this._entries[0]), sizeof<typeof entries[0]>() * count);
+        memcpy(Ref(entries[0]), Ref(this._entries[0]), sizeof<typeof entries[0]>() * count);
 
         if (forceNewHashCodes) {
             this.newHashCodes(entries);
@@ -1297,7 +1297,7 @@ class Set<V = any> {
                 return false;
             }
 
-            const entry = ReferenceOf(entries[i]);
+            const entry = Ref(entries[i]);
             if (entry.hashCode == hashCode && EqualityHelper.equals(entry.value, value)) {
                 // found
                 return true;
@@ -1323,7 +1323,7 @@ class Set<V = any> {
         let last = -1;
         let i = bucket - 1; // Value in buckets is 1-based
         while (i >= 0) {
-            const entry = ReferenceOf(entries[i]);
+            const entry = Ref(entries[i]);
             if (entry.hashCode == hashCode && EqualityHelper.equals(entry.value, value)) {
                 if (last < 0) {
                     bucket = entry.next + 1; // Value in buckets is 1-based
