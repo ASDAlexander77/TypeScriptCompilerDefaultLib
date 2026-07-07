@@ -1667,6 +1667,166 @@ export class ArrayBuffer {
     }
 }
 
+export class Headers {
+    private names: string[];
+    private values: string[];
+
+    constructor(init?: [string, string][]) {
+        this.names = [];
+        this.values = [];
+
+        if (init != undefined) {
+            for (const [k, v] of init) this.set(k, v);
+        }
+    }
+
+    static parse(rawHeaders: string): Headers {
+        const headers = new Headers();
+        const lines = rawHeaders.split("\r\n");
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i];
+            if (line == "") continue;
+            const sep = line.indexOf(":");
+            if (sep == -1) continue;
+            let name = line.substring(0, sep);
+            let value = line.substring(sep + 1);
+            headers.set(name, value.trim());
+        }
+
+        return headers;
+    }
+
+    private key(name: string): string {
+        return name.toLowerCase();
+    }
+
+    private indexOf(key: string): int {
+        for (let i = 0; i < this.names.length; i++) {
+            if (this.names[i] == key) return i;
+        }
+
+        return -1;
+    }
+
+    append(name: string, value: string) {
+        const key = this.key(name);
+        const i = this.indexOf(key);
+        if (i != -1) {
+            this.values[i] = this.values[i] + ", " + value;
+        } else {
+            this.names.push(key);
+            this.values.push(value);
+        }
+    }
+
+    set(name: string, value: string) {
+        const key = this.key(name);
+        const i = this.indexOf(key);
+        if (i != -1) {
+            this.values[i] = value;
+        } else {
+            this.names.push(key);
+            this.values.push(value);
+        }
+    }
+
+    get(name: string): string {
+        const i = this.indexOf(this.key(name));
+        return i != -1 ? this.values[i] : null;
+    }
+
+    has(name: string): boolean {
+        return this.indexOf(this.key(name)) != -1;
+    }
+
+    delete(name: string) {
+        const i = this.indexOf(this.key(name));
+        if (i == -1) return;
+
+        let newNames: string[] = [];
+        let newValues: string[] = [];
+        for (let j = 0; j < this.names.length; j++) {
+            if (j == i) continue;
+            newNames.push(this.names[j]);
+            newValues.push(this.values[j]);
+        }
+
+        this.names = newNames;
+        this.values = newValues;
+    }
+
+    toRawString(): string {
+        let result = "";
+        for (let i = 0; i < this.names.length; i++) {
+            result += this.names[i] + ": " + this.values[i] + "\r\n";
+        }
+
+        return result;
+    }
+}
+
+export class Response {
+    public constructor(
+        public status: int,
+        public headers: Headers,
+        private body: string) {
+    }
+
+    public get ok(): boolean {
+        return this.status >= 200 && this.status < 300;
+    }
+
+    text(): string {
+        return this.body;
+    }
+
+    json(): any {
+        // TODO: replace with a real JSON.parse once available
+        return this.body;
+    }
+}
+
+// NOTE: not `async` - the compiler's async lowering currently fails
+// ("failed to legalize operation 'async.runtime.load'") when an async
+// function returns a class-typed value. Revisit once that's fixed upstream.
+export function fetch(url: string, init?: { method?: string, headers?: [string, string][], body?: string }): Response {
+    const method = init != undefined && init.method != undefined ? init.method : "GET";
+    const body = init != undefined && init.body != undefined ? init.body : "";
+
+    let rawHeaders = "";
+    if (init != undefined && init.headers != undefined) {
+        for (const [k, v] of init.headers) rawHeaders += k + ": " + v + "\r\n";
+    }
+
+    const r = http_request(method, url, rawHeaders, body, body.length);
+
+    if (!http_response_success(r)) {
+        const errorCode = http_response_error_code(r);
+        http_response_free(r);
+        throw new Error(`fetch failed with WinHTTP error ${errorCode}`);
+    }
+
+    const status = http_response_status(r);
+
+    const headersLen = http_response_headers_length(r);
+    let headersBuffer: char[] = [];
+    headersBuffer.length = headersLen + 1;
+    headersBuffer[headersLen] = null;
+    if (headersLen > 0) http_response_headers_copy_to(r, <string><Opaque>Ref(headersBuffer[0]), headersLen);
+    const headers = Headers.parse(<string><Opaque>Ref(headersBuffer[0]));
+
+    const bodyLen = http_response_body_length(r);
+    let bodyBuffer: char[] = [];
+    bodyBuffer.length = bodyLen + 1;
+    bodyBuffer[bodyLen] = null;
+    if (bodyLen > 0) http_response_body_copy_to(r, <string><Opaque>Ref(bodyBuffer[0]), bodyLen);
+    const responseBody = <string><Opaque>Ref(bodyBuffer[0]);
+
+    http_response_free(r);
+
+    return new Response(status, headers, responseBody);
+}
+
 export static class console {
     public assert(condition?: boolean, ...data: string[]): void {
         assert(condition || false, data.length > 0 ? data[0] : "");

@@ -104,3 +104,14 @@ declare function regexp_free(cm: Opaque): void;
 
 // thread
 declare function sleep(milliseconds: u32): void;
+
+// http
+declare function http_request(method: string, url: string, headers: string, body: string, bodyLength: index): Opaque;
+declare function http_response_success(r: Opaque): boolean;
+declare function http_response_error_code(r: Opaque): int;
+declare function http_response_status(r: Opaque): int;
+declare function http_response_headers_length(r: Opaque): index;
+declare function http_response_headers_copy_to(r: Opaque, buffer: string, count: index): void;
+declare function http_response_body_length(r: Opaque): index;
+declare function http_response_body_copy_to(r: Opaque, buffer: string, count: index): void;
+declare function http_response_free(r: Opaque): void;

@@ -5,14 +5,14 @@ type errno_t = i32;
 type time_t = long; 
 
 // locale
-declare function setlocale (category: int, locale: string);
+declare function setlocale (category: int, locale: string): void;
 declare function newlocale (category: int, locale: string, base: Opaque | null): Opaque;
 declare function uselocale (locale: Opaque): Opaque;
-declare function freelocale (locale: Opaque);
+declare function freelocale (locale: Opaque): void;
 // LC_TIME
 
 @varargs
-declare function snprintf(out: string, n: index, format: string);
+declare function snprintf(out: string, n: index, format: string): void;
 
 export function convertNumber(bufferSize: int, format: string, value: number): string
 {

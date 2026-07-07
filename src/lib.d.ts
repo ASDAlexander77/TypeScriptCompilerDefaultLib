@@ -638,6 +638,43 @@ declare static class Math {
     trunc(x: number): number;
 }
 
+declare class Headers {
+    private names: string[];
+    private values: string[];
+
+    constructor(init?: [string, string][]);
+
+    static parse(rawHeaders: string): Headers;
+
+    append(name: string, value: string): void;
+
+    set(name: string, value: string): void;
+
+    get(name: string): string;
+
+    has(name: string): boolean;
+
+    delete(name: string): void;
+
+    toRawString(): string;
+}
+
+declare class Response {
+    status: int;
+    headers: Headers;
+    private body: string;
+
+    constructor(status: int, headers: Headers, body: string);
+
+    get ok(): boolean;
+
+    text(): string;
+
+    json(): any;
+}
+
+declare function fetch(url: string, init?: { method?: string, headers?: [string, string][], body?: string }): Response;
+
 declare static class console {
     assert(condition?: boolean, ...data: string[]): void;
 

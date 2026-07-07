@@ -6,11 +6,11 @@ type time_t = long;
 
 // locale
 declare function _create_locale (category: int, locale: string): Opaque;
-declare function _free_locale (locale: Opaque);
+declare function _free_locale (locale: Opaque): void;
 // LC_TIME
 
 @varargs
-declare function sprintf_s(out: string, n: index, format: string);
+declare function sprintf_s(out: string, n: index, format: string): void;
 
 export function convertNumber(bufferSize: int, format: string, value: number): string
 {
