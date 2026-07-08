@@ -63,6 +63,8 @@ function test_script() {
     return 0
 }
 
+failed_tests=()
+
 function tests() {
     config="$1"
     mode="$2"
@@ -89,6 +91,7 @@ function tests() {
             success=$((success + 1))
             printf "\e[32mPassed\e[0m    "
         else
+            failed_tests+=("$config/$mode: $testName")
             printf "\e[31mFailed\e[0m    "
         fi
 
@@ -96,7 +99,7 @@ function tests() {
     done
 
     find "$SRC/tests" -not -name "*.ts" -type f -delete
-    echo "Finished $config, $mode"
+    echo "Finished $config, $mode : $success/$count passed"
 }
 
 tests "release" "compile"
@@ -104,4 +107,13 @@ tests "release" "jit"
 tests "debug" "compile"
 tests "debug" "jit"
 
-echo "Done."
+if [ ${#failed_tests[@]} -gt 0 ]; then
+    echo -e "\e[31mDone. ${#failed_tests[@]} test(s) failed:\e[0m"
+    for t in "${failed_tests[@]}"; do
+        echo -e "\e[31m  - $t\e[0m"
+    done
+    exit 1
+fi
+
+echo -e "\e[32mDone. All tests passed.\e[0m"
+exit 0
