@@ -5,7 +5,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
     $VER="-2026"
     $LLVM_BUILD="Debug"
     $ARCH="x64"
-    $DBG="--di"
+    $DBG="--di --opt_level=0"
     $OPTIONS="--nowarn"
     $TOOL="tslang"
 
@@ -15,6 +15,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
 	    $BUILD1="release"
 	    $LLVM_BUILD="Release"
 	    $DBG=""
+        $OPTIONS="--opt --opt_level=3"
     }
 
     $SRC="."
@@ -25,6 +26,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
 	    $TOOL_PATH="..\TypeScriptCompiler\__build\$TOOL\windows-msbuild$VER-$BUILD\bin"
 	    $DEFAULTLIB_BUILD_PATH="..\TypeScriptCompilerDefaultLib\__build\$BUILD"
     } else {
+        $TOOL_PATH=$Env:TOOL_PATH
 	    $BUILD_PATH=$TOOL_PATH
 	    $DEFAULTLIB_BUILD_PATH=$TOOL_PATH
     }
@@ -35,8 +37,8 @@ function Test([string]$config, [string]$mode, [string]$fileName)
     if ($null -eq $Env:LLVM_LIB_PATH) {
 	    $Env:LLVM_LIB_PATH="$BUILD_PATH\llvm\msbuild\$ARCH\$BUILD\$BUILD1\lib"
     }
-    if ($null -eq $Env:TSC_LIB_PATH) {
-	    $Env:TSC_LIB_PATH="$BUILD_PATH\$TOOL\windows-msbuild$VER-$BUILD\lib"
+    if ($null -eq $Env:TSLANG_LIB_PATH) {
+	    $Env:TSLANG_LIB_PATH="$BUILD_PATH\$TOOL\windows-msbuild$VER-$BUILD\lib"
     }
     if ($null -eq $Env:DEFAULT_LIB_PAT) {
 	    $Env:DEFAULT_LIB_PATH="$DEFAULTLIB_BUILD_PATH"

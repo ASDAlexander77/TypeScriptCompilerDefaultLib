@@ -9,8 +9,9 @@ function test_script() {
     BUILD1="Debug"
     LLVM_BUILD="Debug"
     ARCH="x64"
-    DBG="--di"
+    DBG="--di --opt_level=0"
     OPTIONS="--nowarn"
+    TOOL="tslang"
 
     test="$fileName"
     if [ "$config" == "release" ]; then
@@ -18,6 +19,7 @@ function test_script() {
         BUILD1="release"
         LLVM_BUILD="Release"
         DBG=""
+        OPTIONS="--opt --opt_level=3"
     fi
 
     SRC="."
@@ -25,7 +27,7 @@ function test_script() {
 
     if [ -z "$TOOL_PATH" ]; then
         BUILD_PATH="../TypeScriptCompiler/__build"
-        TOOL_PATH="../TypeScriptCompiler/__build/tsc/linux-ninja-gcc-$BUILD/bin"
+        TOOL_PATH="../TypeScriptCompiler/__build/$TOOL/linux-ninja-gcc-$BUILD/bin"
         DEFAULTLIB_BUILD_PATH="../TypeScriptCompilerDefaultLib/__build/$BUILD"
     else
         BUILD_PATH="$TOOL_PATH"
@@ -34,11 +36,11 @@ function test_script() {
 
     export GC_LIB_PATH="${GC_LIB_PATH:-$BUILD_PATH/gc/ninja/$BUILD}"
     export LLVM_LIB_PATH="${LLVM_LIB_PATH:-$BUILD_PATH/llvm/ninja/$BUILD/lib}"
-    export TSC_LIB_PATH="${TSC_LIB_PATH:-$BUILD_PATH/tsc/linux-ninja-gcc-$BUILD/lib}"
+    export TSC_LIB_PATH="${TSC_LIB_PATH:-$BUILD_PATH/$TOOL/linux-ninja-gcc-$BUILD/lib}"
     export DEFAULT_LIB_PATH="${DEFAULT_LIB_PATH:-$DEFAULTLIB_BUILD_PATH}"
 
     if [ "$mode" == "compile" ]; then
-        compile_output=$( "$TOOL_PATH/tsc" $DBG $OPTIONS --shared-libs="$TOOL_PATH/libTypeScriptRuntime.so" --emit=exe "$SRC/tests/$test.ts" 2>&1 )
+        compile_output=$( "$TOOL_PATH/$TOOL" $DBG $OPTIONS --shared-libs="$TOOL_PATH/libTypeScriptRuntime.so" --emit=exe "$SRC/tests/$test.ts" 2>&1 )
         compile_code=$?
 
         if [ $compile_code -ne 0 ]; then
@@ -52,7 +54,7 @@ function test_script() {
     fi
 
     if [ "$mode" == "jit" ]; then
-        run_output=$( "$TOOL_PATH/tsc" $DBG $OPTIONS --shared-libs="$TOOL_PATH/libTypeScriptRuntime.so" --emit=jit "$SRC/tests/$test.ts" 2>&1 )
+        run_output=$( "$TOOL_PATH/$TOOL" $DBG $OPTIONS --shared-libs="$TOOL_PATH/libTypeScriptRuntime.so" --emit=jit "$SRC/tests/$test.ts" 2>&1 )
         run_code=$?
     fi
 
