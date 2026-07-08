@@ -83,6 +83,7 @@ function Tests([string]$config, [string]$mode)
 
     $index = 0
     $success = 0
+    $failedTests = @()
     Get-ChildItem ".\tests" -Filter *.ts | Foreach-Object {
         $index++
 
@@ -90,7 +91,7 @@ function Tests([string]$config, [string]$mode)
         Write-Host -NoNewline "$success/$count Test #$index : $testName  "
         #Start-Process -NoNewWindow -FilePath "C:\wamp64\bin\mysql\mysql5.7.19\bin\mysql" -ArgumentList "-u root","-proot","-h localhost"
 
-        $time = (Measure-Command { $result = Test "release" "compile" $_.Basename }).TotalSeconds
+        $time = (Measure-Command { $result = Test $config $mode $_.Basename }).TotalSeconds
         $time = [math]::Round($time, 2).ToString("0.00")
 
         if ($result -eq $true) {
@@ -98,6 +99,7 @@ function Tests([string]$config, [string]$mode)
             Write-Host -NoNewline "Passed    " -ForegroundColor Green
         }
         else {
+            $failedTests += $_.Name
             Write-Host -NoNewline "Failed    " -ForegroundColor Red
         }
 
@@ -106,12 +108,23 @@ function Tests([string]$config, [string]$mode)
 
     Get-ChildItem -Path $SRC\tests -Include *.pdb,*.ilk,*.exe | Remove-Item
 
-    Write-Host "Finished $config, $mode"
+    Write-Host "Finished $config, $mode : $success/$count passed"
+
+    return $failedTests
 }
 
-Tests "release" "compile"
-Tests "release" "jit"
-Tests "debug" "compile"
-Tests "debug" "jit"
+$allFailedTests = @()
 
-Write-Host "Done."
+$allFailedTests += Tests "release" "compile" | ForEach-Object { "release/compile: $_" }
+$allFailedTests += Tests "release" "jit" | ForEach-Object { "release/jit: $_" }
+$allFailedTests += Tests "debug" "compile" | ForEach-Object { "debug/compile: $_" }
+$allFailedTests += Tests "debug" "jit" | ForEach-Object { "debug/jit: $_" }
+
+if ($allFailedTests.Count -gt 0) {
+    Write-Host "Done. $($allFailedTests.Count) test(s) failed:" -ForegroundColor Red
+    $allFailedTests | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
+    exit 1
+}
+
+Write-Host "Done. All tests passed." -ForegroundColor Green
+exit 0
