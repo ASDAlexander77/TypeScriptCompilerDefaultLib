@@ -13,3 +13,5 @@ const fullYear = xmas95.getFullYear();
 assert(fullYear == 1995);
 
 console.log(fullYear); // 1995
+
+console.log("ALL DONE");

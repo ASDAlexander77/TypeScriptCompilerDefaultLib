@@ -11,4 +11,5 @@ function main() {
   console.log(months);
   // Expected output: Array ["Jan", "Feb", "March", "April", "May"]
 
+    console.log("ALL DONE");
 }

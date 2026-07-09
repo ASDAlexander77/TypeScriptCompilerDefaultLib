@@ -14,3 +14,5 @@ console.log(set1.has(6));
 // Expected output: false
 
 assert(!set1.has(6));
+
+console.log("ALL DONE");

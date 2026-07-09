@@ -13,5 +13,6 @@ function main() {
     const strCopy = str.split();
     console.log(strCopy);
     // Expected output: Array ["The quick brown fox jumps over the lazy dog."]
+    console.log("ALL DONE");
 }
   

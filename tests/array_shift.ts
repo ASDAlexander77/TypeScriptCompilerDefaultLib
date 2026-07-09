@@ -10,4 +10,5 @@ function main() {
     console.log(firstElement);
     // Expected output: 1
     
+    console.log("ALL DONE");
 }

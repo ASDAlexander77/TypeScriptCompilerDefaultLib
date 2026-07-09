@@ -20,4 +20,5 @@ function main() {
   console.log(map3.join());
   // Expected output: Array [2, 8, 18, 32]
 
+    console.log("ALL DONE");
 }

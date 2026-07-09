@@ -6,4 +6,5 @@ function main()
   // Expected output: "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG."
 
   console.log("alphabet".toUpperCase()); // 'ALPHABET'
+    console.log("ALL DONE");
 }

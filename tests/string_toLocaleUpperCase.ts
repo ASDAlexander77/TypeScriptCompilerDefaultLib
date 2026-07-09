@@ -9,4 +9,5 @@ function main()
   // Expected output: "İSTANBUL"
 
   console.log("alphabet".toLocaleUpperCase()); // 'ALPHABET'
+    console.log("ALL DONE");
 }

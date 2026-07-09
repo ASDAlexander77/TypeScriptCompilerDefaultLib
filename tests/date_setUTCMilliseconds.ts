@@ -10,3 +10,5 @@ console.log(date1.getUTCMilliseconds());
 // Expected output: 420
 
 assert(date1.getUTCMilliseconds() == 420);
+
+console.log("ALL DONE");

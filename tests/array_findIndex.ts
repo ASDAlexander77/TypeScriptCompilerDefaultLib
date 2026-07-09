@@ -5,4 +5,5 @@ function main() {
   console.log(array1.findIndex((element) => element > 13));
   // Expected output: 3
 
+    console.log("ALL DONE");
 }

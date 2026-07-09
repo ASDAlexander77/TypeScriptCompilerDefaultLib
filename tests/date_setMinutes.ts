@@ -11,3 +11,5 @@ assert(event.getMinutes() == 45);
 console.log(event);
 // Expected output: "Tue Aug 19 1975 23:45:30 GMT+0200 (CEST)"
 // Note: your timezone may vary
+
+console.log("ALL DONE");

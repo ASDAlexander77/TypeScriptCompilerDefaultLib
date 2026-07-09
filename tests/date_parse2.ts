@@ -41,3 +41,5 @@ data.forEach(([date, expected]) => {
 });
 
 console.log('done.');
+
+console.log("ALL DONE");

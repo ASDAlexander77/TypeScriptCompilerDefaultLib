@@ -7,3 +7,5 @@ console.log(str.startsWith("not to be", 10)); // true
 assert(str.startsWith("To be")); // true
 assert(!str.startsWith("not to be")); // false
 assert(str.startsWith("not to be", 10)); // true
+
+console.log("ALL DONE");

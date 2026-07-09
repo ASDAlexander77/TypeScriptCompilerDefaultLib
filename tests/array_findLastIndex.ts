@@ -6,4 +6,5 @@ function main() {
   // Expected output: 3
   // Index of element with value: 130
 
+    console.log("ALL DONE");
 }

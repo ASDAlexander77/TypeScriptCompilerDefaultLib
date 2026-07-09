@@ -8,3 +8,5 @@ console.log(date1.getTimezoneOffset());
 
 console.log(date1.getTimezoneOffset() === date2.getTimezoneOffset());
 // Expected output: true
+
+console.log("ALL DONE");

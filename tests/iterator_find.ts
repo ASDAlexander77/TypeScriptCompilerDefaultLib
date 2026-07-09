@@ -22,3 +22,5 @@ console.log(seq.find(isEven)); // 2
 // TODO: finish it, 
 // Calling find() always closes the underlying iterator, even if the method early-returns. The iterator is never left in a half-way state.
 console.log(seq.next()); // { value: undefined, done: true }
+
+console.log("ALL DONE");

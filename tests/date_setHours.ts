@@ -10,3 +10,5 @@ console.log(event);
 event.setHours(20, 21, 22);
 
 console.log(event);
+
+console.log("ALL DONE");

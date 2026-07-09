@@ -17,4 +17,5 @@ function main() {
   console.log(parseInt('xyz'));
   // NaN (input can't be converted to an integer)
 
+    console.log("ALL DONE");
 }

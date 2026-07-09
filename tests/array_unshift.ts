@@ -7,4 +7,5 @@ function main() {
     
     console.log(array1);
     // Expected output: Array [4, 5, 1, 2, 3]
+    console.log("ALL DONE");
 }

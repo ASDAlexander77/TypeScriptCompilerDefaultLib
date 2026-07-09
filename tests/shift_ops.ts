@@ -27,3 +27,5 @@ isEq(vneg16 >> 35, -2)
 isEq(10 << 100, 160)    // same masking must apply to compile-time-constant expressions
 
 console.log("all OK")
+
+console.log("ALL DONE");

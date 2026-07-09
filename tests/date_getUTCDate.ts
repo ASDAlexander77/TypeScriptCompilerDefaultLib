@@ -12,3 +12,5 @@ console.log(event.getUTCDate());
 // Expected output: 19
 
 assert(event.getUTCDate() == 19);
+
+console.log("ALL DONE");

@@ -13,4 +13,5 @@ function main() {
   console.log(circumference('abcdefgh'));
   // Expected output: NaN
 
+    console.log("ALL DONE");
 }

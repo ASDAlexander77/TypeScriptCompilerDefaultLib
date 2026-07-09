@@ -8,3 +8,5 @@ for (const key of map1.keys())
 
 // Expected output: "0"
 // Expected output: 1
+
+console.log("ALL DONE");

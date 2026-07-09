@@ -10,3 +10,5 @@ const date2 = new Date(823230245000);
 
 console.log(date2.valueOf());
 // Expected output: 823230245000
+
+console.log("ALL DONE");

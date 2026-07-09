@@ -10,3 +10,5 @@ console.log(event.getMilliseconds());
 // Expected output: 456
 
 assert(event.getMilliseconds() == 456);
+
+console.log("ALL DONE");

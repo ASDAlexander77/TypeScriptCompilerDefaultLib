@@ -12,3 +12,5 @@ console.log(array[1]);
 // Expected output: Array ["test2", "e", "st2", "2"]
 
 assert(<string>array[1] == "test2,e,st2,2");
+
+console.log("ALL DONE");

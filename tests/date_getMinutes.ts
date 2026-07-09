@@ -5,3 +5,5 @@ assert(birthday.getMinutes() == 20);
 
 console.log(birthday.getMinutes());
 // Expected output: 20
+
+console.log("ALL DONE");

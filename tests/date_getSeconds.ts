@@ -5,3 +5,5 @@ assert(moonLanding.getSeconds() == 18);
 
 console.log(moonLanding.getSeconds());
 // Expected output: 18
+
+console.log("ALL DONE");

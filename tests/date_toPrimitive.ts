@@ -7,3 +7,5 @@ console.log(date[Symbol.toPrimitive]('string'));
 
 console.log(date[Symbol.toPrimitive]('number'));
 // Expected output: 1576833480000
+
+console.log("ALL DONE");

@@ -5,3 +5,5 @@ async function get_with_delay() {
 
 const r = await get_with_delay();
 console.log("result = r");
+
+console.log("ALL DONE");

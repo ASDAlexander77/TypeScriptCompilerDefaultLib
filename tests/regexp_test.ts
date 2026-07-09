@@ -13,3 +13,5 @@ console.log(regex2.test(str));
 // Expected output: false
 
 assert(!regex2.test(str));
+
+console.log("ALL DONE");

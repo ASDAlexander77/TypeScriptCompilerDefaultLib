@@ -9,4 +9,5 @@ function main() {
     console.log("abc".padStart(6, "123465")); // "123abc"
     console.log("abc".padStart(8, "0")); // "00000abc"
     console.log("abc".padStart(1)); // "abc"
+    console.log("ALL DONE");
 }

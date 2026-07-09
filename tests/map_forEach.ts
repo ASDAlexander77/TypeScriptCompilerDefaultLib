@@ -7,3 +7,5 @@ new Map([
 // Expected output: "m[foo] = 3"
 // Expected output: "m[bar] = [object Object]"
 // Expected output: "m[baz] = undefined"
+
+console.log("ALL DONE");

@@ -7,5 +7,6 @@ function main() {
     );
     
     console.log(sum); // 6    
+    console.log("ALL DONE");
 }
   

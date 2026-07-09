@@ -13,4 +13,5 @@ function main() {
       //                  "e"
     }
 
+    console.log("ALL DONE");
 }

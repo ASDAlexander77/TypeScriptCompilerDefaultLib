@@ -14,3 +14,5 @@ assert(safeRedactName(report, "ha.*er") == "A hacker called [REDACTED] used spec
 
 console.log(unsafeRedactName(report, "ha.*er"));
 console.log(safeRedactName(report, "ha.*er"));
+
+console.log("ALL DONE");

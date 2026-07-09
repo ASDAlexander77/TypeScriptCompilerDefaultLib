@@ -6,3 +6,5 @@ assert(moonLanding.getMilliseconds() == 123);
 
 console.log(moonLanding.getMilliseconds());
 // Expected output: 123
+
+console.log("ALL DONE");

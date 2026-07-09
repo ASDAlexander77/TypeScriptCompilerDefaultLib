@@ -9,4 +9,5 @@ function main() {
   // Expected output: 1
   
   
+    console.log("ALL DONE");
 }

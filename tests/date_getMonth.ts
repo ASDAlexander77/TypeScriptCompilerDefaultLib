@@ -5,3 +5,5 @@ assert(moonLanding.getMonth() == 6);
 
 console.log(moonLanding.getMonth()); // (January gives 0)
 // Expected output: 6
+
+console.log("ALL DONE");

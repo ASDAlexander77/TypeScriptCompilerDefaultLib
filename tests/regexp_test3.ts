@@ -28,3 +28,5 @@ console.log(regex.lastIndex);
 // regex.lastIndex is at 9
 assert(!regex.test("foobarfoo")); // false
 console.log(regex.lastIndex);
+
+console.log("ALL DONE");

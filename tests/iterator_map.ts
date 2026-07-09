@@ -20,3 +20,5 @@ for (const n of fibonacci().map((x) => x ** 2)) {
         break;
     }
 }
+
+console.log("ALL DONE");

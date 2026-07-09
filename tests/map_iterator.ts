@@ -10,3 +10,5 @@ for (const item of iterator1) {
 }
 // Expected output: Array ["0", "foo"]
 // Expected output: Array [1, "bar"]
+
+console.log("ALL DONE");

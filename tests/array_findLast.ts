@@ -7,4 +7,5 @@ function main() {
   console.log(found);
   // Expected output: 130
 
+    console.log("ALL DONE");
 }

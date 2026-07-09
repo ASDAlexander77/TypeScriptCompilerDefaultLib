@@ -13,3 +13,5 @@ assert(fibonacci().some(isEven)); // true
 const isNegative = (x) => x < 0;
 assert(!fibonacci().take(10).some(isNegative)); // false
 //console.log(fibonacci().some(isNegative)); // Never completes
+
+console.log("ALL DONE");

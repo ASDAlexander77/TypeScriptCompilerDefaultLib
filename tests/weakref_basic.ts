@@ -21,4 +21,5 @@ function main() {
 
     const after = ref.deref();
     console.log(after == undefined);
+    console.log("ALL DONE");
 }

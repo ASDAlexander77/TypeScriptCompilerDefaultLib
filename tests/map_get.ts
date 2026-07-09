@@ -9,3 +9,5 @@ assert(map1.get('bar') == "foo");
 // TODO:
 //console.log(map1.get('baz'));
 // Expected output: undefined
+
+console.log("ALL DONE");

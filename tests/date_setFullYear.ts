@@ -13,3 +13,4 @@ event.setFullYear(0);
 console.log(event.getFullYear());
 // Expected output: 0
 
+console.log("ALL DONE");

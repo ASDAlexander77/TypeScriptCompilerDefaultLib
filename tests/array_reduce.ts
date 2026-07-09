@@ -31,4 +31,5 @@ function main() {
 
   console.log(sumWithInitial4);  
 
+    console.log("ALL DONE");
 }

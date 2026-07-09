@@ -18,4 +18,5 @@ function main() {
   console.log(str.includes("To be", 1)); // false
   console.log(str.includes("TO BE")); // false
   console.log(str.includes("")); // true  
+    console.log("ALL DONE");
 }

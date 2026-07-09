@@ -14,4 +14,5 @@ function main() {
   if (result != undefined) console.log(result);
 
   // Expected output: Array [4, 5, 2, 3, 0, 1]
+    console.log("ALL DONE");
 }

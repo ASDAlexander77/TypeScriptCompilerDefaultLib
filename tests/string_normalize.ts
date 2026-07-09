@@ -18,4 +18,5 @@ function main() {
     // Expected output: true
     console.log(name1NFC.length === name2NFC.length);
     // Expected output: true
+    console.log("ALL DONE");
 }

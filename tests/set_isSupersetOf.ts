@@ -17,3 +17,5 @@ console.log(set2.isSupersetOf(set1)); // true
 
 assert(set1.isSupersetOf(set2));
 assert(set2.isSupersetOf(set1));
+
+console.log("ALL DONE");

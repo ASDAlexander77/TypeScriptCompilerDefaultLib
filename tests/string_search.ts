@@ -10,3 +10,5 @@ console.log(paragraph[paragraph.search(regex)]);
 // Expected output: "!"
 
 assert(paragraph[paragraph.search(regex)] == "!");
+
+console.log("ALL DONE");

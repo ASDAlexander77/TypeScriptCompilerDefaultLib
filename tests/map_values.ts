@@ -10,3 +10,5 @@ for (const v of iterator1)
 
 // Expected output: "foo"
 // Expected output: "bar"
+
+console.log("ALL DONE");

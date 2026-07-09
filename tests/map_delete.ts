@@ -15,3 +15,5 @@ console.log(exists);
 // Expected result: false
 
 assert(!exists);
+
+console.log("ALL DONE");

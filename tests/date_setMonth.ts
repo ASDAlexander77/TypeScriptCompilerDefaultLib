@@ -11,3 +11,5 @@ assert(event.getMonth() == 3);
 console.log(event);
 // Expected output: "Sat Apr 19 1975 23:15:30 GMT+0100 (CET)"
 // Note: your timezone may vary
+
+console.log("ALL DONE");

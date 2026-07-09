@@ -11,4 +11,5 @@ function main() {
 	[i, v] = iterator1.next().value;
 	console.log(i, v);
 	// Expected output: Array [1, "b"]
+    console.log("ALL DONE");
 }

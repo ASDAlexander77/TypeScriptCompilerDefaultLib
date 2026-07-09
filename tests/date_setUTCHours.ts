@@ -13,3 +13,5 @@ console.log(event.toUTCString());
 // Expected output: "Wed, 20 Aug 1975 23:15:30 GMT"
 
 assert(event.getUTCHours() == 23);
+
+console.log("ALL DONE");

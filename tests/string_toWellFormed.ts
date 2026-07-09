@@ -22,4 +22,5 @@ function main()
   // "c�ab"
   // "abc"
   // "ab😄c"
+    console.log("ALL DONE");
 }

@@ -13,3 +13,5 @@ console.log(event.toUTCString());
 // Expected output: "Wed, 01 Jan 1975 02:15:30 GMT"
 
 assert(event.getUTCFullYear() == 1975);
+
+console.log("ALL DONE");

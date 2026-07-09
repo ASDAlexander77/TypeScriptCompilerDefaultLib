@@ -24,4 +24,5 @@ function main() {
   //a.includes(3, -1); // true
   //[1, 2, NaN].includes(NaN); // true
   //b.includes(<string>3); // false
+    console.log("ALL DONE");
 }

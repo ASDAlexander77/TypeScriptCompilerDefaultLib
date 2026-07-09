@@ -7,4 +7,5 @@ function main()
   
   console.log(greeting.trim());
   // Expected output: "Hello world!";
+    console.log("ALL DONE");
 }

@@ -45,4 +45,5 @@ function main() {
   }
   
   console.log(count); // 4  
+    console.log("ALL DONE");
 }

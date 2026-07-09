@@ -52,3 +52,5 @@ for (const n of new Set([1, 2, 3]).values().take(Infinity)) {
 // 1
 // 2
 // 3
+
+console.log("ALL DONE");

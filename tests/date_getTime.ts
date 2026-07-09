@@ -4,3 +4,5 @@ const moonLanding = new Date(301349860000);
 assert(moonLanding.getTime() == 301349860000);
 
 console.log(moonLanding.getTime());
+
+console.log("ALL DONE");

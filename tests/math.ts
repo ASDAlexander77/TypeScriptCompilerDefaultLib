@@ -176,3 +176,5 @@ testFlow()
 testMath()
 
 console.log("all OK")
+
+console.log("ALL DONE");

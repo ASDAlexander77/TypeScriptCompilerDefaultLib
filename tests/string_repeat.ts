@@ -7,4 +7,5 @@ function main() {
     console.log("abc".repeat(0)); // ''
     console.log("abc".repeat(1)); // 'abc'
     console.log("abc".repeat(2)); // 'abcabc'    
+    console.log("ALL DONE");
 }

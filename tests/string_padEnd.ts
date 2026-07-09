@@ -13,4 +13,5 @@ function main() {
     console.log("abc".padEnd(10, "foo")); // "abcfoofoof"
     console.log("abc".padEnd(6, "123456")); // "abc123"
     console.log("abc".padEnd(1)); // "abc"
+    console.log("ALL DONE");
 }

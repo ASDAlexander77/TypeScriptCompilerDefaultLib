@@ -23,3 +23,5 @@ for (const n of fibonacci().filter((x) => x % 2 === 0)) {
 // 2
 // 8
 // 34
+
+console.log("ALL DONE");

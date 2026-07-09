@@ -18,4 +18,5 @@ function main() {
     console.log("canal".lastIndexOf("", 2)); // returns 2
 
     console.log("Blue Whale, Killer Whale".lastIndexOf("blue")); // returns -1
+    console.log("ALL DONE");
 }

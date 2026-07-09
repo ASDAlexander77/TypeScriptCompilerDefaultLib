@@ -6,3 +6,4 @@ console.log(birthday.getHours());
 
 assert(birthday.getHours() == 4);
 
+console.log("ALL DONE");

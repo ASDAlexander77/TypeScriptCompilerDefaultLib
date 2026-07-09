@@ -22,3 +22,5 @@ console.log(m.has("Hel" + "lo"));
 
 assert(m.has("Hello"));
 assert(m.has("Hel" + "lo"));
+
+console.log("ALL DONE");

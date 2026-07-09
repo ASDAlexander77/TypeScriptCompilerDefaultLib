@@ -10,3 +10,5 @@ console.log(map1.has('baz'));
 // Expected output: false
 
 assert(!map1.has('baz'));
+
+console.log("ALL DONE");

@@ -7,3 +7,5 @@ console.log(map1.get('bar'));
 // TODO:
 //console.log(map1.get('baz'));
 // Expected output: undefined
+
+console.log("ALL DONE");

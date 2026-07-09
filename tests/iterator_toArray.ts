@@ -13,3 +13,5 @@ const array = fibonacci()
     .toArray();
 
 console.log(array); // [2, 8, 34]
+
+console.log("ALL DONE");

@@ -18,4 +18,5 @@ function main() {
     
     console.log(animals.slice());
     // Expected output: Array ["ant", "bison", "camel", "duck", "elephant"]
+    console.log("ALL DONE");
 }

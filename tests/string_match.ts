@@ -7,3 +7,5 @@ assert(<string>found == "T,I");
 
 console.log(found);
 // Expected output: Array ["T", "I"]   
+
+console.log("ALL DONE");

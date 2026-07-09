@@ -5,4 +5,5 @@ function main() {
     
     console.log(result);
     // Expected output: Array ["exuberant", "destruction", "present"]
+    console.log("ALL DONE");
 }

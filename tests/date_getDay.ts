@@ -7,3 +7,5 @@ assert(day1 == 2);
 
 console.log(day1);
 // Expected output: 2
+
+console.log("ALL DONE");

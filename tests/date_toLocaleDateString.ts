@@ -10,3 +10,5 @@ const options = {
 
 console.log(event.toLocaleDateString('de-DE'/*, options*/));
 // Expected output (varies according to local timezone): Donnerstag, 20. Dezember 2012
+
+console.log("ALL DONE");

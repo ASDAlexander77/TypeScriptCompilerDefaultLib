@@ -11,4 +11,5 @@ function main() {
   console.log(result); 
   // { name: 'cherries', quantity: 5 }
   
+    console.log("ALL DONE");
 }

@@ -12,5 +12,6 @@ function main() {
     
     console.log(anyString.substring(0, 7)); // "Mozilla"
     console.log(anyString.substring(0, 10)); // "Mozilla"    
+    console.log("ALL DONE");
 }
   

@@ -12,4 +12,5 @@ function main() {
     // Careful: reverse is destructive -- it changes the original array.
     console.log('array1:', array1.join());
     // Expected output: "array1:" Array ["three", "two", "one"]
+    console.log("ALL DONE");
 }

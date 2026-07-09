@@ -13,5 +13,6 @@ function main() {
     console.log(str.slice(-9, -5));
     // Expected output: "lazy"
     
+    console.log("ALL DONE");
 }
   

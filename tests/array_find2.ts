@@ -12,4 +12,5 @@ function main() {
 
     console.log(inventory.find(isCherries));
     // { name: 'cherries', quantity: 5 }
+    console.log("ALL DONE");
 }

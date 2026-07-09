@@ -16,3 +16,5 @@ console.log(map1.size);
 // Expected output: 0
 
 assert(map1.size == 0);
+
+console.log("ALL DONE");

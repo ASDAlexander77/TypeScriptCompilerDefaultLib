@@ -15,4 +15,5 @@ function main() {
   console.log([4, 6, 8, 9, 12].findIndex(isPrime)); // -1, not found
   console.log([4, 6, 7, 9, 12].findIndex(isPrime)); // 2 (array[2] is 7)
 
+    console.log("ALL DONE");
 }

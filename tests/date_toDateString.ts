@@ -6,3 +6,5 @@ console.log(event.toString());
 
 console.log(event.toDateString());
 // Expected output: "Wed Jul 28 1993"
+
+console.log("ALL DONE");

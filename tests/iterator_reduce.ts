@@ -19,3 +19,5 @@ console.log(
         .take(10)
         .reduce((a, b) => "#" + a + " + " + b, ""),
 ); // 143
+
+console.log("ALL DONE");

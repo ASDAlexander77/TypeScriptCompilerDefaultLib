@@ -15,3 +15,5 @@ console.log(event.getDate());
 // Expected output: 1
 
 assert(event.getDate() == 1)
+
+console.log("ALL DONE");

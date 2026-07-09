@@ -11,4 +11,5 @@ function main() {
   console.log(elements.join('-'));
   // Expected output: "Fire-Air-Water"
   
+    console.log("ALL DONE");
 }

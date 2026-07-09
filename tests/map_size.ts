@@ -8,3 +8,5 @@ console.log(map1.size);
 // Expected output: 3
 
 assert(map1.size == 3);
+
+console.log("ALL DONE");

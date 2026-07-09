@@ -12,3 +12,5 @@ console.log(paragraph.replace(regex, "ferret"));
 // Expected output: "I think Ruth's ferret is cuter than your dog!"
 
 assert(paragraph.replace(regex, "ferret") == "I think Ruth's ferret is cuter than your dog!");
+
+console.log("ALL DONE");

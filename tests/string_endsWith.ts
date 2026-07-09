@@ -11,4 +11,5 @@ function main() {
 
   console.log(str2.endsWith('question'));
   // Expected output: false
+    console.log("ALL DONE");
 }

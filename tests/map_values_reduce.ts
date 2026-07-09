@@ -9,3 +9,5 @@ const totalDeposit = [...nameToDeposit.values()].reduce((a, b) => a + b);
 console.log(totalDeposit);
 
 assert(totalDeposit == 4500)
+
+console.log("ALL DONE");

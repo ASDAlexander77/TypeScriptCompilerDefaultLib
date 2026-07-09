@@ -11,4 +11,5 @@ function main() {
   // Expected output: 1
   // Expected output: 2
   
+    console.log("ALL DONE");
 }

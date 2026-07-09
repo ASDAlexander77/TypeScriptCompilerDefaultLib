@@ -15,3 +15,5 @@ assert(paragraph.replaceAll(regex, "ferret") == "I think Ruth's ferret is cuter 
 
 // extra test for infitine loop
 console.log("xxx".replaceAll("", "_"));
+
+console.log("ALL DONE");

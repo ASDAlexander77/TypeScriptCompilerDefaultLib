@@ -11,4 +11,5 @@ function main() {
 
     console.log(array1.fill(6));
     // Expected output: Array [6, 6, 6, 6]
+    console.log("ALL DONE");
 }

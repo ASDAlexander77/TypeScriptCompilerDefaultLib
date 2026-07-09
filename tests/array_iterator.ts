@@ -14,4 +14,5 @@ function main() {
     for (const value of array1) {
       console.log(value);
     }        
+    console.log("ALL DONE");
 }

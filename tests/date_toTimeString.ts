@@ -5,3 +5,4 @@ console.log(event.toTimeString());
 // Expected output: "23:15:30 GMT+0200 (CEST)"
 // Note: your timezone may vary
 
+console.log("ALL DONE");

@@ -13,4 +13,5 @@ function main() {
     numberArray.sort((a, b) => a - b); 
     console.log(numberArray);
     // [1, 5, 40, 200]
+    console.log("ALL DONE");
 }

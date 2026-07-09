@@ -7,4 +7,5 @@ function main() {
 
     console.log("ä".localeCompare("z", "de")); // a negative value: in German, ä sorts before z
     console.log("ä".localeCompare("z", "sv")); // a positive value: in Swedish, ä sorts after z    
+    console.log("ALL DONE");
 }

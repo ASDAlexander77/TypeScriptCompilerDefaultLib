@@ -9,3 +9,5 @@ console.log(str1.startsWith("Sat", 3));
 // Expected output: false
 
 assert(!str1.startsWith("Sat", 3));
+
+console.log("ALL DONE");

@@ -11,4 +11,5 @@ function main() {
     
     // callback is not invoked
     [50].reduce(getMax); // 50
+    console.log("ALL DONE");
 }

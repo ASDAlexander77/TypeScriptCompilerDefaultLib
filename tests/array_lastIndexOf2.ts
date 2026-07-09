@@ -9,4 +9,5 @@ function main() {
   console.log(numbers.lastIndexOf(2, -1)); // 3
   
   
+    console.log("ALL DONE");
 }

@@ -10,4 +10,5 @@ function main() {
     // Expected output: "a"
     // Expected output: "b"
     // Expected output: "c"    
+    console.log("ALL DONE");
 }

@@ -21,3 +21,5 @@ console.log(regex2.test('rugby\nfootball'));
 // Expected output: true
 
 assert(regex2.test('rugby\nfootball'));
+
+console.log("ALL DONE");

@@ -10,3 +10,5 @@ console.log(event.toLocaleTimeString('it-IT'));
 
 console.log(event.toLocaleTimeString('ar-EG'));
 // Expected output: "١٢:١٥:٣٠ ص"
+
+console.log("ALL DONE");

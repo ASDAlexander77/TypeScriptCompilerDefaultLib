@@ -10,3 +10,5 @@ console.log(date1.getUTCMinutes());
 // Expected output: 25
 
 assert(date1.getUTCMinutes() == 25);
+
+console.log("ALL DONE");

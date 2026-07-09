@@ -20,4 +20,5 @@ function main() {
   //"".concat(null); // "null"
   "".concat(true); // "true"
   "".concat(4, 5); // "45"  
+    console.log("ALL DONE");
 }

@@ -10,3 +10,5 @@ console.log(javaScriptRelease);
 // Expected output: 818035920000
 
 assert(javaScriptRelease == 818035920000);
+
+console.log("ALL DONE");

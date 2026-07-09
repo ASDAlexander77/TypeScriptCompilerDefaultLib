@@ -15,3 +15,5 @@ console.log(regex2.hasIndices); // false
 
 // TODO: finish it
 //console.log(regex2.exec(str2).indices); // undefined
+
+console.log("ALL DONE");

@@ -12,4 +12,5 @@ function main() {
   console.log(beasts.indexOf('giraffe'));
   // Expected output: -1
   
+    console.log("ALL DONE");
 }
