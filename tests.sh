@@ -38,7 +38,7 @@ function test_script() {
 
     export GC_LIB_PATH="${GC_LIB_PATH:-$BUILD_PATH/gc/ninja/$BUILD}"
     export LLVM_LIB_PATH="${LLVM_LIB_PATH:-$BUILD_PATH/llvm/ninja/$BUILD/lib}"
-    export TSC_LIB_PATH="${TSC_LIB_PATH:-$BUILD_PATH/$TOOL/linux-ninja-gcc-$BUILD/lib}"
+    export TSLANG_LIB_PATH="${TSLANG_LIB_PATH:-$BUILD_PATH/$TOOL/linux-ninja-gcc-$BUILD/lib}"
     export DEFAULT_LIB_PATH="${DEFAULT_LIB_PATH:-$DEFAULTLIB_BUILD_PATH}"
 
     if [ "$mode" == "compile" ]; then
