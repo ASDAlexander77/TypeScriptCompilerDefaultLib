@@ -22,6 +22,10 @@ export function isFinite(val: number): boolean {
     return !isNaN(val) && val != Number.POSITIVE_INFINITY && val != Number.NEGATIVE_INFINITY;
 }
 
+export function sleep(milliseconds: u32): void {
+    _sleep(milliseconds);
+}
+
 namespace __Boolean {
     function toString(this: boolean) {
         return <string>this;
