@@ -9,3 +9,5 @@ console.log(a2, b2, c2, d2); // "a", "b", "c", undefined
 
 assert(<string>a2 == "a");
 assert(d2 == undefined);
+
+console.log("ALL DONE");

@@ -668,7 +668,6 @@ class Map<K = any, V = any> {
     private _entries: MapEntry<K, V>[];
     private freeList: int;
     private count: int;
-    private freeList: int;
     private freeCount: int;
     private version: int;
 

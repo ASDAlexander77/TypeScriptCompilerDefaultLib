@@ -44,7 +44,7 @@ export namespace PrimeHelpers
         return candidate == 2;
     }
 
-    function getPrime(min = 1) {
+    export function getPrime(min = 1) {
         for (const prime of primes)
         {
             if (prime >= min)

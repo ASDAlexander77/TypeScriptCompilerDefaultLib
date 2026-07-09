@@ -76,6 +76,12 @@ function Test([string]$config, [string]$mode, [string]$fileName)
         return $false
     }
 
+    if (($run_output -join "`n") -notmatch "ALL DONE") {
+        Write-Host "Run Error (no 'ALL DONE' marker)" -ForegroundColor Red
+        Write-Host "Output: $run_output"
+        return $false
+    }
+
     return $true
 }
 
