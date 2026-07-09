@@ -67,11 +67,15 @@ $ARC rcs $OUTPUT/lib/$BUILD/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o $
 gcc -shared $DBG_GCC $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o $OUTPUT/lib/$BUILD/datetime.o $OUTPUT/lib/$BUILD/regex.o $OUTPUT/lib/$BUILD/thread.o $OUTPUT/lib/$BUILD/http_linux.o -lcurl -o $OUTPUT/dll/$BUILD/libTypeScriptDefaultLib.so
 
 # Copy
-BUILD_LIB_PATH=./__build/$BUILD/defaultlib/
-mkdir -p $BUILD_LIB_PATH/dll/
-mkdir -p $BUILD_LIB_PATH/lib/
-cp -r $SRC/dll/$BUILD/* $BUILD_LIB_PATH/dll/
-cp -r $SRC/lib/$BUILD/* $BUILD_LIB_PATH/lib/
+# Stage into a single shared defaultlib tree with per-build subfolders under
+# dll/ and lib/. Only the current build's subfolders are refreshed so the other
+# mode (debug/release) staged by a separate run is preserved.
+BUILD_LIB_PATH=./__build/defaultlib/
+rm -rf $BUILD_LIB_PATH/dll/$BUILD $BUILD_LIB_PATH/lib/$BUILD
+mkdir -p $BUILD_LIB_PATH/dll/$BUILD
+mkdir -p $BUILD_LIB_PATH/lib/$BUILD
+cp -r $SRC/dll/$BUILD/* $BUILD_LIB_PATH/dll/$BUILD/
+cp -r $SRC/lib/$BUILD/* $BUILD_LIB_PATH/lib/$BUILD/
 cp -r $SRC/src/* $BUILD_LIB_PATH
 
 #because there 2 compiles at the same time u need to split

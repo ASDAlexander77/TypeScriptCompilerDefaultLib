@@ -28,10 +28,12 @@ function test_script() {
     if [ -z "$TOOL_PATH" ]; then
         BUILD_PATH="../TypeScriptCompiler/__build"
         TOOL_PATH="../TypeScriptCompiler/__build/$TOOL/linux-ninja-gcc-$BUILD/bin"
-        DEFAULTLIB_BUILD_PATH="../TypeScriptCompilerDefaultLib/__build/$BUILD"
+        DEFAULTLIB_BUILD_PATH="../TypeScriptCompilerDefaultLib/__build"
     else
         BUILD_PATH="$TOOL_PATH"
-        DEFAULTLIB_BUILD_PATH="$TOOL_PATH"
+        # Compiled default lib is staged under ./__build/defaultlib/{dll,lib}/<mode>
+        # relative to the DefaultLib repo root (the tests working directory).
+        DEFAULTLIB_BUILD_PATH="./__build"
     fi
 
     export GC_LIB_PATH="${GC_LIB_PATH:-$BUILD_PATH/gc/ninja/$BUILD}"

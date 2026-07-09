@@ -25,11 +25,13 @@ function Test([string]$config, [string]$mode, [string]$fileName)
 	    $BUILD_PATH="..\TypeScriptCompiler\__build"
 	    #$TOOL_PATH="..\TypeScriptCompiler\__build\$TOOL\windows-msbuild$VER-$BUILD\bin"
         $TOOL_PATH="..\TypeScriptCompiler\__build\$TOOL\windows-msbuild$VER-release\bin"
-	    $DEFAULTLIB_BUILD_PATH="..\TypeScriptCompilerDefaultLib\__build\$BUILD"
+	    $DEFAULTLIB_BUILD_PATH="..\TypeScriptCompilerDefaultLib\__build"
     } else {
         $TOOL_PATH=$Env:TOOL_PATH
 	    $BUILD_PATH=$TOOL_PATH
-	    $DEFAULTLIB_BUILD_PATH=$TOOL_PATH
+	    # Compiled default lib is staged under .\__build\defaultlib\{dll,lib}\<mode>
+	    # relative to the DefaultLib repo root (the tests working directory).
+	    $DEFAULTLIB_BUILD_PATH=".\__build"
     }
 
     if ($null -eq $Env:GC_LIB_PATH) {

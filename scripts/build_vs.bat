@@ -108,12 +108,17 @@ del %OUTPUT%\lib\%BUILD%\regex.obj
 del %OUTPUT%\lib\%BUILD%\thread.obj
 del %OUTPUT%\lib\%BUILD%\http.obj
 
-set BUILD_LIB_PATH=.\__build\%BUILD%\defaultlib
-rd /S /Q %BUILD_LIB_PATH%
-md %BUILD_LIB_PATH%
+rem Stage into a single shared defaultlib tree with per-build subfolders under
+rem dll\ and lib\. Only the current build's subfolders are refreshed so the
+rem other mode (debug/release) staged by a separate run is preserved.
+set BUILD_LIB_PATH=.\__build\defaultlib
+rd /S /Q %BUILD_LIB_PATH%\dll\%BUILD%
+rd /S /Q %BUILD_LIB_PATH%\lib\%BUILD%
+md %BUILD_LIB_PATH%\dll\%BUILD%
+md %BUILD_LIB_PATH%\lib\%BUILD%
 
-xcopy %SRC%\dll\%BUILD% %BUILD_LIB_PATH%\dll /h /i /c /k /e /r /y
-xcopy %SRC%\lib\%BUILD% %BUILD_LIB_PATH%\lib /h /i /c /k /e /r /y
+xcopy %SRC%\dll\%BUILD% %BUILD_LIB_PATH%\dll\%BUILD% /h /i /c /k /e /r /y
+xcopy %SRC%\lib\%BUILD% %BUILD_LIB_PATH%\lib\%BUILD% /h /i /c /k /e /r /y
 xcopy %SRC%\src\*.d.ts %BUILD_LIB_PATH% /h /c /k /e /r /y
 xcopy %SRC%\src\generics\*.ts %BUILD_LIB_PATH%\generics /h /c /k /e /r /y
 
