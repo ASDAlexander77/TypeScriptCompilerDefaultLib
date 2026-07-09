@@ -84,6 +84,11 @@ declare function memcpy(dest: Opaque, src: Opaque, bytes: index): Opaque;
 declare function memmove(dest: Opaque, src: Opaque, bytes: index): Opaque;
 declare function memcmp(dest: Opaque, src: Opaque, bytes: index): int;
 
+// gc weak references
+declare function GC_general_register_disappearing_link(link: Reference<Opaque>, obj: Opaque): int;
+declare function GC_unregister_disappearing_link(link: Reference<Opaque>): int;
+declare function GC_gcollect(): void;
+
 // datetime
 declare function parse_date(dateStr: string): time_t;
 

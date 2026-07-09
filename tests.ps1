@@ -15,7 +15,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
 	    $BUILD1="release"
 	    $LLVM_BUILD="Release"
 	    $DBG=""
-        $OPTIONS="--opt --opt_level=3"
+        $OPTIONS+=" --opt --opt_level=3"
     }
 
     $SRC="."
@@ -23,7 +23,8 @@ function Test([string]$config, [string]$mode, [string]$fileName)
 
     if ($null -eq $Env:TOOL_PATH) {
 	    $BUILD_PATH="..\TypeScriptCompiler\__build"
-	    $TOOL_PATH="..\TypeScriptCompiler\__build\$TOOL\windows-msbuild$VER-$BUILD\bin"
+	    #$TOOL_PATH="..\TypeScriptCompiler\__build\$TOOL\windows-msbuild$VER-$BUILD\bin"
+        $TOOL_PATH="..\TypeScriptCompiler\__build\$TOOL\windows-msbuild$VER-release\bin"
 	    $DEFAULTLIB_BUILD_PATH="..\TypeScriptCompilerDefaultLib\__build\$BUILD"
     } else {
         $TOOL_PATH=$Env:TOOL_PATH
@@ -44,10 +45,11 @@ function Test([string]$config, [string]$mode, [string]$fileName)
 	    $Env:DEFAULT_LIB_PATH="$DEFAULTLIB_BUILD_PATH"
     }
 
-    $DBG_ARGS = if ($DBG -ne "") { @($DBG) } else { @() }
+    $DBG_ARGS = [string[]]$(if ($DBG -ne "") { $DBG -split " " } else { @() })
+    $OPTIONS_ARGS = [string[]]$(if ($OPTIONS -ne "") { $OPTIONS -split " " } else { @() })
 
     if ($mode -eq "compile") {
-        $compile_error_output = ($compile_output = & $TOOL_PATH\$TOOL.exe @DBG_ARGS $OPTIONS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=exe $SRC\tests\$test.ts) 2>&1
+        $compile_error_output = ($compile_output = & $TOOL_PATH\$TOOL.exe @DBG_ARGS @OPTIONS_ARGS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=exe $SRC\tests\$test.ts) 2>&1
 
         $compile_code = $LASTEXITCODE
 
@@ -65,7 +67,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
     }
 
     if ($mode -eq "jit") {
-        $run_error_output = ($run_output = & $TOOL_PATH\$TOOL.exe @DBG_ARGS $OPTIONS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=jit $SRC\tests\$test.ts) 2>&1
+        $run_error_output = ($run_output = & $TOOL_PATH\$TOOL.exe @DBG_ARGS @OPTIONS_ARGS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=jit $SRC\tests\$test.ts) 2>&1
 
         $run_code = $LASTEXITCODE
     }
@@ -91,7 +93,6 @@ function Tests([string]$config, [string]$mode)
 
         $testName = "$_ ".PadRight(40, '.')
         Write-Host -NoNewline "$success/$count Test #$index : $testName  "
-        #Start-Process -NoNewWindow -FilePath "C:\wamp64\bin\mysql\mysql5.7.19\bin\mysql" -ArgumentList "-u root","-proot","-h localhost"
 
         $time = (Measure-Command { $result = Test $config $mode $_.Basename }).TotalSeconds
         $time = [math]::Round($time, 2).ToString("0.00")

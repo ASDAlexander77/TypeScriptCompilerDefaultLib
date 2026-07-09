@@ -1438,3 +1438,19 @@ namespace __Iterator
         return result;
     }
 }
+
+class WeakRef<T extends object> {
+    private _target: Opaque | null;
+
+    constructor(target: T) {
+        this._target = <Opaque>target;
+        GC_general_register_disappearing_link(Ref(this._target), <Opaque>target);
+    }
+
+    deref(): T | undefined {
+        if (this._target != null) {
+            return <T>this._target;
+        }
+        return undefined;
+    }
+}
