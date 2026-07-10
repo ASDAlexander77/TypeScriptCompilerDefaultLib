@@ -75,10 +75,11 @@ BUILD_LIB_PATH=./__build/defaultlib/
 rm -rf $BUILD_LIB_PATH/dll/$BUILD $BUILD_LIB_PATH/lib/$BUILD
 mkdir -p $BUILD_LIB_PATH/dll/$BUILD
 mkdir -p $BUILD_LIB_PATH/lib/$BUILD
+
+# cleanup intermediate object files
+rm $OUTPUT/lib/$BUILD/*.o
+
 cp -r $SRC/dll/$BUILD/* $BUILD_LIB_PATH/dll/$BUILD/
 cp -r $SRC/lib/$BUILD/* $BUILD_LIB_PATH/lib/$BUILD/
 cp -r $SRC/src/* $BUILD_LIB_PATH
-
-#because there 2 compiles at the same time u need to split
-rm $OUTPUT/lib/$BUILD/*.o
 
