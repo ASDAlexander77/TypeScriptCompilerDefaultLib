@@ -20,6 +20,14 @@ function __is<V extends T, T>(t: T): t is V {
     return true;
 }
 
+// Route through the native wrapper '_sleep' (milliseconds). Defining the body
+// here (instead of a `declare function sleep` in lib.d.ts) keeps user code from
+// emitting a bare external `@sleep`, which the JIT would otherwise bind to
+// glibc's seconds-based sleep(3) -> sleep(1000) hangs for ~16 minutes.
+function sleep(milliseconds: u32): void {
+    _sleep(milliseconds);
+}
+
 function __is_any<V extends never>(t: V): t is V {
     return true;
 }
