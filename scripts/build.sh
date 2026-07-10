@@ -5,15 +5,14 @@ BUILD=debug
 PIC=
 TOOL=gcc
 ARC=ar
-DBG_OPTS=--di --opt_level=0
+DBG_OPTS=--di\ --opt_level=0
 DBG_GCC=-g
 CPP_FLAGS=-std=c++17
-TOOL_NAME=tslang
 
 if [ "$1" == "release" ] ; then
 	TOOL_BUILD=release
 	BUILD=release
-	DBG_OPTS=--opt --opt_level=3
+	DBG_OPTS=--opt\ --opt_level=3
 	DBG_GCC=-O3
 fi
 
@@ -60,20 +59,25 @@ $TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/http_linux.cpp -o $OUTPUT/lib/$BU
 
 $BIN_PATH/$TOOL_NAME $DBG_OPTS --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.linux.ts $PIC -o $OUTPUT/lib/$BUILD/lib.linux.o
 
-# Build DLL
-$BIN_PATH/$TOOL_NAME $DBG_OPTS --emit=dll --embed-declarations=false --nowarn --no-default-lib $SRC/src/lib.ts --obj=$OUTPUT/lib/$BUILD/lib.linux.o --obj=$OUTPUT/lib/$BUILD/datetime.o --obj=$OUTPUT/lib/$BUILD/regex.o --obj=$OUTPUT/lib/$BUILD/thread.o --obj=$OUTPUT/lib/$BUILD/http_linux.o $PIC -verbose -o $OUTPUT/dll/$BUILD/libTypeScriptDefaultLib.so -lcurl
-
 # Build Lib
 $BIN_PATH/$TOOL_NAME $DBG_OPTS --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.ts $PIC -o $OUTPUT/lib/$BUILD/lib.o
 $ARC rcs $OUTPUT/lib/$BUILD/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o $OUTPUT/lib/$BUILD/datetime.o $OUTPUT/lib/$BUILD/regex.o $OUTPUT/lib/$BUILD/thread.o $OUTPUT/lib/$BUILD/http_linux.o
+
+# Build DLL
+gcc -shared $DBG_GCC $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o $OUTPUT/lib/$BUILD/datetime.o $OUTPUT/lib/$BUILD/regex.o $OUTPUT/lib/$BUILD/thread.o $OUTPUT/lib/$BUILD/http_linux.o -lcurl -o $OUTPUT/dll/$BUILD/libTypeScriptDefaultLib.so
+
 # Copy
-BUILD_LIB_PATH=./__build/$BUILD/defaultlib/
-mkdir -p $BUILD_LIB_PATH/dll/
-mkdir -p $BUILD_LIB_PATH/lib/
-cp -r $SRC/dll/$BUILD/* $BUILD_LIB_PATH/dll/
-cp -r $SRC/lib/$BUILD/* $BUILD_LIB_PATH/lib/
+# Stage into a single shared defaultlib tree with per-build subfolders under
+# dll/ and lib/. Only the current build's subfolders are refreshed so the other
+# mode (debug/release) staged by a separate run is preserved.
+BUILD_LIB_PATH=./__build/defaultlib/
+rm -rf $BUILD_LIB_PATH/dll/$BUILD $BUILD_LIB_PATH/lib/$BUILD
+mkdir -p $BUILD_LIB_PATH/dll/$BUILD
+mkdir -p $BUILD_LIB_PATH/lib/$BUILD
+cp -r $SRC/dll/$BUILD/* $BUILD_LIB_PATH/dll/$BUILD/
+cp -r $SRC/lib/$BUILD/* $BUILD_LIB_PATH/lib/$BUILD/
 cp -r $SRC/src/* $BUILD_LIB_PATH
 
 #because there 2 compiles at the same time u need to split
-#rm $OUTPUT/lib/$BUILD/lib.o
-#rm $OUTPUT/lib/$BUILD/lib.linux.o
+rm $OUTPUT/lib/$BUILD/*.o
+
