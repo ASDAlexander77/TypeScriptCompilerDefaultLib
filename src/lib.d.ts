@@ -11,8 +11,6 @@ declare function isNaN(val: number): boolean;
 
 declare function isFinite(val: number): boolean;
 
-declare function sleep(milliseconds: u32): void;
-
 declare namespace __Boolean {
     function toString(this: boolean): string;
 }
