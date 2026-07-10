@@ -108,7 +108,7 @@ declare function regexp_free_string(s: string): void;
 declare function regexp_free(cm: Opaque): void;
 
 // thread
-declare function _sleep(milliseconds: u32): void;
+declare function std_this_thread_sleep_for(milliseconds: u32): void;
 
 // http
 declare function http_request(method: string, url: string, headers: string, body: string, bodyLength: index): Opaque;
