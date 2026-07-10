@@ -42,7 +42,7 @@ function test_script() {
     export DEFAULT_LIB_PATH="${DEFAULT_LIB_PATH:-$DEFAULTLIB_BUILD_PATH}"
 
     if [ "$mode" == "compile" ]; then
-        compile_output=$( "$TOOL_PATH/$TOOL" $DBG $OPTIONS --shared-libs="$TOOL_PATH/libTypeScriptRuntime.so" --emit=exe "$SRC/tests/$test.ts" 2>&1 )
+        compile_output=$( "$TOOL_PATH/$TOOL" $DBG $OPTIONS --shared-libs="$TOOL_PATH/libTypeScriptRuntime.so" --lib=curl --emit=exe "$SRC/tests/$test.ts" 2>&1 )
         compile_code=$?
 
         if [ $compile_code -ne 0 ]; then

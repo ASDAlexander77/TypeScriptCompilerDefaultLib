@@ -24,7 +24,9 @@ function __is<V extends T, T>(t: T): t is V {
 // here (instead of a `declare function sleep` in lib.d.ts) keeps user code from
 // emitting a bare external `@sleep`, which the JIT would otherwise bind to
 // glibc's seconds-based sleep(3) -> sleep(1000) hangs for ~16 minutes.
-function sleep(milliseconds: u32): void {
+// Me:
+// we need to make it generic to prevent multiple declaration of the same reference name
+function sleep<T = u32>(milliseconds: T): void {
     _sleep(milliseconds);
 }
 
