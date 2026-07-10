@@ -8,6 +8,7 @@ ARC=ar
 DBG_OPTS=--di\ --opt_level=0
 DBG_GCC=-g
 CPP_FLAGS=-std=c++17
+TOOL_NAME=tslang
 
 if [ "$1" == "release" ] ; then
 	TOOL_BUILD=release
