@@ -21,6 +21,14 @@ if "%1"=="release" (
 	set DBG_CL=/std:c++latest
 )
 
+rem Memory model (%2). The default library is not model-neutral: under gc it allocates through
+rem Boehm and pulls libgc in with it, under rc it maintains the block header's reference count
+rem and follows the +1 return convention, under none it does neither. A program links the build
+rem that matches its own -mm=, so each model needs its own. See tslang/include/TypeScript/Defines.h.
+set MM=gc
+if not "%2"=="" set MM=%2
+set MM_OPT=-mm=%MM%
+
 set SRC=.
 set OUTPUT=.
 
@@ -41,11 +49,11 @@ if "%TSLANG_LIB_PATH%"=="" (
 	set TSLANG_LIB_PATH=%BUILD_PATH%\%TOOL_NAME%\windows-msbuild%VER%-%BUILD%\lib
 )
 
-rd /S /Q dll\%BUILD%
-rd /S /Q lib\%BUILD%
+rd /S /Q dll\%BUILD%\%MM%
+rd /S /Q lib\%BUILD%\%MM%
 
-md dll\%BUILD%
-md lib\%BUILD%
+md dll\%BUILD%\%MM%
+md lib\%BUILD%\%MM%
 
 rem Check if Visual Studio is installed at default locations
 if not "%VSWHERE_PATH%"=="" goto vswhere_done
@@ -80,33 +88,33 @@ call %VSPATH%
 rem echo on
 
 rem Build native wrappers for C++ code
-cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\datetime.cpp
-cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\regex.cpp
-cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\thread.cpp
-cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\http.cpp
+cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\%MM%\ %SRC%\src\wrappers\datetime.cpp
+cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\%MM%\ %SRC%\src\wrappers\regex.cpp
+cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\%MM%\ %SRC%\src\wrappers\thread.cpp
+cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\%MM%\ %SRC%\src\wrappers\http.cpp
 
 rem Build OS-specific Lib
 echo Build OS-specific Lib
-%TOOL_PATH%\%TOOL_NAME%.exe %DBG% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.win32.ts -o %OUTPUT%\lib\%BUILD%\lib.win32.obj
+%TOOL_PATH%\%TOOL_NAME%.exe %DBG% %MM_OPT% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.win32.ts -o %OUTPUT%\lib\%BUILD%\%MM%\lib.win32.obj
 
 rem Build DLL
 echo Build DLL
-%TOOL_PATH%\%TOOL_NAME%.exe %DBG% --emit=dll --embed-declarations=false --nowarn --no-default-lib %SRC%\src\lib.ts --obj=%OUTPUT%\lib\%BUILD%\lib.win32.obj --obj=%OUTPUT%\lib\%BUILD%\datetime.obj --obj=%OUTPUT%\lib\%BUILD%\regex.obj --obj=%OUTPUT%\lib\%BUILD%\thread.obj --obj=%OUTPUT%\lib\%BUILD%\http.obj -o %OUTPUT%\dll\%BUILD%\TypeScriptDefaultLib.dll
+%TOOL_PATH%\%TOOL_NAME%.exe %DBG% %MM_OPT% --emit=dll --embed-declarations=false --nowarn --no-default-lib %SRC%\src\lib.ts --obj=%OUTPUT%\lib\%BUILD%\%MM%\lib.win32.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\datetime.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\regex.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\thread.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\http.obj -o %OUTPUT%\dll\%BUILD%\%MM%\TypeScriptDefaultLib.dll
 
 rem Build Lib
 echo Build Lib
-%TOOL_PATH%\%TOOL_NAME%.exe %DBG% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.obj
-rem %TOOL_PATH%\%TOOL_NAME%.exe %DBG% --emit=llvm --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.ll
-rem %TOOL_PATH%\%TOOL_NAME%.exe %DBG% --emit=mlir --export=none %SRC%\src\lib.ts 2> %OUTPUT%\lib\%BUILD%\lib.mlir
+%TOOL_PATH%\%TOOL_NAME%.exe %DBG% %MM_OPT% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\%MM%\lib.obj
+rem %TOOL_PATH%\%TOOL_NAME%.exe %DBG% %MM_OPT% --emit=llvm --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\%MM%\lib.ll
+rem %TOOL_PATH%\%TOOL_NAME%.exe %DBG% %MM_OPT% --emit=mlir --export=none %SRC%\src\lib.ts 2> %OUTPUT%\lib\%BUILD%\%MM%\lib.mlir
 
-lib.exe /out:%OUTPUT%\lib\%BUILD%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\lib.obj %OUTPUT%\lib\%BUILD%\lib.win32.obj %OUTPUT%\lib\%BUILD%\datetime.obj %OUTPUT%\lib\%BUILD%\regex.obj %OUTPUT%\lib\%BUILD%\thread.obj %OUTPUT%\lib\%BUILD%\http.obj
+lib.exe /out:%OUTPUT%\lib\%BUILD%\%MM%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\%MM%\lib.obj %OUTPUT%\lib\%BUILD%\%MM%\lib.win32.obj %OUTPUT%\lib\%BUILD%\%MM%\datetime.obj %OUTPUT%\lib\%BUILD%\%MM%\regex.obj %OUTPUT%\lib\%BUILD%\%MM%\thread.obj %OUTPUT%\lib\%BUILD%\%MM%\http.obj
 
-del %OUTPUT%\lib\%BUILD%\lib.obj
-del %OUTPUT%\lib\%BUILD%\lib.win32.obj
-del %OUTPUT%\lib\%BUILD%\datetime.obj
-del %OUTPUT%\lib\%BUILD%\regex.obj
-del %OUTPUT%\lib\%BUILD%\thread.obj
-del %OUTPUT%\lib\%BUILD%\http.obj
+del %OUTPUT%\lib\%BUILD%\%MM%\lib.obj
+del %OUTPUT%\lib\%BUILD%\%MM%\lib.win32.obj
+del %OUTPUT%\lib\%BUILD%\%MM%\datetime.obj
+del %OUTPUT%\lib\%BUILD%\%MM%\regex.obj
+del %OUTPUT%\lib\%BUILD%\%MM%\thread.obj
+del %OUTPUT%\lib\%BUILD%\%MM%\http.obj
 
 rem Stage into a single shared defaultlib tree with per-build subfolders under
 rem dll\ and lib\. Only the current build's subfolders are refreshed so the

@@ -1,4 +1,5 @@
 #!/bin/bash
+# scripts/build.sh <debug|release> [gcc|clang] [pic] [gc|rc|none]
 
 TOOL_BUILD=release
 BUILD=debug
@@ -27,6 +28,16 @@ if [ "$3" == "pic" ] ; then
 	CPP_FLAGS=$CPP_FLAGS\ -fPIC
 fi
 
+# Memory model ($4). The default library is not model-neutral: under gc it allocates through
+# Boehm and pulls libgc in with it, under rc it maintains the block header's reference count
+# and follows the +1 return convention, under none it does neither. A program links the build
+# that matches its own -mm=, so each model needs its own. See tslang/include/TypeScript/Defines.h.
+MM=gc
+if [ -n "$4" ] ; then
+	MM=$4
+fi
+MM_OPT=-mm=$MM
+
 SRC=.
 OUTPUT=.
 
@@ -51,35 +62,37 @@ if [ -z "${TSLANG_LIB_PATH}" ]; then
 	export TSLANG_LIB_PATH=$BUILD_PATH/$TOOL_NAME/linux-ninja-$TOOL-$BUILD/lib
 fi
 
-mkdir -p dll/$BUILD
-mkdir -p lib/$BUILD
-$TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/datetime.cpp -o $OUTPUT/lib/$BUILD/datetime.o
-$TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/regex.cpp -o $OUTPUT/lib/$BUILD/regex.o
-$TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/thread.cpp -o $OUTPUT/lib/$BUILD/thread.o
-$TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/http_linux.cpp -o $OUTPUT/lib/$BUILD/http_linux.o
+rm -rf dll/$BUILD/$MM lib/$BUILD/$MM
+mkdir -p dll/$BUILD/$MM
+mkdir -p lib/$BUILD/$MM
+$TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/datetime.cpp -o $OUTPUT/lib/$BUILD/$MM/datetime.o
+$TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/regex.cpp -o $OUTPUT/lib/$BUILD/$MM/regex.o
+$TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/thread.cpp -o $OUTPUT/lib/$BUILD/$MM/thread.o
+$TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/http_linux.cpp -o $OUTPUT/lib/$BUILD/$MM/http_linux.o
 
-$BIN_PATH/$TOOL_NAME $DBG_OPTS --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.linux.ts $PIC -o $OUTPUT/lib/$BUILD/lib.linux.o
+$BIN_PATH/$TOOL_NAME $DBG_OPTS $MM_OPT --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.linux.ts $PIC -o $OUTPUT/lib/$BUILD/$MM/lib.linux.o
 
 # Build Lib
-$BIN_PATH/$TOOL_NAME $DBG_OPTS --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.ts $PIC -o $OUTPUT/lib/$BUILD/lib.o
-$ARC rcs $OUTPUT/lib/$BUILD/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o $OUTPUT/lib/$BUILD/datetime.o $OUTPUT/lib/$BUILD/regex.o $OUTPUT/lib/$BUILD/thread.o $OUTPUT/lib/$BUILD/http_linux.o
+$BIN_PATH/$TOOL_NAME $DBG_OPTS $MM_OPT --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.ts $PIC -o $OUTPUT/lib/$BUILD/$MM/lib.o
+$ARC rcs $OUTPUT/lib/$BUILD/$MM/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/$MM/lib.o $OUTPUT/lib/$BUILD/$MM/lib.linux.o $OUTPUT/lib/$BUILD/$MM/datetime.o $OUTPUT/lib/$BUILD/$MM/regex.o $OUTPUT/lib/$BUILD/$MM/thread.o $OUTPUT/lib/$BUILD/$MM/http_linux.o
 
 # Build DLL
-gcc -shared $DBG_GCC $OUTPUT/lib/$BUILD/lib.o $OUTPUT/lib/$BUILD/lib.linux.o $OUTPUT/lib/$BUILD/datetime.o $OUTPUT/lib/$BUILD/regex.o $OUTPUT/lib/$BUILD/thread.o $OUTPUT/lib/$BUILD/http_linux.o -lcurl -o $OUTPUT/dll/$BUILD/libTypeScriptDefaultLib.so
+gcc -shared $DBG_GCC $OUTPUT/lib/$BUILD/$MM/lib.o $OUTPUT/lib/$BUILD/$MM/lib.linux.o $OUTPUT/lib/$BUILD/$MM/datetime.o $OUTPUT/lib/$BUILD/$MM/regex.o $OUTPUT/lib/$BUILD/$MM/thread.o $OUTPUT/lib/$BUILD/$MM/http_linux.o -lcurl -o $OUTPUT/dll/$BUILD/$MM/libTypeScriptDefaultLib.so
 
 # Copy
-# Stage into a single shared defaultlib tree with per-build subfolders under
-# dll/ and lib/. Only the current build's subfolders are refreshed so the other
-# mode (debug/release) staged by a separate run is preserved.
+# Stage into a single shared defaultlib tree with per-build subfolders under dll/ and lib/,
+# each holding one subfolder per memory model. Only the current build's subfolders are
+# refreshed, and they are refreshed from the source tree, so the other mode (debug/release)
+# staged by a separate run is preserved and so are the models staged by earlier runs of this
+# one - only this run's model was removed from the source tree above.
 BUILD_LIB_PATH=./__build/defaultlib/
 rm -rf $BUILD_LIB_PATH/dll/$BUILD $BUILD_LIB_PATH/lib/$BUILD
 mkdir -p $BUILD_LIB_PATH/dll/$BUILD
 mkdir -p $BUILD_LIB_PATH/lib/$BUILD
 
 # cleanup intermediate object files
-rm $OUTPUT/lib/$BUILD/*.o
+rm $OUTPUT/lib/$BUILD/$MM/*.o
 
 cp -r $SRC/dll/$BUILD/* $BUILD_LIB_PATH/dll/$BUILD/
 cp -r $SRC/lib/$BUILD/* $BUILD_LIB_PATH/lib/$BUILD/
 cp -r $SRC/src/* $BUILD_LIB_PATH
-
