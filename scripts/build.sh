@@ -90,6 +90,10 @@ rm -rf $BUILD_LIB_PATH/dll/$BUILD $BUILD_LIB_PATH/lib/$BUILD
 mkdir -p $BUILD_LIB_PATH/dll/$BUILD
 mkdir -p $BUILD_LIB_PATH/lib/$BUILD
 
+# Record which compiler built this library, so a mismatch (e.g. after an ABI or
+# codegen change in tslang) can be diagnosed from the artifact alone.
+$BIN_PATH/$TOOL_NAME --version > $BUILD_LIB_PATH/COMPILER_VERSION.txt 2>&1
+
 # cleanup intermediate object files
 rm $OUTPUT/lib/$BUILD/$MM/*.o
 

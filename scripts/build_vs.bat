@@ -125,6 +125,10 @@ rd /S /Q %BUILD_LIB_PATH%\lib\%BUILD%
 md %BUILD_LIB_PATH%\dll\%BUILD%
 md %BUILD_LIB_PATH%\lib\%BUILD%
 
+rem Record which compiler built this library, so a mismatch (e.g. after an ABI or
+rem codegen change in tslang) can be diagnosed from the artifact alone.
+%TOOL_PATH%\%TOOL_NAME%.exe --version > %BUILD_LIB_PATH%\COMPILER_VERSION.txt 2>&1
+
 xcopy %SRC%\dll\%BUILD% %BUILD_LIB_PATH%\dll\%BUILD% /h /i /c /k /e /r /y
 xcopy %SRC%\lib\%BUILD% %BUILD_LIB_PATH%\lib\%BUILD% /h /i /c /k /e /r /y
 xcopy %SRC%\src\*.d.ts %BUILD_LIB_PATH% /h /c /k /e /r /y

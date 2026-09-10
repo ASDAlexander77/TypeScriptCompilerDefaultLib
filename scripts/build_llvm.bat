@@ -75,6 +75,10 @@ set BUILD_LIB_PATH=.\__build\%BUILD%\defaultlib
 rd /S /Q %BUILD_LIB_PATH%
 md %BUILD_LIB_PATH%
 
+rem Record which compiler built this library, so a mismatch (e.g. after an ABI or
+rem codegen change in tslang) can be diagnosed from the artifact alone.
+%TOOL_PATH%\%TOOL_NAME%.exe --version > %BUILD_LIB_PATH%\COMPILER_VERSION.txt 2>&1
+
 echo on
 
 xcopy %SRC%\dll\%BUILD% %BUILD_LIB_PATH%\dll /h /i /c /k /e /r /y
