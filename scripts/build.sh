@@ -86,9 +86,9 @@ gcc -shared $DBG_GCC $OUTPUT/lib/$BUILD/$MM/lib.o $OUTPUT/lib/$BUILD/$MM/lib.lin
 # staged by a separate run is preserved and so are the models staged by earlier runs of this
 # one - only this run's model was removed from the source tree above.
 BUILD_LIB_PATH=./__build/defaultlib/
-rm -rf $BUILD_LIB_PATH/dll/$BUILD $BUILD_LIB_PATH/lib/$BUILD
-mkdir -p $BUILD_LIB_PATH/dll/$BUILD
-mkdir -p $BUILD_LIB_PATH/lib/$BUILD
+rm -rf $BUILD_LIB_PATH/dll/$BUILD/$MM $BUILD_LIB_PATH/lib/$BUILD/$MM
+mkdir -p $BUILD_LIB_PATH/dll/$BUILD/$MM
+mkdir -p $BUILD_LIB_PATH/lib/$BUILD/$MM
 
 # Record which compiler built this library, so a mismatch (e.g. after an ABI or
 # codegen change in tslang) can be diagnosed from the artifact alone.
@@ -97,6 +97,6 @@ $BIN_PATH/$TOOL_NAME --version > $BUILD_LIB_PATH/COMPILER_VERSION.txt 2>&1
 # cleanup intermediate object files
 rm $OUTPUT/lib/$BUILD/$MM/*.o
 
-cp -r $SRC/dll/$BUILD/* $BUILD_LIB_PATH/dll/$BUILD/
-cp -r $SRC/lib/$BUILD/* $BUILD_LIB_PATH/lib/$BUILD/
+cp -r $SRC/dll/$BUILD/$MM/* $BUILD_LIB_PATH/dll/$BUILD/$MM/
+cp -r $SRC/lib/$BUILD/$MM/* $BUILD_LIB_PATH/lib/$BUILD/$MM/
 cp -r $SRC/src/* $BUILD_LIB_PATH

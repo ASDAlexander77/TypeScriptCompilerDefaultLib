@@ -120,17 +120,17 @@ rem Stage into a single shared defaultlib tree with per-build subfolders under
 rem dll\ and lib\. Only the current build's subfolders are refreshed so the
 rem other mode (debug/release) staged by a separate run is preserved.
 set BUILD_LIB_PATH=.\__build\defaultlib
-rd /S /Q %BUILD_LIB_PATH%\dll\%BUILD%
-rd /S /Q %BUILD_LIB_PATH%\lib\%BUILD%
-md %BUILD_LIB_PATH%\dll\%BUILD%
-md %BUILD_LIB_PATH%\lib\%BUILD%
+rd /S /Q %BUILD_LIB_PATH%\dll\%BUILD%\%MM%
+rd /S /Q %BUILD_LIB_PATH%\lib\%BUILD%\%MM%
+md %BUILD_LIB_PATH%\dll\%BUILD%\%MM%
+md %BUILD_LIB_PATH%\lib\%BUILD%\%MM%
 
 rem Record which compiler built this library, so a mismatch (e.g. after an ABI or
 rem codegen change in tslang) can be diagnosed from the artifact alone.
 %TOOL_PATH%\%TOOL_NAME%.exe --version > %BUILD_LIB_PATH%\COMPILER_VERSION.txt 2>&1
 
-xcopy %SRC%\dll\%BUILD% %BUILD_LIB_PATH%\dll\%BUILD% /h /i /c /k /e /r /y
-xcopy %SRC%\lib\%BUILD% %BUILD_LIB_PATH%\lib\%BUILD% /h /i /c /k /e /r /y
+xcopy %SRC%\dll\%BUILD%\%MM% %BUILD_LIB_PATH%\dll\%BUILD%\%MM% /h /i /c /k /e /r /y
+xcopy %SRC%\lib\%BUILD%\%MM% %BUILD_LIB_PATH%\lib\%BUILD%\%MM% /h /i /c /k /e /r /y
 xcopy %SRC%\src\*.d.ts %BUILD_LIB_PATH% /h /c /k /e /r /y
 xcopy %SRC%\src\generics\*.ts %BUILD_LIB_PATH%\generics /h /c /k /e /r /y
 

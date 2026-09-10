@@ -81,7 +81,7 @@ rem codegen change in tslang) can be diagnosed from the artifact alone.
 
 echo on
 
-xcopy %SRC%\dll\%BUILD% %BUILD_LIB_PATH%\dll /h /i /c /k /e /r /y
-xcopy %SRC%\lib\%BUILD% %BUILD_LIB_PATH%\lib /h /i /c /k /e /r /y
+xcopy %SRC%\dll\%BUILD% %BUILD_LIB_PATH%\dll\%BUILD%\%MM% /h /i /c /k /e /r /y
+xcopy %SRC%\lib\%BUILD% %BUILD_LIB_PATH%\lib\%BUILD%\%MM% /h /i /c /k /e /r /y
 xcopy %SRC%\src\*.d.ts %BUILD_LIB_PATH% /h /c /k /e /r /y
 xcopy %SRC%\src\generics\*.ts %BUILD_LIB_PATH%\generics /h /c /k /e /r /y
