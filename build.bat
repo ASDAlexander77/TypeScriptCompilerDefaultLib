@@ -8,7 +8,7 @@
 @rem See tslang/include/TypeScript/Defines.h for the resulting layout.
 
 if not "%2" == "" (
-    call scripts\build_vs.bat %1 %2
+    cmd /c scripts\build_vs.bat %1 %2
     exit /b %errorlevel%
 )
 
@@ -24,10 +24,15 @@ if "%1" == "debug" (
 exit /b %errorlevel%
 
 :build_all_models
-call scripts\build_vs.bat %1 gc
+rem Each model runs in its own cmd.exe child (via "cmd /c", not "call") so
+rem vcvars64.bat's PATH/INCLUDE/LIB growth doesn't accumulate across models -
+rem calling it 3x in one process eventually trips cmd's line-length limit
+rem ("The input line is too long"), which silently aborts that model's build
+rem partway through and leaves its subfolder uncopied.
+cmd /c scripts\build_vs.bat %1 gc
 if errorlevel 1 exit /b 1
-call scripts\build_vs.bat %1 rc
+cmd /c scripts\build_vs.bat %1 rc
 if errorlevel 1 exit /b 1
-call scripts\build_vs.bat %1 none
+cmd /c scripts\build_vs.bat %1 none
 if errorlevel 1 exit /b 1
 exit /b 0

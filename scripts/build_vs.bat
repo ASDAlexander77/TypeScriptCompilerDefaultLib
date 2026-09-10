@@ -134,7 +134,7 @@ xcopy %SRC%\lib\%BUILD%\%MM% %BUILD_LIB_PATH%\lib\%BUILD%\%MM% /h /i /c /k /e /r
 xcopy %SRC%\src\*.d.ts %BUILD_LIB_PATH% /h /c /k /e /r /y
 xcopy %SRC%\src\generics\*.ts %BUILD_LIB_PATH%\generics /h /c /k /e /r /y
 
-if exist .\dll\%BUILD%\TypeScriptDefaultLib.dll (
+if exist .\dll\%BUILD%\%MM%\TypeScriptDefaultLib.dll (
 	echo ""
 	echo "||||||||||||||||||||||||||||"
 	echo "|||||||||| SUCCESS |||||||||"
