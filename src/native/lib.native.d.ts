@@ -1,5 +1,8 @@
 // IO
 declare function write(fileNo: int, s: string, count: int);
+// Buffered counterpart of write(), sharing stdio's buffer with print()/puts() so the
+// two cannot reorder relative to each other. See src/wrappers/io.cpp.
+declare function stdio_write(fileNo: int, s: string, count: int);
 
 // Time (in seconds)
 declare function time(destTime: Reference<long>);

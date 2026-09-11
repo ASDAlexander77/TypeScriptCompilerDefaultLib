@@ -4,6 +4,8 @@
 #include <ctime>
 #include <vector>
 
+#include "tslang_export.h"
+
 static std::vector<const char*> formats {
     "%c",
     "%x %X",
@@ -59,7 +61,7 @@ static std::vector<const char*> formats {
     "%d %m %Y",
 };
 
-extern "C" long long parse_date(const char* dateStr) 
+extern "C" TSLANG_EXPORT long long parse_date(const char* dateStr) 
 {
     struct std::tm tm{};
 

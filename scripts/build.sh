@@ -65,6 +65,7 @@ fi
 rm -rf dll/$BUILD/$MM lib/$BUILD/$MM
 mkdir -p dll/$BUILD/$MM
 mkdir -p lib/$BUILD/$MM
+$TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/io.cpp -o $OUTPUT/lib/$BUILD/$MM/io.o
 $TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/datetime.cpp -o $OUTPUT/lib/$BUILD/$MM/datetime.o
 $TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/regex.cpp -o $OUTPUT/lib/$BUILD/$MM/regex.o
 $TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/thread.cpp -o $OUTPUT/lib/$BUILD/$MM/thread.o
@@ -74,10 +75,10 @@ $BIN_PATH/$TOOL_NAME $DBG_OPTS $MM_OPT --emit=obj --export=none --nowarn --no-de
 
 # Build Lib
 $BIN_PATH/$TOOL_NAME $DBG_OPTS $MM_OPT --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.ts $PIC -o $OUTPUT/lib/$BUILD/$MM/lib.o
-$ARC rcs $OUTPUT/lib/$BUILD/$MM/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/$MM/lib.o $OUTPUT/lib/$BUILD/$MM/lib.linux.o $OUTPUT/lib/$BUILD/$MM/datetime.o $OUTPUT/lib/$BUILD/$MM/regex.o $OUTPUT/lib/$BUILD/$MM/thread.o $OUTPUT/lib/$BUILD/$MM/http_linux.o
+$ARC rcs $OUTPUT/lib/$BUILD/$MM/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/$MM/lib.o $OUTPUT/lib/$BUILD/$MM/lib.linux.o $OUTPUT/lib/$BUILD/$MM/io.o $OUTPUT/lib/$BUILD/$MM/datetime.o $OUTPUT/lib/$BUILD/$MM/regex.o $OUTPUT/lib/$BUILD/$MM/thread.o $OUTPUT/lib/$BUILD/$MM/http_linux.o
 
 # Build DLL
-gcc -shared $DBG_GCC $OUTPUT/lib/$BUILD/$MM/lib.o $OUTPUT/lib/$BUILD/$MM/lib.linux.o $OUTPUT/lib/$BUILD/$MM/datetime.o $OUTPUT/lib/$BUILD/$MM/regex.o $OUTPUT/lib/$BUILD/$MM/thread.o $OUTPUT/lib/$BUILD/$MM/http_linux.o -lcurl -o $OUTPUT/dll/$BUILD/$MM/libTypeScriptDefaultLib.so
+gcc -shared $DBG_GCC $OUTPUT/lib/$BUILD/$MM/lib.o $OUTPUT/lib/$BUILD/$MM/lib.linux.o $OUTPUT/lib/$BUILD/$MM/io.o $OUTPUT/lib/$BUILD/$MM/datetime.o $OUTPUT/lib/$BUILD/$MM/regex.o $OUTPUT/lib/$BUILD/$MM/thread.o $OUTPUT/lib/$BUILD/$MM/http_linux.o -lcurl -o $OUTPUT/dll/$BUILD/$MM/libTypeScriptDefaultLib.so
 
 # Copy
 # Stage into a single shared defaultlib tree with per-build subfolders under dll/ and lib/,

@@ -88,6 +88,7 @@ call %VSPATH%
 rem echo on
 
 rem Build native wrappers for C++ code
+cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\%MM%\ %SRC%\src\wrappers\io.cpp
 cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\%MM%\ %SRC%\src\wrappers\datetime.cpp
 cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\%MM%\ %SRC%\src\wrappers\regex.cpp
 cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\%MM%\ %SRC%\src\wrappers\thread.cpp
@@ -99,7 +100,7 @@ echo Build OS-specific Lib
 
 rem Build DLL
 echo Build DLL
-%TOOL_PATH%\%TOOL_NAME%.exe %DBG% %MM_OPT% --emit=dll --embed-declarations=false --nowarn --no-default-lib %SRC%\src\lib.ts --obj=%OUTPUT%\lib\%BUILD%\%MM%\lib.win32.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\datetime.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\regex.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\thread.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\http.obj -o %OUTPUT%\dll\%BUILD%\%MM%\TypeScriptDefaultLib.dll
+%TOOL_PATH%\%TOOL_NAME%.exe %DBG% %MM_OPT% --emit=dll --embed-declarations=false --nowarn --no-default-lib %SRC%\src\lib.ts --obj=%OUTPUT%\lib\%BUILD%\%MM%\lib.win32.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\io.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\datetime.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\regex.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\thread.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\http.obj -o %OUTPUT%\dll\%BUILD%\%MM%\TypeScriptDefaultLib.dll
 
 rem Build Lib
 echo Build Lib
@@ -107,10 +108,11 @@ echo Build Lib
 rem %TOOL_PATH%\%TOOL_NAME%.exe %DBG% %MM_OPT% --emit=llvm --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\%MM%\lib.ll
 rem %TOOL_PATH%\%TOOL_NAME%.exe %DBG% %MM_OPT% --emit=mlir --export=none %SRC%\src\lib.ts 2> %OUTPUT%\lib\%BUILD%\%MM%\lib.mlir
 
-lib.exe /out:%OUTPUT%\lib\%BUILD%\%MM%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\%MM%\lib.obj %OUTPUT%\lib\%BUILD%\%MM%\lib.win32.obj %OUTPUT%\lib\%BUILD%\%MM%\datetime.obj %OUTPUT%\lib\%BUILD%\%MM%\regex.obj %OUTPUT%\lib\%BUILD%\%MM%\thread.obj %OUTPUT%\lib\%BUILD%\%MM%\http.obj
+lib.exe /out:%OUTPUT%\lib\%BUILD%\%MM%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\%MM%\lib.obj %OUTPUT%\lib\%BUILD%\%MM%\lib.win32.obj %OUTPUT%\lib\%BUILD%\%MM%\io.obj %OUTPUT%\lib\%BUILD%\%MM%\datetime.obj %OUTPUT%\lib\%BUILD%\%MM%\regex.obj %OUTPUT%\lib\%BUILD%\%MM%\thread.obj %OUTPUT%\lib\%BUILD%\%MM%\http.obj
 
 del %OUTPUT%\lib\%BUILD%\%MM%\lib.obj
 del %OUTPUT%\lib\%BUILD%\%MM%\lib.win32.obj
+del %OUTPUT%\lib\%BUILD%\%MM%\io.obj
 del %OUTPUT%\lib\%BUILD%\%MM%\datetime.obj
 del %OUTPUT%\lib\%BUILD%\%MM%\regex.obj
 del %OUTPUT%\lib\%BUILD%\%MM%\thread.obj

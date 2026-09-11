@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include "tslang_export.h"
+
 #pragma comment(lib, "winhttp.lib")
 
 // Opaque handle wrapping a completed HTTP exchange: request/response headers,
@@ -42,7 +44,7 @@ static std::string narrow(const wchar_t *s, DWORD lenChars)
     return result;
 }
 
-extern "C" HttpResponse *http_request(const char *method, const char *url, const char *headers, const char *body, size_t bodyLength)
+extern "C" TSLANG_EXPORT HttpResponse *http_request(const char *method, const char *url, const char *headers, const char *body, size_t bodyLength)
 {
     auto *response = new HttpResponse();
 
@@ -165,42 +167,42 @@ extern "C" HttpResponse *http_request(const char *method, const char *url, const
     return response;
 }
 
-extern "C" bool http_response_success(HttpResponse *r)
+extern "C" TSLANG_EXPORT bool http_response_success(HttpResponse *r)
 {
     return r->success;
 }
 
-extern "C" int http_response_error_code(HttpResponse *r)
+extern "C" TSLANG_EXPORT int http_response_error_code(HttpResponse *r)
 {
     return (int)r->errorCode;
 }
 
-extern "C" int http_response_status(HttpResponse *r)
+extern "C" TSLANG_EXPORT int http_response_status(HttpResponse *r)
 {
     return r->statusCode;
 }
 
-extern "C" size_t http_response_headers_length(HttpResponse *r)
+extern "C" TSLANG_EXPORT size_t http_response_headers_length(HttpResponse *r)
 {
     return r->headers.size();
 }
 
-extern "C" void http_response_headers_copy_to(HttpResponse *r, char *buffer, size_t count)
+extern "C" TSLANG_EXPORT void http_response_headers_copy_to(HttpResponse *r, char *buffer, size_t count)
 {
     r->headers.copy(buffer, count);
 }
 
-extern "C" size_t http_response_body_length(HttpResponse *r)
+extern "C" TSLANG_EXPORT size_t http_response_body_length(HttpResponse *r)
 {
     return r->body.size();
 }
 
-extern "C" void http_response_body_copy_to(HttpResponse *r, char *buffer, size_t count)
+extern "C" TSLANG_EXPORT void http_response_body_copy_to(HttpResponse *r, char *buffer, size_t count)
 {
     r->body.copy(buffer, count);
 }
 
-extern "C" void http_response_free(HttpResponse *r)
+extern "C" TSLANG_EXPORT void http_response_free(HttpResponse *r)
 {
     delete r;
 }

@@ -2,46 +2,48 @@
 #include <regex>
 #include <string>
 
+#include "tslang_export.h"
+
 void regexp_error(int code);
 std::regex::flag_type get_flags(const char *flags);
 std::regex_constants::match_flag_type get_match_flags(const char *flags);
 
-extern "C" size_t regexp_match_results_size(std::cmatch *cm)
+extern "C" TSLANG_EXPORT size_t regexp_match_results_size(std::cmatch *cm)
 {
     return static_cast<size_t>(cm->size());
 }
 
-extern "C" size_t regexp_match_results_prefix_length(std::cmatch *cm)
+extern "C" TSLANG_EXPORT size_t regexp_match_results_prefix_length(std::cmatch *cm)
 {
     return static_cast<size_t>(cm->prefix().length());
 }
 
-extern "C" size_t regexp_match_results_suffix_position(std::cmatch *cm)
+extern "C" TSLANG_EXPORT size_t regexp_match_results_suffix_position(std::cmatch *cm)
 {
     return static_cast<size_t>(cm->prefix().length() + cm->operator[](0).length());
 }
 
-extern "C" void regexp_match_results_sub_match_str_copy_to(std::cmatch *cm, size_t subIndex, char *buffer, size_t count)
+extern "C" TSLANG_EXPORT void regexp_match_results_sub_match_str_copy_to(std::cmatch *cm, size_t subIndex, char *buffer, size_t count)
 {
     cm->operator[](subIndex).str().copy(buffer, count);
 }
 
-extern "C" size_t regexp_match_results_sub_match_str_length(std::cmatch *cm, size_t subIndex)
+extern "C" TSLANG_EXPORT size_t regexp_match_results_sub_match_str_length(std::cmatch *cm, size_t subIndex)
 {
     return cm->operator[](subIndex).str().size();
 }
 
-extern "C" size_t regexp_match_results_sub_match_position(std::cmatch *cm, size_t subIndex)
+extern "C" TSLANG_EXPORT size_t regexp_match_results_sub_match_position(std::cmatch *cm, size_t subIndex)
 {
     return static_cast<size_t>(cm->position(subIndex));
 }
 
-extern "C" size_t regexp_match_results_sub_match_length(std::cmatch *cm, size_t subIndex)
+extern "C" TSLANG_EXPORT size_t regexp_match_results_sub_match_length(std::cmatch *cm, size_t subIndex)
 {
     return static_cast<size_t>(cm->length(subIndex));
 }
 
-extern "C" char* regexp_match_results_format(std::cmatch *cm, const char *replacement) 
+extern "C" TSLANG_EXPORT char* regexp_match_results_format(std::cmatch *cm, const char *replacement) 
 {
     auto result = cm->format(replacement);
 
@@ -57,7 +59,7 @@ extern "C" char* regexp_match_results_format(std::cmatch *cm, const char *replac
     return buffer;    
 }
 
-extern "C" int regexp_test(const char *expr, const char *flags, const char *s)
+extern "C" TSLANG_EXPORT int regexp_test(const char *expr, const char *flags, const char *s)
 {
     try
     {
@@ -77,7 +79,7 @@ extern "C" int regexp_test(const char *expr, const char *flags, const char *s)
     return -1;
 }
 
-extern "C" std::cmatch *regexp_exec(const char *expr, const char *flags, const char *s, std::cmatch *cm)
+extern "C" TSLANG_EXPORT std::cmatch *regexp_exec(const char *expr, const char *flags, const char *s, std::cmatch *cm)
 {
     try
     {
@@ -99,7 +101,7 @@ extern "C" std::cmatch *regexp_exec(const char *expr, const char *flags, const c
     return nullptr;
 }
 
-extern "C" char* regexp_replace(const char *expr, const char *flags, const char *s, const char* replacement)
+extern "C" TSLANG_EXPORT char* regexp_replace(const char *expr, const char *flags, const char *s, const char* replacement)
 {
     try
     {
@@ -125,7 +127,7 @@ extern "C" char* regexp_replace(const char *expr, const char *flags, const char 
     return nullptr;
 }
 
-extern "C" void regexp_free(std::cmatch *cm)
+extern "C" TSLANG_EXPORT void regexp_free(std::cmatch *cm)
 {
     if (cm != nullptr)
     {
@@ -134,7 +136,7 @@ extern "C" void regexp_free(std::cmatch *cm)
     }
 }
 
-extern "C" void regexp_free_string(char *c)
+extern "C" TSLANG_EXPORT void regexp_free_string(char *c)
 {
     if (c != nullptr)
     {

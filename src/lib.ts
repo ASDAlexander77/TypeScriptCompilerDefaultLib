@@ -1860,6 +1860,8 @@ export static class console {
     }
 
     private print(fileNo: int, data: string): void {
-        write(fileNo, data, data.length);
+        // stdio_write, not write: going through stdio keeps this in the same buffer
+        // as print()/assert(), which lower to puts(). See src/wrappers/io.cpp.
+        stdio_write(fileNo, data, data.length);
     }
 }
