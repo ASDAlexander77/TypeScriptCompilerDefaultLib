@@ -1,5 +1,3 @@
-/// <reference no-default-lib="true" />
-/// <reference path="../types/tslang/index.d.ts" />
 /// <reference path="types/lib.types.d.ts" />
 /// <reference path="native/lib.native.d.ts" />
 /// <reference path="core/core.d.ts" />
