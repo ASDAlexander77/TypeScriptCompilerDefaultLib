@@ -1,3 +1,5 @@
+/// <reference no-default-lib="true" />
+/// <reference path="../types/tslang/index.d.ts" />
 /// <reference path="types/lib.types.d.ts" />
 /// <reference path="native/lib.native.d.ts" />
 /// <reference path="core/core.d.ts" />
@@ -434,113 +436,114 @@ declare class String {
     //[Symbol.iterator](): ClassIterator<string>;
 }
 
-declare static class Math {
-    readonly E: number;
+declare namespace Math {
+    /** The mathematical constant e. This is Euler's number, the base of natural logarithms. */
+    const E = 2.718281828459045;
     /** The natural logarithm of 10. */
-    readonly LN10: number;
+    const LN10 = 2.302585092994046;
     /** The natural logarithm of 2. */
-    readonly LN2: number;
+    const LN2 = 0.6931471805599453;
     /** The base-2 logarithm of e. */
-    readonly LOG2E: number;
+    const LOG2E = 1.4426950408889634;
     /** The base-10 logarithm of e. */
-    readonly LOG10E: number;
+    const LOG10E = 0.4342944819032518;
     /** Pi. This is the ratio of the circumference of a circle to its diameter. */
-    readonly PI: number;
+    const PI = 3.141592653589793;
     /** The square root of 0.5, or, equivalently, one divided by the square root of 2. */
-    readonly SQRT1_2: number;
+    const SQRT1_2 = 0.7071067811865476;
     /** The square root of 2. */
-    readonly SQRT2: number;
+    const SQRT2 = 1.4142135623730951;
 
     /**
      * Returns the absolute value of a number (the value without regard to whether it is positive or negative).
      * For example, the absolute value of -5 is the same as the absolute value of 5.
      * @param x A numeric expression for which the absolute value is needed.
      */    
-    abs(x: number): number;
+    function abs(x: number): number;
 
     /**
      * Returns the arc cosine (or inverse cosine) of a number.
      * @param x A numeric expression.
      */
-    acos(x: number): number;
+    function acos(x: number): number;
     /**
      * Returns the inverse hyperbolic cosine of a number.
      * @param x A numeric expression that contains an angle measured in radians.
      */
-    acosh(x: number): number;
+    function acosh(x: number): number;
     /**
      * Returns the arcsine of a number.
      * @param x A numeric expression.
      */
-    asin(x: number): number;
+    function asin(x: number): number;
     /**
      * Returns the inverse hyperbolic sine of a number.
      * @param x A numeric expression that contains an angle measured in radians.
      */
-    asinh(x: number): number    
+    function asinh(x: number): number    
     /**
      * Returns the arctangent of a number.
      * @param x A numeric expression for which the arctangent is needed.
      */
-    atan(x: number): number;
+    function atan(x: number): number;
     /**
      * Returns the angle (in radians) from the X axis to a point.
      * @param y A numeric expression representing the cartesian y-coordinate.
      * @param x A numeric expression representing the cartesian x-coordinate.
      */
-    atan2(y: number, x: number): number;
+    function atan2(y: number, x: number): number;
     /**
      * Returns the inverse hyperbolic tangent of a number.
      * @param x A numeric expression that contains an angle measured in radians.
      */
-    atanh(x: number): number;    
+    function atanh(x: number): number;    
     /**
      * Returns an implementation-dependent approximation to the cube root of number.
      * @param x A numeric expression.
      */
-    cbrt(x: number): number;
+    function cbrt(x: number): number;
     /**
      * Returns the smallest integer greater than or equal to its numeric argument.
      * @param x A numeric expression.
      */
-    ceil(x: number): number;
+    function ceil(x: number): number;
     /**
      * Returns the number of leading zero bits in the 32-bit binary representation of a number.
      * @param x A numeric expression.
      */
-    clz32(x: number): number;   
+    function clz32(x: number): number;   
     /**
      * Returns the hyperbolic cosine of a number.
      * @param x A numeric expression that contains an angle measured in radians.
      */
-    cosh(x: number): number;     
+    function cosh(x: number): number;     
     /**
      * Returns the cosine of a number.
      * @param x A numeric expression that contains an angle measured in radians.
      */
-    cos(x: number): number;
+    function cos(x: number): number;
     /**
      * Returns e (the base of natural logarithms) raised to a power.
      * @param x A numeric expression representing the power of e.
      */
-    exp(x: number): number;
+    function exp(x: number): number;
     /**
      * Returns the result of (e^x - 1), which is an implementation-dependent approximation to
      * subtracting 1 from the exponential function of x (e raised to the power of x, where e
      * is the base of the natural logarithms).
      * @param x A numeric expression.
      */
-    expm1(x: number): number;    
+    function expm1(x: number): number;    
     /**
      * Returns the greatest integer less than or equal to its numeric argument.
      * @param x A numeric expression.
      */
-    floor(x: number): number;
+    function floor(x: number): number;
     /**
      * Returns the nearest single precision float representation of a number.
      * @param x A numeric expression.
      */
-    fround(x: number): number;    
+    function fround(x: number): number;    
     /**
      * Returns the square root of the sum of squares of its arguments.
      * @param values Values to compute the square root for.
@@ -550,92 +553,92 @@ declare static class Math {
      *     If any argument is NaN, the result is NaN.
      *     If all arguments are either +0 or −0, the result is +0.
      */
-    hypot(...values: number[]): number;
+    function hypot(...values: number[]): number;
     /**
      * Returns the result of 32-bit multiplication of two numbers.
      * @param x First number
      * @param y Second number
      */
-    imul(x: number, y: number): number;
+    function imul(x: number, y: number): number;
     /**
      * Returns the natural logarithm (base e) of a number.
      * @param x A numeric expression.
      */
-    log(x: number): number;
+    function log(x: number): number;
     /**
      * Returns the base 10 logarithm of a number.
      * @param x A numeric expression.
      */
-    log10(x: number): number;
+    function log10(x: number): number;
     /**
      * Returns the natural logarithm of 1 + x.
      * @param x A numeric expression.
      */
-    log1p(x: number): number;
+    function log1p(x: number): number;
     /**
      * Returns the base 2 logarithm of a number.
      * @param x A numeric expression.
      */
-    log2(x: number): number    
+    function log2(x: number): number;
     /**
      * Returns the larger of a set of supplied numeric expressions.
      * @param values Numeric expressions to be evaluated.
      */
-    max(...values: number[]): number;
+    function max(...values: number[]): number;
     /**
      * Returns the smaller of a set of supplied numeric expressions.
      * @param values Numeric expressions to be evaluated.
      */
-    min(...values: number[]): number;
+    function min(...values: number[]): number;
     /**
      * Returns the value of a base expression taken to a specified power.
      * @param x The base value of the expression.
      * @param y The exponent value of the expression.
      */
-    pow(x: number, y: number): number;
+    function pow(x: number, y: number): number;
     /** Returns a pseudorandom number between 0 and 1. */
-    random(): number;
+    function random(): number;
     /**
      * Returns a supplied numeric expression rounded to the nearest integer.
      * @param x The value to be rounded to the nearest integer.
      */
-    round(x: number): number;
+    function round(x: number): number;
     /**
      * Returns the sign of the x, indicating whether x is positive, negative or zero.
      * @param x The numeric expression to test
      */
-    sign(x: number): number;
+    function sign(x: number): number;
     /**
      * Returns the sine of a number.
      * @param x A numeric expression that contains an angle measured in radians.
      */
-    sin(x: number): number;
+    function sin(x: number): number;
     /**
      * Returns the hyperbolic sine of a number.
      * @param x A numeric expression that contains an angle measured in radians.
      */
-    sinh(x: number): number;    
+    function sinh(x: number): number;    
     /**
      * Returns the square root of a number.
      * @param x A numeric expression.
      */
-    sqrt(x: number): number;
+    function sqrt(x: number): number;
     /**
      * Returns the tangent of a number.
      * @param x A numeric expression that contains an angle measured in radians.
      */
-    tan(x: number): number; 
+    function tan(x: number): number; 
     /**
      * Returns the hyperbolic tangent of a number.
      * @param x A numeric expression that contains an angle measured in radians.
      */
-    tanh(x: number): number;
+    function tanh(x: number): number;
     /**
      * Returns the integral part of the a numeric expression, x, removing any fractional digits.
      * If x is already an integer, the result is x.
      * @param x A numeric expression.
      */
-    trunc(x: number): number;
+    function trunc(x: number): number;
 }
 
 declare class Headers {
@@ -675,12 +678,12 @@ declare class Response {
 
 declare function fetch(url: string, init?: { method?: string, headers?: [string, string][], body?: string }): Response;
 
-declare static class console {
-    assert(condition?: boolean, ...data: string[]): void;
+declare namespace console {
+    function assert(condition?: boolean, ...data: string[]): void;
 
-    log(...data: string[]): void;
+    function log(...data: string[]): void;
 
-    warn(...data: string[]): void;
+    function warn(...data: string[]): void;
 
-    error(...data: string[]): void;
+    function error(...data: string[]): void;
 }
