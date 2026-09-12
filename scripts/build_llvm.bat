@@ -1,87 +1,19 @@
-rem call clean.bat
+@rem LLVM entry point for the default library. Same body, same flags, same output tree
+@rem as the MSVC build - only the wrapper compiler and the archiver differ.
+@rem
+@rem   scripts\build_llvm.bat debug gc
+@rem
+@rem clang-cl still compiles against the MSVC headers and the Windows SDK, which
+@rem build_core.bat sets up via vcvars64. vcvars64 does not add the LLVM tools to PATH,
+@rem so clang-cl and llvm-lib must already be there - a default LLVM install puts them
+@rem in %ProgramFiles%\LLVM\bin. build_core.bat checks for both before compiling.
+@rem
+@rem The build body lives in build_core.bat and is shared with build_vs.bat, so a
+@rem change to flags or layout reaches both toolchains.
 
-echo off
-
-set TOOL_BUILD=release
-set BUILD=debug
-set BUILD1=Debug
-set LLVM_BUILD=Debug
-set ARCH=x64
-set DBG=--di
-set TOOL_NAME=tslang
-
-if "%1"=="release" (
-	set TOOL_BUILD=release
-	set BUILD=release
-	set BUILD1=release
-	set LLVM_BUILD=Release
-	set DBG=--opt --opt_level=3
-)
-
-set SRC=.
-set OUTPUT=.
-
-if "%TOOL_PATH%"=="" (
-	set BUILD_PATH=..\TypeScriptCompiler\__build
-	set TOOL_PATH=..\TypeScriptCompiler\__build\%TOOL_NAME%\windows-msbuild-%TOOL_BUILD%\bin
-) else (
-	set BUILD_PATH=%TOOL_PATH%
-)
-
-if "%GC_LIB_PATH%"=="" (
-	set GC_LIB_PATH=%BUILD_PATH%\gc\msbuild\%ARCH%\%BUILD%\%BUILD1%
-)
-if "%LLVM_LIB_PATH%"=="" (
-	set LLVM_LIB_PATH=%BUILD_PATH%\llvm\msbuild\%ARCH%\%BUILD%\%BUILD1%\lib
-)
-if "%TSLANG_LIB_PATH%"=="" (
-	set TSLANG_LIB_PATH=%BUILD_PATH%\%TOOL_NAME%\windows-msbuild-%BUILD%\lib
-)
-
-rd /S /Q dll\%BUILD%
-rd /S /Q lib\%BUILD%
-
-md dll\%BUILD%
-md lib\%BUILD%
-
-echo on
-
-rem Build native wrappers for C++ code
-clang-cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\datetime.cpp
-clang-cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\regex.cpp
-clang-cl %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\ %SRC%\src\wrappers\thread.cpp
-
-rem Build OS-specific Lib
-%TOOL_PATH%\%TOOL_NAME%.exe %DBG% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.win32.ts -o %OUTPUT%\lib\%BUILD%\lib.win32.obj
-
-rem Build DLL
-%TOOL_PATH%\%TOOL_NAME%.exe %DBG% --emit=dll --embed-declarations=false --nowarn --no-default-lib %SRC%\src\lib.ts --obj=%OUTPUT%\lib\%BUILD%\lib.win32.obj --obj=%OUTPUT%\lib\%BUILD%\datetime.obj --obj=%OUTPUT%\lib\%BUILD%\regex.obj --obj=%OUTPUT%\lib\%BUILD%\thread.obj -o %OUTPUT%\dll\%BUILD%\TypeScriptDefaultLib.dll
-
-rem Build Lib
-%TOOL_PATH%\%TOOL_NAME%.exe %DBG% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.obj
-rem %TOOL_PATH%\%TOOL_NAME%.exe %DBG% --emit=llvm --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\lib.ll
-
-llvm-lib.exe /out:%OUTPUT%\lib\%BUILD%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\lib.obj %OUTPUT%\lib\%BUILD%\datetime.obj %OUTPUT%\lib\%BUILD%\regex.obj %OUTPUT%\lib\%BUILD%\thread.obj
-
-echo off
-
-del %OUTPUT%\lib\%BUILD%\lib.obj
-del %OUTPUT%\lib\%BUILD%\lib.win32.obj
-del %OUTPUT%\lib\%BUILD%\datetime.obj
-del %OUTPUT%\lib\%BUILD%\regex.obj
-del %OUTPUT%\lib\%BUILD%\thread.obj
-
-set BUILD_LIB_PATH=.\__build\%BUILD%\defaultlib
-rd /S /Q %BUILD_LIB_PATH%
-md %BUILD_LIB_PATH%
-
-rem Record which compiler built this library, so a mismatch (e.g. after an ABI or
-rem codegen change in tslang) can be diagnosed from the artifact alone.
-%TOOL_PATH%\%TOOL_NAME%.exe --version > %BUILD_LIB_PATH%\COMPILER_VERSION.txt 2>&1
-
-echo on
-
-xcopy %SRC%\dll\%BUILD% %BUILD_LIB_PATH%\dll\%BUILD%\%MM% /h /i /c /k /e /r /y
-xcopy %SRC%\lib\%BUILD% %BUILD_LIB_PATH%\lib\%BUILD%\%MM% /h /i /c /k /e /r /y
-xcopy %SRC%\src\*.d.ts %BUILD_LIB_PATH% /h /c /k /e /r /y
-xcopy %SRC%\src\generics\*.ts %BUILD_LIB_PATH%\generics /h /c /k /e /r /y
+setlocal
+set TSLANG_TOOLCHAIN=llvm
+set TSLANG_CC=clang-cl
+set TSLANG_AR=llvm-lib.exe
+call "%~dp0build_core.bat" %1 %2
+exit /b %errorlevel%

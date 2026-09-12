@@ -5,10 +5,20 @@
 @rem   build.bat release        -> release only, all three models
 @rem   build.bat release rc     -> just that one
 @rem
+@rem Set TSLANG_TOOLCHAIN=llvm to build the C++ wrappers with clang-cl/llvm-lib instead
+@rem of cl/lib.exe; everything else (flags, layout, output tree) is identical, so the two
+@rem builds are interchangeable and overwrite each other in lib\ and dll\.
+@rem
 @rem See tslang/include/TypeScript/Defines.h for the resulting layout.
 
+if /I "%TSLANG_TOOLCHAIN%" == "llvm" (
+    set "BUILD_SCRIPT=scripts\build_llvm.bat"
+) else (
+    set "BUILD_SCRIPT=scripts\build_vs.bat"
+)
+
 if not "%2" == "" (
-    cmd /c scripts\build_vs.bat %1 %2
+    cmd /c %BUILD_SCRIPT% %1 %2
     exit /b %errorlevel%
 )
 
@@ -29,10 +39,10 @@ rem vcvars64.bat's PATH/INCLUDE/LIB growth doesn't accumulate across models -
 rem calling it 3x in one process eventually trips cmd's line-length limit
 rem ("The input line is too long"), which silently aborts that model's build
 rem partway through and leaves its subfolder uncopied.
-cmd /c scripts\build_vs.bat %1 gc
+cmd /c %BUILD_SCRIPT% %1 gc
 if errorlevel 1 exit /b 1
-cmd /c scripts\build_vs.bat %1 rc
+cmd /c %BUILD_SCRIPT% %1 rc
 if errorlevel 1 exit /b 1
-cmd /c scripts\build_vs.bat %1 none
+cmd /c %BUILD_SCRIPT% %1 none
 if errorlevel 1 exit /b 1
 exit /b 0
