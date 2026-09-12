@@ -44,7 +44,7 @@ OUTPUT=.
 if [ -z "${TOOL_PATH}" ]; then
 	ROOT=..
 	BUILD_PATH=$ROOT/TypeScriptCompiler/__build
-	BIN_PATH=$BUILD_PATH/$TOOL_NAME/linux-ninja-$TOOL-$TOOL_BUILD/bin
+	BIN_PATH=$BUILD_PATH/$TOOL_NAME/ninja/$TOOL_BUILD/bin
 else
 	BUILD_PATH=$TOOL_PATH
 	BIN_PATH=$TOOL_PATH
@@ -59,7 +59,7 @@ if [ -z "${LLVM_LIB_PATH}" ]; then
 fi
 
 if [ -z "${TSLANG_LIB_PATH}" ]; then
-	export TSLANG_LIB_PATH=$BUILD_PATH/$TOOL_NAME/linux-ninja-$TOOL-$BUILD/lib
+	export TSLANG_LIB_PATH=$BUILD_PATH/$TOOL_NAME/ninja/$BUILD/lib
 fi
 
 rm -rf dll/$BUILD/$MM lib/$BUILD/$MM
