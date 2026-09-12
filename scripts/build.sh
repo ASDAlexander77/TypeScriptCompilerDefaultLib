@@ -75,10 +75,25 @@ $BIN_PATH/$TOOL_NAME $DBG_OPTS $MM_OPT --emit=obj --export=none --nowarn --no-de
 
 # Build Lib
 $BIN_PATH/$TOOL_NAME $DBG_OPTS $MM_OPT --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.ts $PIC -o $OUTPUT/lib/$BUILD/$MM/lib.o
-$ARC rcs $OUTPUT/lib/$BUILD/$MM/libTypeScriptDefaultLib.a $OUTPUT/lib/$BUILD/$MM/lib.o $OUTPUT/lib/$BUILD/$MM/lib.linux.o $OUTPUT/lib/$BUILD/$MM/io.o $OUTPUT/lib/$BUILD/$MM/datetime.o $OUTPUT/lib/$BUILD/$MM/regex.o $OUTPUT/lib/$BUILD/$MM/thread.o $OUTPUT/lib/$BUILD/$MM/http_linux.o
+$ARC rcs $OUTPUT/lib/$BUILD/$MM/libTypeScriptDefaultLibCore.a $OUTPUT/lib/$BUILD/$MM/lib.o $OUTPUT/lib/$BUILD/$MM/lib.linux.o $OUTPUT/lib/$BUILD/$MM/io.o $OUTPUT/lib/$BUILD/$MM/datetime.o $OUTPUT/lib/$BUILD/$MM/regex.o $OUTPUT/lib/$BUILD/$MM/thread.o $OUTPUT/lib/$BUILD/$MM/http_linux.o
+
+# A static archive cannot record its own dependencies on ELF (there is no ld.bfd equivalent of
+# the `#pragma comment(lib, ...)` http.cpp uses on Windows), so programs linking
+# -lTypeScriptDefaultLib failed with undefined curl_* references. libTypeScriptDefaultLib.a is
+# therefore a GNU linker script (as glibc's libc.so is) that pulls in the real archive plus the
+# system libraries it needs. The compiler keeps passing -lTypeScriptDefaultLib unchanged.
+cat > $OUTPUT/lib/$BUILD/$MM/libTypeScriptDefaultLib.a <<EOF
+/* GNU ld script: TypeScriptDefaultLib and its external dependencies */
+INPUT(-lTypeScriptDefaultLibCore -lcurl)
+EOF
 
 # Build DLL
-gcc -shared $DBG_GCC $OUTPUT/lib/$BUILD/$MM/lib.o $OUTPUT/lib/$BUILD/$MM/lib.linux.o $OUTPUT/lib/$BUILD/$MM/io.o $OUTPUT/lib/$BUILD/$MM/datetime.o $OUTPUT/lib/$BUILD/$MM/regex.o $OUTPUT/lib/$BUILD/$MM/thread.o $OUTPUT/lib/$BUILD/$MM/http_linux.o -lcurl -o $OUTPUT/dll/$BUILD/$MM/libTypeScriptDefaultLib.so
+# Linked with g++ plus -lm so libstdc++/libm become NEEDED entries of the .so rather than
+# unresolved symbols the loading process happens to provide. The gc build still leaves GC_*
+# undefined on purpose: they must bind to the one collector already in the process
+# (libTypeScriptRuntime.so under the JIT, libgc.a in an exe); linking libgc.a in here would
+# give the library a second, separate heap.
+g++ -shared $DBG_GCC $OUTPUT/lib/$BUILD/$MM/lib.o $OUTPUT/lib/$BUILD/$MM/lib.linux.o $OUTPUT/lib/$BUILD/$MM/io.o $OUTPUT/lib/$BUILD/$MM/datetime.o $OUTPUT/lib/$BUILD/$MM/regex.o $OUTPUT/lib/$BUILD/$MM/thread.o $OUTPUT/lib/$BUILD/$MM/http_linux.o -lcurl -lm -o $OUTPUT/dll/$BUILD/$MM/libTypeScriptDefaultLib.so
 
 # Copy
 # Stage into a single shared defaultlib tree with per-build subfolders under dll/ and lib/,
