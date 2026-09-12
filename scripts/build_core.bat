@@ -59,6 +59,15 @@ if "%TOOL_PATH%"=="" (
 if "%GC_LIB_PATH%"=="" (
 	set GC_LIB_PATH=%BUILD_PATH%\gc\msbuild\%ARCH%\%BUILD%\%BUILD1%
 )
+rem Boehm built as a DLL: the import library gc.lib (not the static one) + gc.dll. The DLL build
+rem below links it, because TypeScriptDefaultLib.dll always shares a process with another gc
+rem binary - TypeScriptRuntime.dll under the JIT, a user's shared library - and a static gc.lib
+rem would give it a collector of its own that frees what they hold. The static lib\ archive
+rem links no collector at all, so it is unaffected.
+rem See TypeScriptCompiler/tslang/docs/single-gc-collector-design.md.
+if "%GC_SHARED_LIB_PATH%"=="" (
+	set GC_SHARED_LIB_PATH=..\TypeScriptCompiler\3rdParty\gcdll\%ARCH%\%BUILD%\lib
+)
 if "%LLVM_LIB_PATH%"=="" (
 	set LLVM_LIB_PATH=%BUILD_PATH%\llvm\msbuild\%ARCH%\%BUILD%\%BUILD1%\lib
 )
@@ -142,7 +151,7 @@ echo Build OS-specific Lib
 
 rem Build DLL
 echo Build DLL
-%TOOL_PATH%\%TOOL_NAME%.exe %DBG% %MM_OPT% --emit=dll --embed-declarations=false --nowarn --no-default-lib %SRC%\src\lib.ts --obj=%OUTPUT%\lib\%BUILD%\%MM%\lib.win32.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\io.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\datetime.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\regex.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\thread.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\http.obj -o %OUTPUT%\dll\%BUILD%\%MM%\TypeScriptDefaultLib.dll
+%TOOL_PATH%\%TOOL_NAME%.exe %DBG% %MM_OPT% --emit=dll --gc-lib-path=%GC_SHARED_LIB_PATH% --embed-declarations=false --nowarn --no-default-lib %SRC%\src\lib.ts --obj=%OUTPUT%\lib\%BUILD%\%MM%\lib.win32.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\io.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\datetime.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\regex.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\thread.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\http.obj -o %OUTPUT%\dll\%BUILD%\%MM%\TypeScriptDefaultLib.dll
 
 rem Build Lib
 echo Build Lib
