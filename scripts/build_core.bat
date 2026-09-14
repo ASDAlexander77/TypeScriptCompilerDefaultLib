@@ -26,7 +26,12 @@ rem live inside each .obj. /Zi would park it in an external vc140.pdb in the cur
 rem which is never staged next to the .lib and is overwritten by the next memory model's build,
 rem leaving consumers unable to step into io.cpp/datetime.cpp/etc. This matches what tslang's
 rem --di already does for the .ts objects.
-set DBG_CL=/Z7 /std:c++latest
+rem /MTd, /MT: the wrappers' C runtime has to match the one tslang links against. A debug program
+rem (--di, no --opt) picks this debug archive and links the static debug CRT (libcmtd,
+rem _ITERATOR_DEBUG_LEVEL=2); an --opt program picks the release archive and the static release CRT
+rem (see tslang/tslang/exe.cpp). Without a flag cl defaults to /MT, so the debug archive carried
+rem release-CRT wrappers and a debug `tslang --emit=exe` against it failed with LNK2038 mismatches.
+set DBG_CL=/MTd /Z7 /std:c++latest
 set TOOL_NAME=tslang
 
 if "%1"=="release" (
@@ -35,7 +40,7 @@ if "%1"=="release" (
 	set BUILD1=release
 	set LLVM_BUILD=Release
 	set DBG=--opt --opt_level=3
-	set DBG_CL=/std:c++latest
+	set DBG_CL=/MT /std:c++latest
 )
 
 rem Memory model (%2). The default library is not model-neutral: under gc it allocates through
