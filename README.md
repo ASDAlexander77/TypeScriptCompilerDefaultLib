@@ -17,8 +17,13 @@ build.bat
 ```
 
 This stages into `__build\defaultlib\{lib,dll}\x86\<debug|release>\<gc|rc|none>\`,
-alongside the existing x64 tree. It requires the x86 Boehm GC to already be built in
-the compiler repo: `prepare_3rdParty.bat <debug|release> x86` in `TypeScriptCompiler`.
+alongside the existing x64 tree. It requires two things already built in the compiler
+repo:
+
+- the x86 Boehm GC: `prepare_3rdParty.bat <debug|release> x86` in `TypeScriptCompiler`;
+- the x86 `TypeScriptAsyncRuntime.lib`, which the DLL build links:
+  `scripts\build_tslang_runtime_<debug|release>_x86.bat` in `TypeScriptCompiler`, which
+  puts it in `__build\tslang-runtime\<debug|release>\x86\`.
 
 ## Docs
 
