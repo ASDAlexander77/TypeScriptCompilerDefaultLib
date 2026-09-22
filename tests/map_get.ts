@@ -6,8 +6,9 @@ console.log(map1.get('bar'));
 
 assert(map1.get('bar') == "foo");
 
-// TODO:
-//console.log(map1.get('baz'));
+console.log(map1.get('baz'));
 // Expected output: undefined
+
+assert(map1.get('baz') == undefined);
 
 console.log("ALL DONE");
