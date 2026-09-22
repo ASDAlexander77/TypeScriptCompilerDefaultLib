@@ -589,7 +589,7 @@ export class RegExp
     }
 
     replaceAll(s: string, replacement: string): string {
-        const r = regexp_replace(this.source, this.flags, s);
+        const r = regexp_replace(this.source, this.flags, s, replacement);
         const len = r.length;
         let result = "".clone().resize(len);
         memcpy(Ref(result[0]), r, len);
