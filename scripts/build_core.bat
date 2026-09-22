@@ -6,7 +6,8 @@ rem
 rem   %1  release | debug   (default: debug)
 rem   %2  memory model      (default: gc)
 rem
-rem The caller sets TSLANG_CC / TSLANG_AR / TSLANG_TOOLCHAIN.
+rem The caller sets TSLANG_CC / TSLANG_AR / TSLANG_TOOLCHAIN. TSLANG_ARCH (x64 | x86,
+rem default x64) picks the target architecture; see the ARCH block below.
 
 echo on
 
@@ -19,7 +20,30 @@ set VER=-2026
 set BUILD=debug
 set BUILD1=Debug
 set LLVM_BUILD=Debug
-set ARCH=x64
+if "%TSLANG_ARCH%"=="" set TSLANG_ARCH=x64
+set ARCH=%TSLANG_ARCH%
+if not "%ARCH%"=="x64" if not "%ARCH%"=="x86" (
+	echo ""
+	echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+	echo "XXX TSLANG_ARCH must be x64 or x86 XXX"
+	echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+	echo ""
+	exit /b 1
+)
+rem ARCH_DIR nests the x86 tree one level under lib\ and dll\, next to today's flat
+rem x64 layout (defaultlib/{lib,dll}/x86/...; see tslang/include/TypeScript/Defines.h).
+rem TRIPLE_OPT tells tslang.exe to target i686 instead of its host x64.
+set ARCH_DIR=
+set TRIPLE_OPT=
+if "%ARCH%"=="x86" (
+	set ARCH_DIR=\x86
+	set TRIPLE_OPT=-mtriple=i686-pc-windows-msvc
+)
+rem clang-cl targets x64 regardless of which vcvarsall was called, so an x86 LLVM build
+rem needs an explicit -m32. TSLANG_CC_TOOL keeps the bare executable name (no flags) for
+rem the "where" check below - "where" cannot resolve "clang-cl -m32" as one token.
+set TSLANG_CC_TOOL=%TSLANG_CC%
+if "%TSLANG_TOOLCHAIN%"=="llvm" if "%ARCH%"=="x86" set "TSLANG_CC=%TSLANG_CC% -m32"
 set DBG=--di --opt_level=0
 rem /Z7, not /Zi: the wrappers are archived into a static .lib, so their debug info has to
 rem live inside each .obj. /Zi would park it in an external vc140.pdb in the current directory,
@@ -51,6 +75,19 @@ set MM=gc
 if not "%2"=="" set MM=%2
 set MM_OPT=-mm=%MM%
 
+rem One variable per output tree, set once here and used everywhere below (rd, md, /Fo,
+rem -o, --obj, del, xcopy, the final exist check), so an x86 build never lands a file in
+rem the x64 tree by way of a spot that forgot to add ARCH_DIR.
+set LIB_OUT=lib%ARCH_DIR%\%BUILD%\%MM%
+set DLL_OUT=dll%ARCH_DIR%\%BUILD%\%MM%
+
+rem The DLL build below links TypeScriptAsyncRuntime.lib. TSLANG_LIB_PATH (set further
+rem down) defaults to the compiler's own build tree, which has no x86 subdirectory, so
+rem an x86 build points --tslang-lib-path at the separate tslang-runtime tree instead
+rem (tslang appends "x86" to it itself, same as --gc-lib-path).
+set TSLANG_RUNTIME_OPT=
+if "%ARCH%"=="x86" set TSLANG_RUNTIME_OPT=--tslang-lib-path=..\TypeScriptCompiler\__build\tslang-runtime\%BUILD%
+
 set SRC=.
 set OUTPUT=.
 
@@ -70,8 +107,11 @@ rem binary - TypeScriptRuntime.dll under the JIT, a user's shared library - and 
 rem would give it a collector of its own that frees what they hold. The static lib\ archive
 rem links no collector at all, so it is unaffected.
 rem See TypeScriptCompiler/tslang/docs/single-gc-collector-design.md.
+rem Always the x64 gcdll tree, even for an x86 build (%ARCH% deliberately not used here):
+rem tslang appends "x86" to --gc-lib-path itself when the target is x86, so this path
+rem must stay the flat x64 one or that segment would be doubled.
 if "%GC_SHARED_LIB_PATH%"=="" (
-	set GC_SHARED_LIB_PATH=..\TypeScriptCompiler\3rdParty\gcdll\%ARCH%\%BUILD%\lib
+	set GC_SHARED_LIB_PATH=..\TypeScriptCompiler\3rdParty\gcdll\x64\%BUILD%\lib
 )
 if "%LLVM_LIB_PATH%"=="" (
 	set LLVM_LIB_PATH=%BUILD_PATH%\llvm\msbuild\%ARCH%\%BUILD%\%BUILD1%\lib
@@ -105,20 +145,22 @@ if "%VSWHERE_PATH%"=="" (
 
 set "VSWHERE_PATH=%VSWHERE_PATH:"=%"
 
+rem vcvarsall.bat takes the target arch as its argument (x64 or x86) - both live in the
+rem same VC\Auxiliary\Build directory as the old arch-specific vcvars64.bat.
 for /f "usebackq tokens=*" %%i in (`"%VSWHERE_PATH%" -legacy -latest -property installationPath`) do (
-  set "VSPATH="%%i\VC\Auxiliary\Build\vcvars64.bat""
+  set "VSPATH="%%i\VC\Auxiliary\Build\vcvarsall.bat""
 )
 
-call %VSPATH%
+call %VSPATH% %ARCH%
 
-rem vcvars64 sets up the MSVC headers and the Windows SDK but does not put the LLVM tools
+rem vcvarsall sets up the MSVC headers and the Windows SDK but does not put the LLVM tools
 rem on PATH. Check up front rather than letting a missing clang-cl fail five times over
 rem and still fall through to the staging step with no objects to archive.
-where %TSLANG_CC% >nul 2>&1
+where %TSLANG_CC_TOOL% >nul 2>&1
 if errorlevel 1 (
 	echo ""
 	echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-	echo "XXX compiler %TSLANG_CC% is not on PATH"
+	echo "XXX compiler %TSLANG_CC_TOOL% is not on PATH"
 	echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 	echo ""
 	exit /b 1
@@ -135,66 +177,74 @@ if errorlevel 1 (
 
 rem Only now that the toolchain is known good, clear this model's output folders -
 rem an earlier wipe would leave them empty whenever a check above bails out.
-rd /S /Q dll\%BUILD%\%MM%
-rd /S /Q lib\%BUILD%\%MM%
+rd /S /Q %DLL_OUT%
+rd /S /Q %LIB_OUT%
 
-md dll\%BUILD%\%MM%
-md lib\%BUILD%\%MM%
+md %DLL_OUT%
+md %LIB_OUT%
 
 rem echo on
 
 rem Build native wrappers for C++ code
-%TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\%MM%\ %SRC%\src\wrappers\io.cpp
-%TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\%MM%\ %SRC%\src\wrappers\datetime.cpp
-%TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\%MM%\ %SRC%\src\wrappers\regex.cpp
-%TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\%MM%\ %SRC%\src\wrappers\thread.cpp
-%TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\lib\%BUILD%\%MM%\ %SRC%\src\wrappers\http.cpp
+%TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\io.cpp
+%TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\datetime.cpp
+%TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\regex.cpp
+%TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\thread.cpp
+%TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\http.cpp
 
 rem Build OS-specific Lib
 echo Build OS-specific Lib
-%TOOL_PATH%\%TOOL_NAME%.exe %DBG% %MM_OPT% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.win32.ts -o %OUTPUT%\lib\%BUILD%\%MM%\lib.win32.obj
+%TOOL_PATH%\%TOOL_NAME%.exe %TRIPLE_OPT% %DBG% %MM_OPT% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.win32.ts -o %OUTPUT%\%LIB_OUT%\lib.win32.obj
 
 rem Build DLL
 echo Build DLL
-%TOOL_PATH%\%TOOL_NAME%.exe %DBG% %MM_OPT% --emit=dll --gc-lib-path=%GC_SHARED_LIB_PATH% --embed-declarations=false --nowarn --no-default-lib %SRC%\src\lib.ts --obj=%OUTPUT%\lib\%BUILD%\%MM%\lib.win32.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\io.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\datetime.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\regex.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\thread.obj --obj=%OUTPUT%\lib\%BUILD%\%MM%\http.obj -o %OUTPUT%\dll\%BUILD%\%MM%\TypeScriptDefaultLib.dll
+%TOOL_PATH%\%TOOL_NAME%.exe %TRIPLE_OPT% %DBG% %MM_OPT% --emit=dll --gc-lib-path=%GC_SHARED_LIB_PATH% %TSLANG_RUNTIME_OPT% --embed-declarations=false --nowarn --no-default-lib %SRC%\src\lib.ts --obj=%OUTPUT%\%LIB_OUT%\lib.win32.obj --obj=%OUTPUT%\%LIB_OUT%\io.obj --obj=%OUTPUT%\%LIB_OUT%\datetime.obj --obj=%OUTPUT%\%LIB_OUT%\regex.obj --obj=%OUTPUT%\%LIB_OUT%\thread.obj --obj=%OUTPUT%\%LIB_OUT%\http.obj -o %OUTPUT%\%DLL_OUT%\TypeScriptDefaultLib.dll
 
 rem Build Lib
 echo Build Lib
-%TOOL_PATH%\%TOOL_NAME%.exe %DBG% %MM_OPT% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\%MM%\lib.obj
-rem %TOOL_PATH%\%TOOL_NAME%.exe %DBG% %MM_OPT% --emit=llvm --export=none %SRC%\src\lib.ts -o %OUTPUT%\lib\%BUILD%\%MM%\lib.ll
-rem %TOOL_PATH%\%TOOL_NAME%.exe %DBG% %MM_OPT% --emit=mlir --export=none %SRC%\src\lib.ts 2> %OUTPUT%\lib\%BUILD%\%MM%\lib.mlir
+%TOOL_PATH%\%TOOL_NAME%.exe %TRIPLE_OPT% %DBG% %MM_OPT% --emit=obj --export=none --nowarn --no-default-lib %SRC%\src\lib.ts -o %OUTPUT%\%LIB_OUT%\lib.obj
+rem %TOOL_PATH%\%TOOL_NAME%.exe %TRIPLE_OPT% %DBG% %MM_OPT% --emit=llvm --export=none %SRC%\src\lib.ts -o %OUTPUT%\%LIB_OUT%\lib.ll
+rem %TOOL_PATH%\%TOOL_NAME%.exe %TRIPLE_OPT% %DBG% %MM_OPT% --emit=mlir --export=none %SRC%\src\lib.ts 2> %OUTPUT%\%LIB_OUT%\lib.mlir
 
-%TSLANG_AR% /out:%OUTPUT%\lib\%BUILD%\%MM%\TypeScriptDefaultLib.lib %OUTPUT%\lib\%BUILD%\%MM%\lib.obj %OUTPUT%\lib\%BUILD%\%MM%\lib.win32.obj %OUTPUT%\lib\%BUILD%\%MM%\io.obj %OUTPUT%\lib\%BUILD%\%MM%\datetime.obj %OUTPUT%\lib\%BUILD%\%MM%\regex.obj %OUTPUT%\lib\%BUILD%\%MM%\thread.obj %OUTPUT%\lib\%BUILD%\%MM%\http.obj
+%TSLANG_AR% /out:%OUTPUT%\%LIB_OUT%\TypeScriptDefaultLib.lib %OUTPUT%\%LIB_OUT%\lib.obj %OUTPUT%\%LIB_OUT%\lib.win32.obj %OUTPUT%\%LIB_OUT%\io.obj %OUTPUT%\%LIB_OUT%\datetime.obj %OUTPUT%\%LIB_OUT%\regex.obj %OUTPUT%\%LIB_OUT%\thread.obj %OUTPUT%\%LIB_OUT%\http.obj
 
-del %OUTPUT%\lib\%BUILD%\%MM%\lib.obj
-del %OUTPUT%\lib\%BUILD%\%MM%\lib.win32.obj
-del %OUTPUT%\lib\%BUILD%\%MM%\io.obj
-del %OUTPUT%\lib\%BUILD%\%MM%\datetime.obj
-del %OUTPUT%\lib\%BUILD%\%MM%\regex.obj
-del %OUTPUT%\lib\%BUILD%\%MM%\thread.obj
-del %OUTPUT%\lib\%BUILD%\%MM%\http.obj
+del %OUTPUT%\%LIB_OUT%\lib.obj
+del %OUTPUT%\%LIB_OUT%\lib.win32.obj
+del %OUTPUT%\%LIB_OUT%\io.obj
+del %OUTPUT%\%LIB_OUT%\datetime.obj
+del %OUTPUT%\%LIB_OUT%\regex.obj
+del %OUTPUT%\%LIB_OUT%\thread.obj
+del %OUTPUT%\%LIB_OUT%\http.obj
 
 rem Stage into a single shared defaultlib tree with per-build subfolders under
 rem dll\ and lib\. Only the current build's subfolders are refreshed so the
 rem other mode (debug/release) staged by a separate run is preserved.
 set BUILD_LIB_PATH=.\__build\defaultlib
-rd /S /Q %BUILD_LIB_PATH%\dll\%BUILD%\%MM%
-rd /S /Q %BUILD_LIB_PATH%\lib\%BUILD%\%MM%
-md %BUILD_LIB_PATH%\dll\%BUILD%\%MM%
-md %BUILD_LIB_PATH%\lib\%BUILD%\%MM%
+rd /S /Q %BUILD_LIB_PATH%\%DLL_OUT%
+rd /S /Q %BUILD_LIB_PATH%\%LIB_OUT%
+md %BUILD_LIB_PATH%\%DLL_OUT%
+md %BUILD_LIB_PATH%\%LIB_OUT%
 
 rem Record which compiler built this library, so a mismatch (e.g. after an ABI or
 rem codegen change in tslang) can be diagnosed from the artifact alone. The wrapper
 rem toolchain is recorded too, since the MSVC and LLVM builds share one output tree.
-%TOOL_PATH%\%TOOL_NAME%.exe --version > %BUILD_LIB_PATH%\COMPILER_VERSION.txt 2>&1
-echo wrappers: %TSLANG_TOOLCHAIN% (%TSLANG_CC%, %TSLANG_AR%) >> %BUILD_LIB_PATH%\COMPILER_VERSION.txt
+rem BUILD_LIB_PATH (__build\defaultlib) is shared by both arch trees, so a plain
+rem COMPILER_VERSION.txt would be truncated and overwritten by whichever arch built
+rem last, hiding one of the two records. The x64 file name stays as it always was -
+rem x64 output is otherwise byte-for-byte unchanged - and only x86 gets a second,
+rem separate file alongside it.
+set VERSION_FILE=COMPILER_VERSION.txt
+if "%ARCH%"=="x86" set VERSION_FILE=COMPILER_VERSION.x86.txt
+%TOOL_PATH%\%TOOL_NAME%.exe --version > %BUILD_LIB_PATH%\%VERSION_FILE% 2>&1
+echo wrappers: %TSLANG_TOOLCHAIN% (%TSLANG_CC%, %TSLANG_AR%) >> %BUILD_LIB_PATH%\%VERSION_FILE%
+echo arch: %ARCH% >> %BUILD_LIB_PATH%\%VERSION_FILE%
 
-xcopy %SRC%\dll\%BUILD%\%MM% %BUILD_LIB_PATH%\dll\%BUILD%\%MM% /h /i /c /k /e /r /y
-xcopy %SRC%\lib\%BUILD%\%MM% %BUILD_LIB_PATH%\lib\%BUILD%\%MM% /h /i /c /k /e /r /y
+xcopy %SRC%\%DLL_OUT% %BUILD_LIB_PATH%\%DLL_OUT% /h /i /c /k /e /r /y
+xcopy %SRC%\%LIB_OUT% %BUILD_LIB_PATH%\%LIB_OUT% /h /i /c /k /e /r /y
 xcopy %SRC%\src\*.d.ts %BUILD_LIB_PATH% /h /c /k /e /r /y
 xcopy %SRC%\src\generics\*.ts %BUILD_LIB_PATH%\generics /h /c /k /e /r /y
 
-if exist .\dll\%BUILD%\%MM%\TypeScriptDefaultLib.dll (
+if exist .\%DLL_OUT%\TypeScriptDefaultLib.dll (
 	echo ""
 	echo "||||||||||||||||||||||||||||"
 	echo "|||||||||| SUCCESS |||||||||"
