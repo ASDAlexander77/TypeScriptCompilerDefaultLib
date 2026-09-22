@@ -865,12 +865,31 @@ namespace __String {
     
     export function replaceAll(this: string, pattern: string | RegExp, replacement: string): string {
         if (typeof pattern == "string") {
+            if (pattern == "") {
+                // An empty pattern matches at every position, including before the
+                // first character and after the last one, and never consumes any
+                // input: every original character is preserved.
+                let parts: string[] = [];
+                parts.push(replacement);
+                for (const ch of this) {
+                    parts.push(ch);
+                    parts.push(replacement);
+                }
+
+                return join(parts);
+            }
+
             let index = 0;
             let parts: string[] = [];
             let len = this.length;
             while (true)
             {
                 const found = this.indexOf(pattern, index);
+                // indexOf(pattern, position) returns `this.length` (not -1) once
+                // position is past the end of the string, even for a non-empty
+                // pattern that can never match there; `found >= len` catches that
+                // so the loop terminates instead of looping forever re-finding
+                // the same out-of-range "match".
                 if (found == -1 || found >= len)
                 {
                     parts.push( this.substring(index) );
@@ -878,16 +897,16 @@ namespace __String {
                 }
 
                 parts.push( this.substring(index, found) + replacement );
-                index = found + pattern.length + (index == found ? 1 : 0);
+                index = found + pattern.length;
             }
 
             return join(parts);
         }
         else
-        {            
+        {
             return pattern.replaceAll(this, replacement);
         }
-    }    
+    }
 
     export function search(this: string, regexp: RegExp): int {
         return regexp.search(this);
