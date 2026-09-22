@@ -9,6 +9,13 @@
 @rem of cl/lib.exe; everything else (flags, layout, output tree) is identical, so the two
 @rem builds are interchangeable and overwrite each other in lib\ and dll\.
 @rem
+@rem Set TSLANG_ARCH=x86 to build the 32-bit tree instead of the default x64 one, e.g.
+@rem   set TSLANG_ARCH=x86
+@rem   build.bat release gc
+@rem Like TSLANG_TOOLCHAIN, it is an environment variable, not a positional argument -
+@rem %1/%2 stay "mode model" either way. x86 stages into lib\x86\... and dll\x86\...,
+@rem alongside the x64 tree, and needs the x86 Boehm GC prerequisite (see README.md).
+@rem
 @rem See tslang/include/TypeScript/Defines.h for the resulting layout.
 
 if /I "%TSLANG_TOOLCHAIN%" == "llvm" (
