@@ -16,6 +16,11 @@ set TSLANG_ARCH=x86
 build.bat
 ```
 
+Clear it afterwards - `set TSLANG_ARCH=` (or `Remove-Item Env:TSLANG_ARCH` in
+PowerShell) - since it is a session-wide environment variable, not a
+one-shot argument: a later plain `build.bat` or `tslang --install-default-lib`
+run in the same shell would otherwise silently build only the x86 tree.
+
 This stages into `__build\defaultlib\{lib,dll}\x86\<debug|release>\<gc|rc|none>\`,
 alongside the existing x64 tree. It requires two things already built in the compiler
 repo:

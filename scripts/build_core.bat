@@ -228,9 +228,16 @@ md %BUILD_LIB_PATH%\%LIB_OUT%
 rem Record which compiler built this library, so a mismatch (e.g. after an ABI or
 rem codegen change in tslang) can be diagnosed from the artifact alone. The wrapper
 rem toolchain is recorded too, since the MSVC and LLVM builds share one output tree.
-%TOOL_PATH%\%TOOL_NAME%.exe --version > %BUILD_LIB_PATH%\COMPILER_VERSION.txt 2>&1
-echo wrappers: %TSLANG_TOOLCHAIN% (%TSLANG_CC%, %TSLANG_AR%) >> %BUILD_LIB_PATH%\COMPILER_VERSION.txt
-echo arch: %ARCH% >> %BUILD_LIB_PATH%\COMPILER_VERSION.txt
+rem BUILD_LIB_PATH (__build\defaultlib) is shared by both arch trees, so a plain
+rem COMPILER_VERSION.txt would be truncated and overwritten by whichever arch built
+rem last, hiding one of the two records. The x64 file name stays as it always was -
+rem x64 output is otherwise byte-for-byte unchanged - and only x86 gets a second,
+rem separate file alongside it.
+set VERSION_FILE=COMPILER_VERSION.txt
+if "%ARCH%"=="x86" set VERSION_FILE=COMPILER_VERSION.x86.txt
+%TOOL_PATH%\%TOOL_NAME%.exe --version > %BUILD_LIB_PATH%\%VERSION_FILE% 2>&1
+echo wrappers: %TSLANG_TOOLCHAIN% (%TSLANG_CC%, %TSLANG_AR%) >> %BUILD_LIB_PATH%\%VERSION_FILE%
+echo arch: %ARCH% >> %BUILD_LIB_PATH%\%VERSION_FILE%
 
 xcopy %SRC%\%DLL_OUT% %BUILD_LIB_PATH%\%DLL_OUT% /h /i /c /k /e /r /y
 xcopy %SRC%\%LIB_OUT% %BUILD_LIB_PATH%\%LIB_OUT% /h /i /c /k /e /r /y

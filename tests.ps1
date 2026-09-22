@@ -53,6 +53,10 @@ function Test([string]$config, [string]$mode, [string]$fileName)
     $isX86 = ($Env:TSLANG_ARCH -eq "x86")
 
     if ($isX86) {
+        # x86 mode hardcodes the sibling ..\TypeScriptCompiler layout for GC_LIB_PATH_X86 and
+        # TSLANG_LIB_PATH_X86 below, unlike the x64 path above: it ignores $Env:TOOL_PATH (and
+        # the $BUILD_PATH/$TOOL_PATH it would otherwise redirect) entirely, so a custom TOOL_PATH
+        # has no effect on which x86 gc/runtime libraries a x86 test run links against.
         # 32-bit exes link statically; --shared-libs=...TypeScriptRuntime.dll below is an x64
         # JIT-only DLL (tslang.cpp's clSharedLibs, read only by --emit=jit in jit.cpp) that
         # --emit=exe never consumes, so it is dropped here rather than passed and ignored.
