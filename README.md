@@ -25,6 +25,21 @@ repo:
   `scripts\build_tslang_runtime_<debug|release>_x86.bat` in `TypeScriptCompiler`, which
   puts it in `__build\tslang-runtime\<debug|release>\x86\`.
 
+## Testing
+
+```
+tests.ps1                          # x64, all four passes: release/debug x compile/jit
+$Env:TSLANG_ARCH="x86"; .\tests.ps1 # x86, release/compile and debug/compile only
+```
+
+The JIT is host-only (`--emit=jit` refuses an x86 target by design), so under
+`TSLANG_ARCH=x86` `tests.ps1` prints "jit is host-only; skipped for x86" and runs only
+the two compile passes, against the x86 tree built above. It compiles with
+`-mtriple=i686-pc-windows-msvc` and points `--gc-lib-path`/`--tslang-lib-path` at the x64
+build trees under `TypeScriptCompiler` (the compiler appends `x86` to each itself), so an
+x64 value already set in `$Env:GC_LIB_PATH`/`$Env:TSLANG_LIB_PATH` for the session can't
+leak into the x86 build.
+
 ## Docs
 
 - [fetch / Headers / Response](docs/fetch.md) — built-in HTTP client

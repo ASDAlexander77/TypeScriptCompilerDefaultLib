@@ -50,8 +50,26 @@ function Test([string]$config, [string]$mode, [string]$fileName)
     $DBG_ARGS = [string[]]$(if ($DBG -ne "") { $DBG -split " " } else { @() })
     $OPTIONS_ARGS = [string[]]$(if ($OPTIONS -ne "") { $OPTIONS -split " " } else { @() })
 
+    $isX86 = ($Env:TSLANG_ARCH -eq "x86")
+
+    if ($isX86) {
+        # 32-bit exes link statically; --shared-libs=...TypeScriptRuntime.dll below is an x64
+        # JIT-only DLL (tslang.cpp's clSharedLibs, read only by --emit=jit in jit.cpp) that
+        # --emit=exe never consumes, so it is dropped here rather than passed and ignored.
+        # --gc-lib-path/--tslang-lib-path are passed explicitly (not left to the $Env: defaults
+        # set above) so an x64 value already sitting in the environment for this session can't
+        # leak into the x86 build; the compiler appends "x86" to each itself.
+        $GC_LIB_PATH_X86="..\TypeScriptCompiler\3rdParty\gc\x64\$BUILD\lib"
+        $TSLANG_LIB_PATH_X86="..\TypeScriptCompiler\__build\tslang-runtime\$BUILD"
+        $ARCH_ARGS = @("-mtriple=i686-pc-windows-msvc", "--gc-lib-path=$GC_LIB_PATH_X86", "--tslang-lib-path=$TSLANG_LIB_PATH_X86")
+    }
+
     if ($mode -eq "compile") {
-        $compile_error_output = ($compile_output = & $TOOL_PATH\$TOOL.exe @DBG_ARGS @OPTIONS_ARGS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=exe $SRC\tests\$test.ts) 2>&1
+        if ($isX86) {
+            $compile_error_output = ($compile_output = & $TOOL_PATH\$TOOL.exe @DBG_ARGS @OPTIONS_ARGS @ARCH_ARGS --emit=exe $SRC\tests\$test.ts) 2>&1
+        } else {
+            $compile_error_output = ($compile_output = & $TOOL_PATH\$TOOL.exe @DBG_ARGS @OPTIONS_ARGS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=exe $SRC\tests\$test.ts) 2>&1
+        }
 
         $compile_code = $LASTEXITCODE
 
@@ -126,10 +144,17 @@ function Tests([string]$config, [string]$mode)
 
 $allFailedTests = @()
 
-$allFailedTests += Tests "release" "compile" | ForEach-Object { "release/compile: $_" }
-$allFailedTests += Tests "release" "jit" | ForEach-Object { "release/jit: $_" }
-$allFailedTests += Tests "debug" "compile" | ForEach-Object { "debug/compile: $_" }
-$allFailedTests += Tests "debug" "jit" | ForEach-Object { "debug/jit: $_" }
+if ($Env:TSLANG_ARCH -eq "x86") {
+    # The JIT (jit.cpp) refuses x86 targets by design; only the two compile passes apply.
+    Write-Host "jit is host-only; skipped for x86" -ForegroundColor Yellow
+    $allFailedTests += Tests "release" "compile" | ForEach-Object { "release/compile: $_" }
+    $allFailedTests += Tests "debug" "compile" | ForEach-Object { "debug/compile: $_" }
+} else {
+    $allFailedTests += Tests "release" "compile" | ForEach-Object { "release/compile: $_" }
+    $allFailedTests += Tests "release" "jit" | ForEach-Object { "release/jit: $_" }
+    $allFailedTests += Tests "debug" "compile" | ForEach-Object { "debug/compile: $_" }
+    $allFailedTests += Tests "debug" "jit" | ForEach-Object { "debug/jit: $_" }
+}
 
 if ($allFailedTests.Count -gt 0) {
     Write-Host "Done. $($allFailedTests.Count) test(s) failed:" -ForegroundColor Red
