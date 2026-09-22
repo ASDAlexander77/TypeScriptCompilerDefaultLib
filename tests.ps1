@@ -56,12 +56,18 @@ function Test([string]$config, [string]$mode, [string]$fileName)
         # 32-bit exes link statically; --shared-libs=...TypeScriptRuntime.dll below is an x64
         # JIT-only DLL (tslang.cpp's clSharedLibs, read only by --emit=jit in jit.cpp) that
         # --emit=exe never consumes, so it is dropped here rather than passed and ignored.
-        # --gc-lib-path/--tslang-lib-path are passed explicitly (not left to the $Env: defaults
-        # set above) so an x64 value already sitting in the environment for this session can't
-        # leak into the x86 build; the compiler appends "x86" to each itself.
+        # --gc-lib-path/--tslang-lib-path/--default-lib-path are passed explicitly (not left to
+        # the $Env: defaults set above) so a value already sitting in the environment for this
+        # session can't leak into the x86 build; the compiler appends "x86" to the first two
+        # itself, and computes the x86 default-lib subdirectory under the same base path used
+        # for x64 (see getDefaultLibSubDir). --default-lib-path here is deliberate isolation,
+        # not a behavior change: it is the same $DEFAULTLIB_BUILD_PATH the $Env:DEFAULT_LIB_PATH
+        # default above already carries, so this only stops that env var (guarded by the
+        # `$Env:DEFAULT_LIB_PAT` typo elsewhere in this function, never fixed here) from being
+        # the sole thing standing between an x86 run and a stale x64 value.
         $GC_LIB_PATH_X86="..\TypeScriptCompiler\3rdParty\gc\x64\$BUILD\lib"
         $TSLANG_LIB_PATH_X86="..\TypeScriptCompiler\__build\tslang-runtime\$BUILD"
-        $ARCH_ARGS = @("-mtriple=i686-pc-windows-msvc", "--gc-lib-path=$GC_LIB_PATH_X86", "--tslang-lib-path=$TSLANG_LIB_PATH_X86")
+        $ARCH_ARGS = @("-mtriple=i686-pc-windows-msvc", "--gc-lib-path=$GC_LIB_PATH_X86", "--tslang-lib-path=$TSLANG_LIB_PATH_X86", "--default-lib-path=$DEFAULTLIB_BUILD_PATH")
     }
 
     if ($mode -eq "compile") {
