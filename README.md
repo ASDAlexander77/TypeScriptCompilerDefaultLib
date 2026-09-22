@@ -1,6 +1,25 @@
 # TypeScriptCompilerDefaultLib
 Implementation of Default Core Library for TypeScript Compiler
 
+## Building
+
+```
+build.bat                  # x64, release and debug, all three memory models
+build.bat release gc       # x64, just that one
+```
+
+For 32-bit Windows, set `TSLANG_ARCH=x86` before calling `build.bat` (it is an
+environment variable, not a positional argument, the same idiom as `TSLANG_TOOLCHAIN`):
+
+```
+set TSLANG_ARCH=x86
+build.bat
+```
+
+This stages into `__build\defaultlib\{lib,dll}\x86\<debug|release>\<gc|rc|none>\`,
+alongside the existing x64 tree. It requires the x86 Boehm GC to already be built in
+the compiler repo: `prepare_3rdParty.bat <debug|release> x86` in `TypeScriptCompiler`.
+
 ## Docs
 
 - [fetch / Headers / Response](docs/fetch.md) — built-in HTTP client
