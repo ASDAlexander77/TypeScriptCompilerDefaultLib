@@ -712,7 +712,7 @@ class Map<K = any, V = any> {
         return this;
     }
 
-    get(k: K): V | null {
+    get(k: K): V | undefined {
         return this.findValue(k);
     }
 
@@ -872,7 +872,7 @@ class Map<K = any, V = any> {
         return true;
     }
 
-    private findValue(key: K): V | null {
+    private findValue(key: K): V | undefined {
         const hashCode = <uint>HashHelpers.hashCode(key);
         let i = this.getBucket(hashCode);
         let entries = this._entries;
@@ -882,7 +882,7 @@ class Map<K = any, V = any> {
         do {
             if (<uint>i >= <uint>entries.length) {
                 // not found
-                return null;
+                return undefined;
             }
 
             const entry = Ref(entries[i]);
@@ -899,7 +899,7 @@ class Map<K = any, V = any> {
         // The chain of entries forms a loop; which means a concurrent update has happened.
         // Break out of the loop and throw, rather than looping forever.
         // TODO: throw exception
-        return null;
+        return undefined;
     }
 
     private hasValue(key: K): boolean {
