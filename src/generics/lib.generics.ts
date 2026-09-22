@@ -708,7 +708,7 @@ class Map<K = any, V = any> {
     }
 
     set(k: K, v: V) {
-        this.tryInsert(k, v, InsertionBehavior.ThrowOnExisting);
+        this.tryInsert(k, v, InsertionBehavior.OverwriteExisting);
         return this;
     }
 
