@@ -57,6 +57,8 @@ jobs:
           GC_LIB_PATH: .\compiler\tsc
           LLVM_LIB_PATH: .\compiler\tsc
           TSC_LIB_PATH: .\compiler\tsc
+          # a release compiler package ships only release-CRT libraries; see scripts\build_core.bat
+          TSLANG_DEBUG_CRT: /MT
 
       - name: Create Zip of Windows Asset
         working-directory: ${{github.workspace}}/__build
