@@ -16,6 +16,10 @@
 @rem %1/%2 stay "mode model" either way. x86 stages into lib\x86\... and dll\x86\...,
 @rem alongside the x64 tree, and needs the x86 Boehm GC prerequisite (see README.md).
 @rem
+@rem Set TSLANG_DEBUG_CRT=/MT to build the debug archive against the release C runtime, for a
+@rem package whose runtime/collector/LLVM libraries are all release builds (the compiler's
+@rem release zip). The default, /MTd, matches a debug tslang build. See scripts\build_core.bat.
+@rem
 @rem See tslang/include/TypeScript/Defines.h for the resulting layout.
 
 if /I "%TSLANG_TOOLCHAIN%" == "llvm" (
