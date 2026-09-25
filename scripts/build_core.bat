@@ -57,9 +57,9 @@ rem (see tslang/tslang/exe.cpp). Without a flag cl defaults to /MT, so the debug
 rem release-CRT wrappers and a debug `tslang --emit=exe` against it failed with LNK2038 mismatches.
 set DBG_CL=/MTd /Z7 /std:c++latest
 rem TSLANG_DEBUG_CRT=/MT builds the debug archive against the release CRT instead. /MTd is right
-rem next to a debug tslang build, whose runtime, collector and LLVM libraries are /MTd too. A
-rem release package ships only /MT builds of those (TypeScriptAsyncRuntime.lib, gc.lib,
-rem LLVMSupport.lib), so there a /MTd debug archive cannot be linked with them at all: every
+rem next to a debug tslang build, whose runtime and collector are /MTd too. A
+rem release package ships only /MT builds of those (TypeScriptAsyncRuntime.lib and
+rem gc.lib), so there a /MTd debug archive cannot be linked with them at all: every
 rem `tslang --di --emit=exe` failed with LNK2038. The compiler's release workflow sets it. It
 rem changes only the CRT; the archive still carries debug info (/Z7, --di).
 if /I "%TSLANG_DEBUG_CRT%"=="/MT" (
