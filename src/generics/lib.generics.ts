@@ -442,6 +442,45 @@ class Array<T> {
         return this.data.pop();
     }
 
+    public shift(): T {
+        return this.data.shift();
+    }
+
+    public unshift(...args: T[]): int {
+        for (let i = args.length - 1; i >= 0; i--)
+            this.data.unshift(args[i]);
+        return this.data.length;
+    }
+
+    // Removes `deleteCount` elements at `start` (all of them to the end when it is left out),
+    // inserts `items` there, and returns the removed ones. A negative start counts from the end.
+    public splice(start: int, deleteCount?: int, ...items: T[]): T[] {
+        const length = this.data.length;
+        if (start < 0) {
+            start = start + length < 0 ? 0 : start + length;
+        } else if (start > length) {
+            start = length;
+        }
+
+        let count = deleteCount === undefined ? length - start : deleteCount;
+        if (count < 0) {
+            count = 0;
+        } else if (count > length - start) {
+            count = length - start;
+        }
+
+        // push takes a reference of its own to each, so the removed elements outlive the splice
+        let removed: T[] = [];
+        for (let i = 0; i < count; i++)
+            removed.push(this.data[start + i]);
+
+        this.data.splice(start, count);
+        for (let i = 0; i < items.length; i++)
+            this.data.splice(start + i, 0, items[i]);
+
+        return removed;
+    }
+
     public get length() {
         return this.data.length;
     }
