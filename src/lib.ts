@@ -23,7 +23,7 @@ export function isFinite(val: number): boolean {
 }
 
 namespace __Boolean {
-    function toString(this: boolean) {
+    export function toString(this: boolean) {
         return <string>this;
     }    
 }
@@ -43,19 +43,19 @@ export class Boolean {
 
 namespace __Number {
 
-    function toExponential(this: number, fractionDigits = 0) {
+    export function toExponential(this: number, fractionDigits = 0) {
         return convertNumber(50, `%.${fractionDigits}e`, this);
     }
 
-    function toFixed(this: number, digits = 0) {
+    export function toFixed(this: number, digits = 0) {
         return convertNumber(50, `%.${digits}f`, this);
     }
 
-    function toPrecision(this: number, precision = 0) {
+    export function toPrecision(this: number, precision = 0) {
         return convertNumber(50, `%.${precision}g`, this);
     }
 
-    function toString(this: number, radix = 10) {
+    export function toString(this: number, radix = 10) {
         switch (radix) {
             case 16:
                 return convertNumber(50, "%a", this);
@@ -146,14 +146,14 @@ export class Number {
 
 namespace __BigInt {
     
-    function toLocaleString(this: bigint, locale = "") {
+    export function toLocaleString(this: bigint, locale = "") {
         setlocale (LC_COLLATE, locale);        
         const result = convertNumber(50, "%a", this);
         setlocale (LC_COLLATE, "");        
         return result;
     }  
 
-    function toString(this: bigint) {
+    export function toString(this: bigint) {
         return <string>this;
     }    
 }
