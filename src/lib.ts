@@ -842,7 +842,9 @@ namespace __String {
         const newString = this.clone().resize(newSize);        
         let index = this.length;
         const byteSize = sizeof<char>() * this.length;
-        for (let i = 0; i < count; i++) {
+        // the clone holds the first copy already: count - 1 more fill the string, and one more
+        // wrote past its end
+        for (let i = 1; i < count; i++) {
             memcpy(Ref(newString[index]), this, byteSize);
             index += this.length;
         }
