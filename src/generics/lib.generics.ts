@@ -141,7 +141,7 @@ namespace __Array {
             end = this.length;
         }
 
-        for (let i = start; i <= end; i++)
+        for (let i = start; i < end; i++)
             newArray[i] = value;
 
         return newArray;
