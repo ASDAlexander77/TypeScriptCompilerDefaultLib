@@ -1504,18 +1504,24 @@ namespace __Iterator
     }
 }
 
+// gc only: the collector clears the link. Under any other model the compiler rejects the
+// GC_* call below.
 class WeakRef<T extends object> {
-    private _target: Opaque | null;
+    // The target's address complemented, as gc.h's GC_HIDE_POINTER does: a plain pointer here is
+    // one the collector finds when it scans this object, and it then keeps the target alive, so
+    // the link was never cleared. The collector sets this to 0 when the target goes.
+    private _hidden: index;
 
     constructor(target: T) {
-        this._target = <Opaque>target;
-        GC_general_register_disappearing_link(Ref(this._target), <Opaque>target);
+        this._hidden = ~(<index><Opaque>target);
+        GC_general_register_disappearing_link(<Reference<Opaque>>Ref(this._hidden), <Opaque>target);
     }
 
     deref(): T | undefined {
-        if (this._target != null) {
-            return <T>this._target;
+        const hidden = this._hidden;
+        if (hidden == 0) {
+            return undefined;
         }
-        return undefined;
+        return <T><Opaque>(~hidden);
     }
 }
