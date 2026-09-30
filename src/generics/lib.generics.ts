@@ -71,7 +71,17 @@ namespace __Array {
             end = this.length;
         }
 
-        memmove(Ref(this[target]), Ref(this[start]), sizeof<T>() * (end - start));
+        // element by element, not memmove: under rc an element may own what it holds, and an
+        // assignment is what takes a reference to the copy and gives up the one overwritten.
+        // Backwards when the ranges overlap that way, as memmove would.
+        let count = end - start;
+        if (count > this.length - target) count = this.length - target;
+        if (target > start) {
+            for (let i = count - 1; i >= 0; i--) this[target + i] = this[start + i];
+        } else {
+            for (let i = 0; i < count; i++) this[target + i] = this[start + i];
+        }
+
         return this;
     }
 
@@ -82,12 +92,12 @@ namespace __Array {
             count += item.length;
         let newArray: T[] = [];
         newArray.length = count;
+        // element by element, not memcpy: under rc an element may own what it holds, and the new
+        // array's store is what takes the reference its release will give back
         let index = 0;
-        memcpy(Ref(newArray[index]), Ref(this[0]), sizeof<T>() * this.length);
-        index += this.length;
+        for (const v of this) newArray[index++] = v;
         for (const item of other) {
-            memcpy(Ref(newArray[index]), Ref(item[0]), sizeof<T>() * item.length);
-            index += item.length;
+            for (const v of item) newArray[index++] = v;
         }
 
         return newArray;
@@ -131,7 +141,7 @@ namespace __Array {
             end = this.length;
         }
 
-        for (let i = start; i <= end; i++)
+        for (let i = start; i < end; i++)
             newArray[i] = value;
 
         return newArray;
@@ -340,7 +350,8 @@ namespace __Array {
 
         let newArray: T[] = [];
         newArray.length = end - start;
-        memcpy(Ref(newArray[0]), Ref(this[start]), sizeof<T>() * (end - start));
+        // element by element, not memcpy (see concat)
+        for (let i = start; i < end; i++) newArray[i - start] = this[i];
         return newArray;
     }
 
@@ -821,7 +832,10 @@ class Map<K = any, V = any> {
         entries.length = newSize;
 
         const count = this.count;
-        memcpy(Ref(entries[0]), Ref(this._entries[0]), sizeof<typeof entries[0]>() * count);
+        // entry by entry, not memcpy: under rc an entry owns its key and value, and the old array
+        // gives them up when it is replaced below - the new one has to have taken its own
+        const oldEntries = this._entries;
+        for (let i = 0; i < count; i++) entries[i] = oldEntries[i];
 
         if (forceNewHashCodes) {
             this.newHashCodes(entries);
@@ -1243,7 +1257,10 @@ class Set<V = any> {
         entries.length = newSize;
 
         const count = this.count;
-        memcpy(Ref(entries[0]), Ref(this._entries[0]), sizeof<typeof entries[0]>() * count);
+        // entry by entry, not memcpy: under rc an entry owns its key and value, and the old array
+        // gives them up when it is replaced below - the new one has to have taken its own
+        const oldEntries = this._entries;
+        for (let i = 0; i < count; i++) entries[i] = oldEntries[i];
 
         if (forceNewHashCodes) {
             this.newHashCodes(entries);
