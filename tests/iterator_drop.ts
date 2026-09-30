@@ -38,9 +38,11 @@ for (const n of fibonacci().take(5).drop(2)) {
 }
 
 // 5
+// `new Set([1, 2, 3])` is a Set<si32>: a finished iterator's value cannot be undefined, and is 0
 const result = new Set([1, 2, 3]).values().drop(4).next();
 console.log(result);
 
-assert(<string>result == "{ value: undefined, done: true }");
+assert(result.done);
+assert(result.value == 0);
 
 console.log("ALL DONE");
