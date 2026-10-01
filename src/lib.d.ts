@@ -219,9 +219,9 @@ declare class Date {
 
 declare class MatchIndicesResults
 {
-    private match?: Opaque | null;
+    private match: Opaque | null;
 
-    private lastIndex?: index;
+    private lastIndex: index;
 
     constructor(match?: Opaque | null, lastIndex?: index);
 
@@ -236,11 +236,11 @@ declare class MatchResults
 {
     private indices_: MatchIndicesResults;
 
-    private match?: Opaque | null;
+    private match: Opaque | null;
 
-    private hasIndices?: boolean;
+    private hasIndices: boolean;
 
-    private lastIndex?: index;
+    private lastIndex: index;
 
     constructor(match?: Opaque | null, lastIndex?: index);
 
@@ -270,7 +270,7 @@ declare class RegExp {
 
     private expr: string;
 
-    private flags?: string;
+    private flags: string;
 
     constructor(source: string, flags?: string);
 
