@@ -277,10 +277,11 @@ namespace __Array {
         return result;
     }
 
-    function reduce<T, V = T>(this: T[], func: (v: V, t: T) => V, initial?: V) {
+    function reduce<T, V = T>(this: T[], func: (v: V, t: T) => V, initial?: V): V {
         if (initial == undefined) {
             if (this.length <= 0) {
-                return undefined;
+                // as in JavaScript: there is no first value to start from
+                throw new TypeError("Reduce of empty array with no initial value");
             }
 
             if (__is<V, T>(this[0])) {
@@ -296,10 +297,11 @@ namespace __Array {
         }
     }
 
-    function reduceRight<T, V = T>(this: T[], func: (v: V, t: T) => V, initial?: V) {
+    function reduceRight<T, V = T>(this: T[], func: (v: V, t: T) => V, initial?: V): V {
         if (initial == undefined) {
             if (this.length <= 0) {
-                return undefined;
+                // as in JavaScript: there is no first value to start from
+                throw new TypeError("Reduce of empty array with no initial value");
             }
 
             if (__is<V, T>(this[0])) {
