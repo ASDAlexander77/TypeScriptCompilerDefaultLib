@@ -18,6 +18,17 @@ function aliveValue(ref: WeakRef<Foo>): int {
     return target != undefined ? target.value : -1;
 }
 
+// writes plain numbers over the stack below main's frame. A function main called before - aliveValue,
+// deref - can leave the object's address in a slot there (unoptimized code keeps every value in memory),
+// and the collection runs over that same stretch of stack and keeps whatever it finds there alive.
+function clearStack(depth: int): int {
+    const a = depth;
+    const b = depth + 1;
+    const c = depth + 2;
+    const d = depth + 3;
+    return depth > 0 ? clearStack(depth - 1) + a + b + c + d : 0;
+}
+
 function main() {
     const ref = makeAndDrop();
 
@@ -28,6 +39,7 @@ function main() {
     const kept = new Foo(7);
     const keptRef = new WeakRef<Foo>(kept);
 
+    clearStack(200);
     GC_gcollect();
     GC_gcollect();
 
