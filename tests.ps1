@@ -4,6 +4,13 @@
 # A test whose first line starts with "// gc only" is skipped under any other model.
 param([string]$Model = $Env:TSLANG_MM)
 
+# The library paths the environment gives when the script starts. One it does not give is worked
+# out again for each pass, release or debug: set once by the first pass, it made every later one
+# link the release libraries, which a debug default library does not link with (LNK2038).
+$GivenGcLibPath = $Env:GC_LIB_PATH
+$GivenLlvmLibPath = $Env:LLVM_LIB_PATH
+$GivenTslangLibPath = $Env:TSLANG_LIB_PATH
+
 function Test([string]$config, [string]$mode, [string]$fileName)
 {
     $BUILD="debug"
@@ -43,15 +50,9 @@ function Test([string]$config, [string]$mode, [string]$fileName)
 	    $DEFAULTLIB_BUILD_PATH=".\__build"
     }
 
-    if ($null -eq $Env:GC_LIB_PATH) {
-	    $Env:GC_LIB_PATH="$BUILD_PATH\gc\msbuild\$ARCH\$BUILD\$BUILD1"
-    }
-    if ($null -eq $Env:LLVM_LIB_PATH) {
-	    $Env:LLVM_LIB_PATH="$BUILD_PATH\llvm\msbuild\$ARCH\$BUILD\$BUILD1\lib"
-    }
-    if ($null -eq $Env:TSLANG_LIB_PATH) {
-	    $Env:TSLANG_LIB_PATH="$BUILD_PATH\$TOOL\windows-msbuild$VER-$BUILD\lib"
-    }
+    $Env:GC_LIB_PATH = if ($GivenGcLibPath) { $GivenGcLibPath } else { "$BUILD_PATH\gc\msbuild\$ARCH\$BUILD\$BUILD1" }
+    $Env:LLVM_LIB_PATH = if ($GivenLlvmLibPath) { $GivenLlvmLibPath } else { "$BUILD_PATH\llvm\msbuild\$ARCH\$BUILD\$BUILD1\lib" }
+    $Env:TSLANG_LIB_PATH = if ($GivenTslangLibPath) { $GivenTslangLibPath } else { "$BUILD_PATH\$TOOL\windows-msbuild$VER-$BUILD\lib" }
     if ($null -eq $Env:DEFAULT_LIB_PAT) {
 	    $Env:DEFAULT_LIB_PATH="$DEFAULTLIB_BUILD_PATH"
     }

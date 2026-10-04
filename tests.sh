@@ -5,6 +5,13 @@
 # A test whose first line starts with "// gc only" is skipped under any other model.
 MODEL="${1:-$TSLANG_MM}"
 
+# The library paths the environment gives when the script starts. One it does not give is worked
+# out again for each pass, release or debug: exported once by the first pass, it made every later
+# one link the release libraries.
+GIVEN_GC_LIB_PATH="$GC_LIB_PATH"
+GIVEN_LLVM_LIB_PATH="$LLVM_LIB_PATH"
+GIVEN_TSLANG_LIB_PATH="$TSLANG_LIB_PATH"
+
 function test_script() {
     config="$1"
     mode="$2"
@@ -46,9 +53,9 @@ function test_script() {
     # relative to the DefaultLib repo root (the tests working directory).
     DEFAULTLIB_BUILD_PATH="./__build"
 
-    export GC_LIB_PATH="${GC_LIB_PATH:-$BUILD_PATH/gc/ninja/$BUILD}"
-    export LLVM_LIB_PATH="${LLVM_LIB_PATH:-$BUILD_PATH/llvm/ninja/$BUILD/lib}"
-    export TSLANG_LIB_PATH="${TSLANG_LIB_PATH:-$BUILD_PATH/$TOOL/linux-ninja-gcc-$BUILD/lib}"
+    export GC_LIB_PATH="${GIVEN_GC_LIB_PATH:-$BUILD_PATH/gc/ninja/$BUILD}"
+    export LLVM_LIB_PATH="${GIVEN_LLVM_LIB_PATH:-$BUILD_PATH/llvm/ninja/$BUILD/lib}"
+    export TSLANG_LIB_PATH="${GIVEN_TSLANG_LIB_PATH:-$BUILD_PATH/$TOOL/linux-ninja-gcc-$BUILD/lib}"
     export DEFAULT_LIB_PATH="${DEFAULT_LIB_PATH:-$DEFAULTLIB_BUILD_PATH}"
 
     if [ "$mode" == "compile" ]; then
