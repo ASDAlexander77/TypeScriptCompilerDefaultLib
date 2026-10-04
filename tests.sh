@@ -1,4 +1,16 @@
 #!/bin/bash
+# Runs every test in ./tests, release and debug, compiled and under the JIT.
+#   ./tests.sh        the compiler's default memory model (gc)
+#   ./tests.sh rc     -mm=rc, against the default library built for it; also TSLANG_MM=rc
+# A test whose first line starts with "// gc only" is skipped under any other model.
+MODEL="${1:-$TSLANG_MM}"
+
+# The library paths the environment gives when the script starts. One it does not give is worked
+# out again for each pass, release or debug: exported once by the first pass, it made every later
+# one link the release libraries.
+GIVEN_GC_LIB_PATH="$GC_LIB_PATH"
+GIVEN_LLVM_LIB_PATH="$LLVM_LIB_PATH"
+GIVEN_TSLANG_LIB_PATH="$TSLANG_LIB_PATH"
 
 function test_script() {
     config="$1"
@@ -22,6 +34,10 @@ function test_script() {
         OPTIONS="--opt --opt_level=3"
     fi
 
+    if [ -n "$MODEL" ]; then
+        OPTIONS="$OPTIONS -mm=$MODEL"
+    fi
+
     SRC="."
     OUTPUT="."
 
@@ -37,9 +53,9 @@ function test_script() {
     # relative to the DefaultLib repo root (the tests working directory).
     DEFAULTLIB_BUILD_PATH="./__build"
 
-    export GC_LIB_PATH="${GC_LIB_PATH:-$BUILD_PATH/gc/ninja/$BUILD}"
-    export LLVM_LIB_PATH="${LLVM_LIB_PATH:-$BUILD_PATH/llvm/ninja/$BUILD/lib}"
-    export TSLANG_LIB_PATH="${TSLANG_LIB_PATH:-$BUILD_PATH/$TOOL/linux-ninja-gcc-$BUILD/lib}"
+    export GC_LIB_PATH="${GIVEN_GC_LIB_PATH:-$BUILD_PATH/gc/ninja/$BUILD}"
+    export LLVM_LIB_PATH="${GIVEN_LLVM_LIB_PATH:-$BUILD_PATH/llvm/ninja/$BUILD/lib}"
+    export TSLANG_LIB_PATH="${GIVEN_TSLANG_LIB_PATH:-$BUILD_PATH/$TOOL/linux-ninja-gcc-$BUILD/lib}"
     export DEFAULT_LIB_PATH="${DEFAULT_LIB_PATH:-$DEFAULTLIB_BUILD_PATH}"
 
     if [ "$mode" == "compile" ]; then
@@ -72,6 +88,12 @@ function test_script() {
 
 failed_tests=()
 
+# A test that needs the collector says so on its first line ("// gc only: WeakRef ..."): under
+# rc, none or own the compiler rejects the collector's API, so it cannot pass there.
+function gc_only() {
+    head -n 1 "$1" | grep -q '^// gc only'
+}
+
 function tests() {
     config="$1"
     mode="$2"
@@ -80,11 +102,18 @@ function tests() {
     count=$(find ./tests -name "*.ts" | wc -l)
     index=0
     success=0
+    skipped=0
 
     for file in ./tests/*.ts; do
         index=$((index + 1))
         testName="$(basename "$file")"
         printf "%d/%d Test #%d : %-40s  " "$success" "$count" "$index" "$testName"
+
+        if [ -n "$MODEL" ] && [ "$MODEL" != "gc" ] && gc_only "$file"; then
+            skipped=$((skipped + 1))
+            printf "\e[33mSkipped\e[0m   (gc only)\n"
+            continue
+        fi
 
         start=$(date +%s.%N)
         test_script "$config" "$mode" "$(basename "$file" .ts)"
@@ -106,8 +135,12 @@ function tests() {
     done
 
     find "$SRC/tests" -not -name "*.ts" -type f -delete
-    echo "Finished $config, $mode : $success/$count passed"
+    echo "Finished $config, $mode : $success/$count passed, $skipped skipped"
 }
+
+if [ -n "$MODEL" ]; then
+    echo "Memory model: $MODEL"
+fi
 
 tests "release" "compile"
 tests "release" "jit"
