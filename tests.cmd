@@ -1,1 +1,1 @@
-Powershell.exe -File tests.ps1
+Powershell.exe -File tests.ps1 %*

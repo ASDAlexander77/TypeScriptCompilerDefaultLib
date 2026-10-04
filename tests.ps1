@@ -1,3 +1,9 @@
+# Runs every test in .\tests, release and debug, compiled and under the JIT.
+#   .\tests.ps1              the compiler's default memory model (gc)
+#   .\tests.ps1 -Model rc    -mm=rc, against the default library built for it; also $Env:TSLANG_MM
+# A test whose first line starts with "// gc only" is skipped under any other model.
+param([string]$Model = $Env:TSLANG_MM)
+
 function Test([string]$config, [string]$mode, [string]$fileName)
 {
     $BUILD="debug"
@@ -7,6 +13,9 @@ function Test([string]$config, [string]$mode, [string]$fileName)
     $ARCH="x64"
     $DBG="--di --opt_level=0"
     $OPTIONS="--nowarn"
+    if ($Model) {
+        $OPTIONS+=" -mm=$Model"
+    }
     $TOOL="tslang"
 
     $test=$fileName
@@ -115,6 +124,13 @@ function Test([string]$config, [string]$mode, [string]$fileName)
     return $true
 }
 
+# A test that needs the collector says so on its first line ("// gc only: WeakRef ..."): under
+# rc, none or own the compiler rejects the collector's API, so it cannot pass there.
+function Test-GcOnly([string]$path)
+{
+    return (Get-Content $path -TotalCount 1) -match '^// gc only'
+}
+
 function Tests([string]$config, [string]$mode)
 {
     Write-Host "Testing..."
@@ -123,12 +139,19 @@ function Tests([string]$config, [string]$mode)
 
     $index = 0
     $success = 0
+    $skipped = 0
     $failedTests = @()
     Get-ChildItem ".\tests" -Filter *.ts | Foreach-Object {
         $index++
 
         $testName = "$_ ".PadRight(40, '.')
         Write-Host -NoNewline "$success/$count Test #$index : $testName  "
+
+        if ($Model -and $Model -ne "gc" -and (Test-GcOnly $_.FullName)) {
+            $skipped++
+            Write-Host "Skipped   (gc only)" -ForegroundColor Yellow
+            return
+        }
 
         $time = (Measure-Command { $result = Test $config $mode $_.Basename }).TotalSeconds
         $time = [math]::Round($time, 2).ToString("0.00")
@@ -147,12 +170,16 @@ function Tests([string]$config, [string]$mode)
 
     Get-ChildItem -Path $SRC\tests -Include *.pdb,*.ilk,*.exe | Remove-Item
 
-    Write-Host "Finished $config, $mode : $success/$count passed"
+    Write-Host "Finished $config, $mode : $success/$count passed, $skipped skipped"
 
     return $failedTests
 }
 
 $allFailedTests = @()
+
+if ($Model) {
+    Write-Host "Memory model: $Model"
+}
 
 if ($Env:TSLANG_ARCH -eq "x86") {
     # The JIT (jit.cpp) refuses x86 targets by design; only the two compile passes apply.
