@@ -32,7 +32,7 @@ repo:
 
 ### Android
 
-On a Windows host, with the Android NDK (r27 or later) in `ANDROID_NDK_HOME`:
+On a Windows host, with the Android NDK (tested with r30) in `ANDROID_NDK_HOME`:
 
 ```
 scripts\build_android.bat                        # arm64-v8a and x86_64, release and debug, all models

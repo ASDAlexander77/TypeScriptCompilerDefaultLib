@@ -8,7 +8,7 @@
 @rem   model  gc | rc | none       (default: all three - see build.sh on why each needs its own)
 @rem
 @rem Needs:
-@rem   ANDROID_NDK_HOME  the Android NDK (r27 or later), e.g. C:\Android\android-ndk-r30
+@rem   ANDROID_NDK_HOME  the Android NDK (tested with r30), e.g. C:\Android\android-ndk-r30
 @rem   TOOL_PATH         the directory holding a tslang.exe with Android support (#506); defaults
 @rem                     to the compiler's release build tree next to this repository
 @rem
