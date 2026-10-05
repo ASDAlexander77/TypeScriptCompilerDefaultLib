@@ -72,8 +72,14 @@ Native networking lives in `src/wrappers/`:
   WinHTTP boundary only; everywhere else in the runtime, strings are narrow/UTF-8
   (see `lib.win32.ts`'s CRT bindings for the established convention).
 - **Linux** (`http_linux.cpp`): uses libcurl (`-lcurl`).
+- **Android** (`http_stub.cpp`): libcurl is not part of the platform, so every request
+  fails and `fetch()` throws.
 
-Both expose the same `extern "C"` surface (declared in `src/native/lib.native.d.ts`):
+A request that fails throws `fetch failed with error <code>`, the code being the
+platform's own: a WinHTTP error (`GetLastError()`) on Windows, a `CURLcode` on Linux (-1 when
+curl could not start), -1 on Android.
+
+All three expose the same `extern "C"` surface (declared in `src/native/lib.native.d.ts`):
 `http_request`, `http_response_success`, `http_response_error_code`,
 `http_response_status`, `http_response_headers_length` /
 `http_response_headers_copy_to`, `http_response_body_length` /

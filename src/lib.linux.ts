@@ -51,10 +51,18 @@ export function getMilliseconds(): i64 {
     return timestamp.tv_sec * 1000 + timestamp.tv_usec / 1000000;
 }
 
+// What the library hands out: the nine fields core.os.d.ts declares (and lib.win32.ts's tm has).
 type tm = [tm_sec: i32, tm_min: i32, tm_hour: i32, tm_mday: i32, tm_mon: i32, tm_year: i32, tm_wday: i32, tm_yday: i32, tm_isdst: i32];
-declare function timegm(tv: Reference<tm>): long;
+
+// struct tm as glibc and Bionic lay it out: tm_gmtoff (a C long) and tm_zone (a const char *) follow
+// the nine ints. Both are pointer-sized on every Linux and Android ABI, as index is (tm_zone is only
+// ever handed back to strftime): 56 bytes on a 64-bit target, 44 on a 32-bit one. gmtime_r, localtime_r, mktime and timegm write the whole
+// struct, and strftime's %z and %Z read the last two, so every C call takes this one.
+type c_tm = [tm_sec: i32, tm_min: i32, tm_hour: i32, tm_mday: i32, tm_mon: i32, tm_year: i32, tm_wday: i32, tm_yday: i32, tm_isdst: i32, tm_gmtoff: index, tm_zone: index];
+
+declare function timegm(tv: Reference<c_tm>): long;
 export function makegmtime(year: i32, month: i32, day: i32, hour: i32, minutes: i32, seconds: i32, milliseconds: i32): i64 {
-    let tm1: tm = [seconds, minutes, hour, day, month, year, 0, 0, 0];
+    let tm1: c_tm = [seconds, minutes, hour, day, month, year, 0, 0, 0, 0, 0];
     const sec = timegm(Ref(tm1));
     if (sec == -1)
     {
@@ -65,9 +73,9 @@ export function makegmtime(year: i32, month: i32, day: i32, hour: i32, minutes: 
     return sec * 1000 + milliseconds; // return ms
 }
 
-declare function mktime(tv: Reference<tm>): long;
+declare function mktime(tv: Reference<c_tm>): long;
 export function maketime(year: i32, month: i32, day: i32, hour: i32, minutes: i32, seconds: i32, milliseconds: i32): i64 {
-    let tm1: tm = [seconds, minutes, hour, day, month, year, 0, 0, 0];
+    let tm1: c_tm = [seconds, minutes, hour, day, month, year, 0, 0, 0, 0, 0];
     const sec = mktime(Ref(tm1));
     if (sec == -1)
     {
@@ -78,20 +86,30 @@ export function maketime(year: i32, month: i32, day: i32, hour: i32, minutes: i3
     return sec * 1000 + milliseconds; // return ms
 }
 
-declare function gmtime_r(time: Reference<time_t>, tm: Reference<tm>) : Reference<tm>;
-export function gmtime(time: long): tm {
-    let tmDest: tm = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-    let timeInSec: long = time / 1000;
-    const result = gmtime_r(Ref(timeInSec), Ref(tmDest));
-    return tmDest; // return ms
+declare function gmtime_r(time: Reference<time_t>, tm: Reference<c_tm>) : Reference<c_tm>;
+declare function localtime_r(time: Reference<time_t>, tm: Reference<c_tm>) : Reference<c_tm>;
+function c_time(time: long, isUtc: boolean): c_tm {
+    let tmDest: c_tm = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    let timeInSec: time_t = time / 1000;
+    if (isUtc) {
+        gmtime_r(Ref(timeInSec), Ref(tmDest));
+    } else {
+        localtime_r(Ref(timeInSec), Ref(tmDest));
+    }
+
+    return tmDest;
 }
 
-declare function localtime_r(time: Reference<time_t>, tm: Reference<tm>) : Reference<tm>;
+function to_tm(t: c_tm): tm {
+    return [t.tm_sec, t.tm_min, t.tm_hour, t.tm_mday, t.tm_mon, t.tm_year, t.tm_wday, t.tm_yday, t.tm_isdst];
+}
+
+export function gmtime(time: long): tm {
+    return to_tm(c_time(time, true));
+}
+
 export function localtime(time: long): tm {
-    let tmDest: tm = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-    let timeInSec: long = time / 1000;
-    const result = localtime_r(Ref(timeInSec), Ref(tmDest));
-    return tmDest; // return ms
+    return to_tm(c_time(time, false));
 }
 
 declare const timezone: int;
@@ -109,9 +127,9 @@ export function timestamp_to_string(maxsize: index, time: long): string {
     return s;
 }
 
-declare function asctime_r(time: Reference<tm>, buffer: string): string;
+declare function asctime_r(time: Reference<c_tm>, buffer: string): string;
 export function time_to_string(maxsize: index, time: long, isUtc: boolean): string {
-    let tm = isUtc ? gmtime(time) : localtime(time);
+    let tm = c_time(time, isUtc);
 
     let buffer : char[] = [];
     buffer.length = maxsize;
@@ -120,9 +138,9 @@ export function time_to_string(maxsize: index, time: long, isUtc: boolean): stri
     return s;
 }
 
-declare function strftime(out: string, maxsize: index, format: string, tm: Reference<tm>): index;
+declare function strftime(out: string, maxsize: index, format: string, tm: Reference<c_tm>): index;
 export function time_format(maxsize: index, format: string, time: long, isUtc: boolean): string {
-    let tm = isUtc ? gmtime(time) : localtime(time);
+    let tm = c_time(time, isUtc);
 
     let buffer : char[] = [];
     buffer.length = maxsize;
@@ -131,9 +149,9 @@ export function time_format(maxsize: index, format: string, time: long, isUtc: b
     return s;
 }
 
-declare function strftime_l(out: string, maxsize: index, format: string, tm: Reference<tm>, locale: Opaque): index;
+declare function strftime_l(out: string, maxsize: index, format: string, tm: Reference<c_tm>, locale: Opaque): index;
 export function time_format_locale(maxsize: index, format: string, time: long, locale: string, isUtc: boolean): string {
-    let tm = isUtc ? gmtime(time) : localtime(time);
+    let tm = c_time(time, isUtc);
 
     setlocale(LC_TIME_MASK, locale);
     //const locale_t = newlocale(LC_TIME_MASK, locale, null);
