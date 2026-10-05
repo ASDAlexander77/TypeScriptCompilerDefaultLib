@@ -15,7 +15,6 @@
 @rem Output, one complete default-library tree per ABI (a program compiled for that ABI takes
 @rem --default-lib-path=__build\android\<abi>, the directory holding defaultlib\):
 @rem   __build\android\<abi>\defaultlib\lib\<mode>\<model>\libTypeScriptDefaultLib.a
-@rem   __build\android\<abi>\defaultlib\dll\<mode>\<model>\libTypeScriptDefaultLib.so
 @rem   __build\android\<abi>\defaultlib\*.d.ts ...
 @rem
 @rem Differences from build.sh:
@@ -23,8 +22,8 @@
 @rem   fetch() throws instead. The archive is therefore the library itself, with no linker script
 @rem   pulling in -lcurl.
 @rem - Everything is position independent, the archive too: Android executables must be PIE.
-@rem - The .so links the NDK's default C++ library, libc++_shared.so, which the app ships (Android
-@rem   allows one C++ runtime per app). GC_* stay undefined in it on purpose, as in build.sh.
+@rem - Only the static library: tslang links it into every Android binary, executable and shared
+@rem   library alike, so an app ships one self-contained .so (no dll\ tree, unlike build.sh).
 @rem
 @rem API 29 is the floor: lib.linux.ts calls timespec_get, which Bionic has from 29 on.
 @echo off
@@ -97,13 +96,11 @@ set TSC=%TSLANG% -mtriple=%TRIPLE% -relocation-model=pic %DBG% -mm=%MM% --emit=o
 set OUT=%ROOT%\__build\android\%ABI%\defaultlib
 set OBJ=%ROOT%\__build\android\%ABI%\obj-%MODE%-%MM%
 set LIB_OUT=%OUT%\lib\%MODE%\%MM%
-set DLL_OUT=%OUT%\dll\%MODE%\%MM%
 
 echo === %ABI% %MODE% %MM%
 if exist "%OBJ%" rd /s /q "%OBJ%"
 if exist "%LIB_OUT%" rd /s /q "%LIB_OUT%"
-if exist "%DLL_OUT%" rd /s /q "%DLL_OUT%"
-md "%OBJ%" "%LIB_OUT%" "%DLL_OUT%"
+md "%OBJ%" "%LIB_OUT%"
 
 for %%w in (io datetime regex thread http_stub) do (
     %CXX% -c "%ROOT%\src\wrappers\%%w.cpp" -o "%OBJ%\%%w.o" || exit /b 1
@@ -114,7 +111,6 @@ for %%w in (io datetime regex thread http_stub) do (
 
 set OBJS="%OBJ%\lib.o" "%OBJ%\lib.linux.o" "%OBJ%\io.o" "%OBJ%\datetime.o" "%OBJ%\regex.o" "%OBJ%\thread.o" "%OBJ%\http_stub.o"
 %AR% rcs "%LIB_OUT%\libTypeScriptDefaultLib.a" %OBJS% || exit /b 1
-%CXX% -shared %OBJS% -lm -o "%DLL_OUT%\libTypeScriptDefaultLib.so" || exit /b 1
 
 rd /s /q "%OBJ%"
 

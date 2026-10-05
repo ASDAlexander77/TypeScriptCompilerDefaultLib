@@ -40,10 +40,10 @@ scripts\build_android.bat arm64-v8a release gc   # just that one
 ```
 
 This builds for API level 29 (the lowest with `timespec_get`) into
-`__build\android\<abi>\defaultlib\{lib,dll}\<debug|release>\<gc|rc|none>\`, one complete tree
+`__build\android\<abi>\defaultlib\lib\<debug|release>\<gc|rc|none>\`, one complete tree
 per ABI. It needs a `tslang.exe` that can target Android (`TOOL_PATH`, default: the compiler's
 release build tree). Android has no libcurl, so HTTP is `src\wrappers\http_stub.cpp`: `fetch()`
-throws. The `.so` links `libc++_shared.so`, which the app ships.
+throws. Only the static library is built: tslang links it into every Android binary.
 
 The collector and the async runtime come from the compiler repo:
 `scripts\build_gc_release_android.bat` and `scripts\build_tslang_runtime_release_android.bat`.
@@ -60,8 +60,18 @@ tslang --emit=dll -mtriple=aarch64-linux-android29 --opt -mm=gc ^
 
 `--emit=exe` takes the same options. Either way the output is one self-contained binary: the
 static default library, collector and libc++ are linked in, so it needs only Bionic's libc, libm
-and libdl (the `dll\` builds of the default library are not used for Android). The triple has to
-carry the API level (`...-android29`).
+and libdl. The triple has to carry the API level (`...-android29`).
+
+The Windows release zip carries all of this prebuilt, per ABI (`arm64-v8a`, `x86_64`): the
+default library in every mode and model, the collector and async runtime as release builds:
+
+```
+android\<abi>\defaultlib\...                    --default-lib-path=<zip>\android\<abi>
+android\<abi>\lib\libgc.a                       --gc-lib-path=<zip>\android\<abi>\lib
+android\<abi>\lib\libTypeScriptAsyncRuntime.a   --tslang-lib-path=<zip>\android\<abi>\lib
+```
+
+so with the zip and an NDK, nothing needs building.
 
 ## Testing
 

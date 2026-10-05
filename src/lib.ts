@@ -1827,7 +1827,9 @@ export function fetch(url: string, init?: { method?: string, headers?: [string, 
     if (!http_response_success(r)) {
         const errorCode = http_response_error_code(r);
         http_response_free(r);
-        throw new Error(`fetch failed with WinHTTP error ${errorCode}`);
+        // the platform's own code: a WinHTTP error on Windows, a CURLcode on Linux, -1 where there
+        // is no HTTP client (Android) - see docs/fetch.md
+        throw new Error(`fetch failed with error ${errorCode}`);
     }
 
     const status = http_response_status(r);
