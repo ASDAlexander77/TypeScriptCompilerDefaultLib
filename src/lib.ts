@@ -678,7 +678,8 @@ namespace __String {
     }      
 
     export function endsWith(this: string, searchString: string, endPosition = this.length): boolean {
-        if (!searchString)
+        // a null check: "" is falsy, and an empty search string is found
+        if (searchString == null)
         {
             return false;
         }
@@ -703,7 +704,8 @@ namespace __String {
     }      
 
     export function indexOf(this: string, searchString: string, position = 0): int {    
-        if (!searchString)
+        // a null check: "" is falsy, and an empty search string is found
+        if (searchString == null)
         {
             return -1;
         }
@@ -989,7 +991,8 @@ namespace __String {
     }
     
     export function startsWith(this: string, searchString: string, position = 0): boolean {
-        if (!searchString)
+        // a null check: "" is falsy, and an empty search string is found
+        if (searchString == null)
         {
             return false;
         }
