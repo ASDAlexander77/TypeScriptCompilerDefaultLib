@@ -30,6 +30,37 @@ repo:
   `scripts\build_tslang_runtime_<debug|release>_x86.bat` in `TypeScriptCompiler`, which
   puts it in `__build\tslang-runtime\<debug|release>\x86\`.
 
+### Android
+
+On a Windows host, with the Android NDK (tested with r30) in `ANDROID_NDK_HOME`:
+
+```
+scripts\build_android.bat                        # arm64-v8a and x86_64, release and debug, all models
+scripts\build_android.bat arm64-v8a release gc   # just that one
+```
+
+This builds for API level 29 (the lowest with `timespec_get`) into
+`__build\android\<abi>\defaultlib\{lib,dll}\<debug|release>\<gc|rc|none>\`, one complete tree
+per ABI. It needs a `tslang.exe` that can target Android (`TOOL_PATH`, default: the compiler's
+release build tree). Android has no libcurl, so HTTP is `src\wrappers\http_stub.cpp`: `fetch()`
+throws. The `.so` links `libc++_shared.so`, which the app ships.
+
+The collector and the async runtime come from the compiler repo:
+`scripts\build_gc_release_android.bat` and `scripts\build_tslang_runtime_release_android.bat`.
+A program is compiled and then linked with the NDK, for example for arm64-v8a under `gc`:
+
+```
+tslang --emit=obj -mtriple=aarch64-linux-android29 -relocation-model=pic --opt -mm=gc ^
+    --default-lib-path=__build\android\arm64-v8a app.ts -o app.o
+aarch64-linux-android29-clang++ -pie -static-libstdc++ app.o ^
+    -L__build\android\arm64-v8a\defaultlib\lib\release\gc ^
+    -L<TypeScriptCompiler>\3rdParty\gc\android\arm64-v8a\release\lib ^
+    -L<TypeScriptCompiler>\__build\tslang-runtime\release\android\arm64-v8a ^
+    -lTypeScriptDefaultLib -lgc -lTypeScriptAsyncRuntime -lm -ldl -o app
+```
+
+(`-lgc` only under `gc`.) `tslang --emit=exe` does not link for Android yet.
+
 ## Testing
 
 ```
