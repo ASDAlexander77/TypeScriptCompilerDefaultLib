@@ -47,19 +47,21 @@ throws. The `.so` links `libc++_shared.so`, which the app ships.
 
 The collector and the async runtime come from the compiler repo:
 `scripts\build_gc_release_android.bat` and `scripts\build_tslang_runtime_release_android.bat`.
-A program is compiled and then linked with the NDK, for example for arm64-v8a under `gc`:
+tslang links through the NDK (`--android-ndk-path`, or `ANDROID_NDK_HOME`). For example, for
+arm64-v8a under `gc`, a shared library an app loads, or an executable:
 
 ```
-tslang --emit=obj -mtriple=aarch64-linux-android29 -relocation-model=pic --opt -mm=gc ^
-    --default-lib-path=__build\android\arm64-v8a app.ts -o app.o
-aarch64-linux-android29-clang++ -pie -static-libstdc++ app.o ^
-    -L__build\android\arm64-v8a\defaultlib\lib\release\gc ^
-    -L<TypeScriptCompiler>\3rdParty\gc\android\arm64-v8a\release\lib ^
-    -L<TypeScriptCompiler>\__build\tslang-runtime\release\android\arm64-v8a ^
-    -lTypeScriptDefaultLib -lgc -lTypeScriptAsyncRuntime -lm -ldl -o app
+tslang --emit=dll -mtriple=aarch64-linux-android29 --opt -mm=gc ^
+    --default-lib-path=__build\android\arm64-v8a ^
+    --gc-lib-path=<TypeScriptCompiler>\3rdParty\gc\android\arm64-v8a\release\lib ^
+    --tslang-lib-path=<TypeScriptCompiler>\__build\tslang-runtime\release\android\arm64-v8a ^
+    mylib.ts -o libmylib.so
 ```
 
-(`-lgc` only under `gc`.) `tslang --emit=exe` does not link for Android yet.
+`--emit=exe` takes the same options. Either way the output is one self-contained binary: the
+static default library, collector and libc++ are linked in, so it needs only Bionic's libc, libm
+and libdl (the `dll\` builds of the default library are not used for Android). The triple has to
+carry the API level (`...-android29`).
 
 ## Testing
 
