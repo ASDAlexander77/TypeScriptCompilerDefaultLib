@@ -8,3 +8,4 @@
 *.exp
 *.lib
 *.pdb
+__jit/
