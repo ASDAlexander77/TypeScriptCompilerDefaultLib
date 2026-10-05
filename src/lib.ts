@@ -677,14 +677,24 @@ namespace __String {
         return newString;
     }      
 
-    export function endsWith(this: string, searchString: string, endPosition = this.length): boolean {
+    export function endsWith(this: string, searchString: string, endPosition: int = this.length): boolean {
         // a null check: "" is falsy, and an empty search string is found
         if (searchString == null)
         {
             return false;
         }
 
-        const lenstr = endPosition;
+        // the end is clamped to [0, length]: past the end the suffix was read after the terminator
+        let lenstr = endPosition;
+        if (lenstr < 0)
+        {
+            lenstr = 0;
+        }
+        else if (lenstr > this.length)
+        {
+            lenstr = this.length;
+        }
+
         const lensuffix = searchString.length;
         if (lensuffix > lenstr)
         {
@@ -694,10 +704,22 @@ namespace __String {
         return strncmp(<string>Ref(this[lenstr - lensuffix]), searchString, lensuffix) == 0;
     }    
 
-    export function includes(this: string, searchString: string, position = 0): boolean {    
-        if (position >= this.length) 
+    export function includes(this: string, searchString: string, position = 0): boolean {
+        // a null check: "" is falsy, and an empty search string is found
+        if (searchString == null)
         {
             return false;
+        }
+
+        // the position is clamped to [0, length]: a negative one read before the string, and at
+        // the end only "" is found, at the terminator
+        if (position < 0)
+        {
+            position = 0;
+        }
+        else if (position > this.length)
+        {
+            position = this.length;
         }
 
         return strstr(<string>Ref(this[position]), searchString) != null;
@@ -710,11 +732,16 @@ namespace __String {
             return -1;
         }
 
-        if (position >= this.length) 
+        // the position is clamped to [0, length], as in includes; at the end only "" is found
+        if (position < 0)
         {
-            return this.length;
+            position = 0;
         }
-        
+        else if (position > this.length)
+        {
+            position = this.length;
+        }
+
         const found = strstr(<string>Ref(this[position]), searchString);
         if (found == null)
         {
@@ -729,10 +756,22 @@ namespace __String {
         return true;
     }    
 
-    export function lastIndexOf(this: string, searchString: string, position = this.length): int {    
-        if (!searchString)
+    export function lastIndexOf(this: string, searchString: string, position: int = this.length): int {
+        // the position is clamped to [0, length] first: past the end the search read after the
+        // terminator, and "" is found at the clamped position
+        if (position < 0)
         {
-            return position;
+            position = 0;
+        }
+        else if (position > this.length)
+        {
+            position = this.length;
+        }
+
+        // a null check: "" is falsy
+        if (searchString == null)
+        {
+            return -1;
         }
 
         const searchStringLen = searchString.length;
@@ -741,11 +780,6 @@ namespace __String {
             return position;
         }
 
-        if (position < 0) 
-        {
-            position = 0;
-        }
-        
         for (let i = position; i >= 0; i--)
         {
             const found = strncmp(<string>Ref(this[i]), searchString, searchStringLen);
@@ -916,7 +950,7 @@ namespace __String {
         return regexp.search(this);
     }
 
-    export function slice(this: string, indexStart: int, indexEnd = this.length): string {
+    export function slice(this: string, indexStart: int, indexEnd: int = this.length): string {
 
         if (indexStart < 0) {
             if (-this.length <= indexStart) {
@@ -936,7 +970,13 @@ namespace __String {
             }
         } else if (indexEnd >= this.length) {
             indexEnd = this.length;
-        }        
+        }
+
+        // an end at or before the start is empty - slice does not swap, as substring does; the
+        // count was negative and the copy ran past the result (#27)
+        if (indexEnd <= indexStart) {
+            return "";
+        }
 
         const count = indexEnd - indexStart;
         const newString = "".clone().resize(count);
@@ -1003,10 +1043,16 @@ namespace __String {
             return false;
         }
 
+        // a negative position is 0: it read before the string
+        if (position < 0)
+        {
+            position = 0;
+        }
+
         return strncmp(<string>Ref(this[position]), searchString, lensuffix) == 0;
     }    
 
-    export function substring(this: string, indexStart: int, indexEnd = this.length): string {
+    export function substring(this: string, indexStart: int, indexEnd: int = this.length): string {
         if (indexStart < 0) {
             indexStart = 0;
         } else if (indexStart >= this.length) {
@@ -1070,36 +1116,36 @@ namespace __String {
         return this;
     }    
 
+    // the first character that is not a space, or the length when every one is
+    function trimmedStart(this: string): int {
+        for (let i: int = 0; i < this.length; i++) {
+            if (!isspace(this[i])) return i;
+        }
+
+        return this.length;
+    }
+
+    // one past the last character that is not a space, or 0 when every one is: substring's end is
+    // exclusive, and the end used to be the last kept character, so it was dropped
+    function trimmedEnd(this: string): int {
+        for (let i: int = this.length - 1; i >= 0; i--) {
+            if (!isspace(this[i])) return i + 1;
+        }
+
+        return 0;
+    }
+
     export function trim(this: string): string {
-        let start = 0;
-        for (let i = 0; i < this.length; i++) {
-            if (!isspace(this[i])) { start = i; break; }
-        }
-
-        let end = this.length - 1;
-        for (let i = this.length - 1; i >= 0; i--) {
-            if (!isspace(this[i])) { end = i; break; }
-        }
-
-        return this.substring(start, end);
+        const start = this.trimmedStart();
+        return start == this.length ? "" : this.substring(start, this.trimmedEnd());
     }
 
     export function trimStart(this: string): string {
-        let start = 0;
-        for (let i = 0; i < this.length; i++) {
-            if (!isspace(this[i])) { start = i; break; }
-        }
-
-        return this.substring(start);
+        return this.substring(this.trimmedStart());
     }    
 
     export function trimEnd(this: string): string {
-        let end = this.length - 1;
-        for (let i = this.length - 1; i >= 0; i--) {
-            if (!isspace(this[i])) { end = i; break; }
-        }
-
-        return this.substring(0, end);
+        return this.substring(0, this.trimmedEnd());
     }    
 
     export function valueOf(this: string): string {
