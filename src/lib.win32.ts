@@ -64,7 +64,9 @@ export function makegmtime(year: i32, month: i32, day: i32, hour: i32, minutes: 
 
 declare function _mktime64(tv: Reference<tm>): long;
 export function maketime(year: i32, month: i32, day: i32, hour: i32, minutes: i32, seconds: i32, milliseconds: i32): i64 {
-    let tm1: tm = [seconds, minutes, hour, day, month, year, 0, 0, 0];
+    // tm_isdst -1: a local time is in daylight saving time or not as the date says (0 would read
+    // a summer date as standard time, an hour off)
+    let tm1: tm = [seconds, minutes, hour, day, month, year, 0, 0, -1];
     const sec = _mktime64(Ref(tm1));
     if (sec == -1)
     {
