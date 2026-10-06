@@ -576,7 +576,7 @@ export class RegExp
             // get formatted replacement
             const len = r.length;
             let result = "".clone().resize(len);
-            memcpy(Ref(result[0]), r, len);
+            boundedCopy(Ref(result[0]), len, r, len);
             
             regexp_free_string(r);
             regexp_free(cmatch);
@@ -592,7 +592,7 @@ export class RegExp
         const r = regexp_replace(this.source, this.flags, s, replacement);
         const len = r.length;
         let result = "".clone().resize(len);
-        memcpy(Ref(result[0]), r, len);
+        boundedCopy(Ref(result[0]), len, r, len);
         regexp_free_string(r);
         return result;
     }
@@ -655,7 +655,7 @@ namespace __String {
         const newString = this.clone().resize(count);        
         let index = this.length;
         for (const item of other) {
-            memcpy(Ref(newString[index]), Ref(item[0]), sizeof<char>() * item.length);
+            boundedCopy(Ref(newString[index]), sizeof<char>() * (count - index), Ref(item[0]), sizeof<char>() * item.length);
             index += item.length;
         }
 
@@ -670,7 +670,7 @@ namespace __String {
         const newString = "".clone().resize(count);        
         let index = 0;
         for (const item of parts) {
-            memcpy(Ref(newString[index]), Ref(item[0]), sizeof<char>() * item.length);
+            boundedCopy(Ref(newString[index]), sizeof<char>() * (count - index), Ref(item[0]), sizeof<char>() * item.length);
             index += item.length;
         }
 
@@ -881,7 +881,7 @@ namespace __String {
         // the clone holds the first copy already: count - 1 more fill the string, and one more
         // wrote past its end
         for (let i = 1; i < count; i++) {
-            memcpy(Ref(newString[index]), this, byteSize);
+            boundedCopy(Ref(newString[index]), sizeof<char>() * (newSize - index), this, byteSize);
             index += this.length;
         }
 
@@ -980,7 +980,7 @@ namespace __String {
 
         const count = indexEnd - indexStart;
         const newString = "".clone().resize(count);
-        memcpy(Ref(newString[0]), Ref(this[indexStart]), sizeof<char>() * count);
+        boundedCopy(Ref(newString[0]), sizeof<char>() * count, Ref(this[indexStart]), sizeof<char>() * count);
         return newString;
     }
 
@@ -1075,7 +1075,7 @@ namespace __String {
 
         const count = indexEnd - indexStart;
         const newString = "".clone().resize(count);
-        memcpy(Ref(newString[0]), Ref(this[indexStart]), sizeof<char>() * count);
+        boundedCopy(Ref(newString[0]), sizeof<char>() * count, Ref(this[indexStart]), sizeof<char>() * count);
         return newString;        
     }
 

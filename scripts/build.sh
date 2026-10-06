@@ -70,12 +70,13 @@ $TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/datetime.cpp -o $OUTPUT/lib/$BUIL
 $TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/regex.cpp -o $OUTPUT/lib/$BUILD/$MM/regex.o
 $TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/thread.cpp -o $OUTPUT/lib/$BUILD/$MM/thread.o
 $TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/http_linux.cpp -o $OUTPUT/lib/$BUILD/$MM/http_linux.o
+$TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/memory.cpp -o $OUTPUT/lib/$BUILD/$MM/memory.o
 
 $BIN_PATH/$TOOL_NAME $DBG_OPTS $MM_OPT --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.linux.ts $PIC -o $OUTPUT/lib/$BUILD/$MM/lib.linux.o
 
 # Build Lib
 $BIN_PATH/$TOOL_NAME $DBG_OPTS $MM_OPT --emit=obj --export=none --nowarn --no-default-lib $SRC/src/lib.ts $PIC -o $OUTPUT/lib/$BUILD/$MM/lib.o
-$ARC rcs $OUTPUT/lib/$BUILD/$MM/libTypeScriptDefaultLibCore.a $OUTPUT/lib/$BUILD/$MM/lib.o $OUTPUT/lib/$BUILD/$MM/lib.linux.o $OUTPUT/lib/$BUILD/$MM/io.o $OUTPUT/lib/$BUILD/$MM/datetime.o $OUTPUT/lib/$BUILD/$MM/regex.o $OUTPUT/lib/$BUILD/$MM/thread.o $OUTPUT/lib/$BUILD/$MM/http_linux.o
+$ARC rcs $OUTPUT/lib/$BUILD/$MM/libTypeScriptDefaultLibCore.a $OUTPUT/lib/$BUILD/$MM/lib.o $OUTPUT/lib/$BUILD/$MM/lib.linux.o $OUTPUT/lib/$BUILD/$MM/io.o $OUTPUT/lib/$BUILD/$MM/datetime.o $OUTPUT/lib/$BUILD/$MM/regex.o $OUTPUT/lib/$BUILD/$MM/thread.o $OUTPUT/lib/$BUILD/$MM/http_linux.o $OUTPUT/lib/$BUILD/$MM/memory.o
 
 # A static archive cannot record its own dependencies on ELF (there is no ld.bfd equivalent of
 # the `#pragma comment(lib, ...)` http.cpp uses on Windows), so programs linking
@@ -93,7 +94,7 @@ EOF
 # undefined on purpose: they must bind to the one collector already in the process
 # (libTypeScriptRuntime.so under the JIT, libgc.a in an exe); linking libgc.a in here would
 # give the library a second, separate heap.
-g++ -shared $DBG_GCC $OUTPUT/lib/$BUILD/$MM/lib.o $OUTPUT/lib/$BUILD/$MM/lib.linux.o $OUTPUT/lib/$BUILD/$MM/io.o $OUTPUT/lib/$BUILD/$MM/datetime.o $OUTPUT/lib/$BUILD/$MM/regex.o $OUTPUT/lib/$BUILD/$MM/thread.o $OUTPUT/lib/$BUILD/$MM/http_linux.o -lcurl -lm -o $OUTPUT/dll/$BUILD/$MM/libTypeScriptDefaultLib.so
+g++ -shared $DBG_GCC $OUTPUT/lib/$BUILD/$MM/lib.o $OUTPUT/lib/$BUILD/$MM/lib.linux.o $OUTPUT/lib/$BUILD/$MM/io.o $OUTPUT/lib/$BUILD/$MM/datetime.o $OUTPUT/lib/$BUILD/$MM/regex.o $OUTPUT/lib/$BUILD/$MM/thread.o $OUTPUT/lib/$BUILD/$MM/http_linux.o $OUTPUT/lib/$BUILD/$MM/memory.o -lcurl -lm -o $OUTPUT/dll/$BUILD/$MM/libTypeScriptDefaultLib.so
 
 # Copy
 # Stage into a single shared defaultlib tree with per-build subfolders under dll/ and lib/,

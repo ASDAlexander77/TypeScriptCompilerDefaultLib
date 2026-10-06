@@ -85,6 +85,9 @@ declare function trunc(x: number): number;
 // memory
 declare function memcpy(dest: Opaque, src: Opaque, bytes: index): Opaque;
 declare function memmove(dest: Opaque, src: Opaque, bytes: index): Opaque;
+// wrappers/memory.cpp: memcpy_s on Windows, __memcpy_chk elsewhere - ends the process rather
+// than copy more than `destSize` bytes
+declare function boundedCopy(dest: Opaque, destSize: index, src: Opaque, count: index): void;
 declare function memcmp(dest: Opaque, src: Opaque, bytes: index): int;
 
 // gc weak references
