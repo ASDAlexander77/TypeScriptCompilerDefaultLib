@@ -13,14 +13,17 @@
 @rem   set TSLANG_ARCH=x86
 @rem   build.bat release gc
 @rem Like TSLANG_TOOLCHAIN, it is an environment variable, not a positional argument -
-@rem %1/%2 stay "mode model" either way. x86 stages into lib\x86\... and dll\x86\...,
-@rem alongside the x64 tree, and needs the x86 Boehm GC prerequisite (see README.md).
+@rem %1/%2 stay "mode model" either way. x86 stages into lib\i386\pc\windows\msvc\... and
+@rem dll\i386\..., alongside the x64 tree (lib\x86_64\pc\windows\msvc\...), and needs the x86
+@rem Boehm GC prerequisite (see README.md).
 @rem
 @rem Set TSLANG_DEBUG_CRT=/MT to build the debug archive against the release C runtime, for a
 @rem package whose runtime/collector/LLVM libraries are all release builds (the compiler's
 @rem release zip). The default, /MTd, matches a debug tslang build. See scripts\build_core.bat.
 @rem
-@rem See tslang/include/TypeScript/Defines.h for the resulting layout.
+@rem See tslang/include/TypeScript/Defines.h for the resulting layout:
+@rem __build\defaultlib\{lib,dll}\<arch>\<vendor>\<os>\<env>\{debug,release}\{gc,rc,none}, as
+@rem tslang --print-default-lib-dir names each folder, and the declarations at the defaultlib root.
 
 if /I "%TSLANG_TOOLCHAIN%" == "llvm" (
     set "BUILD_SCRIPT=scripts\build_llvm.bat"
@@ -28,10 +31,12 @@ if /I "%TSLANG_TOOLCHAIN%" == "llvm" (
     set "BUILD_SCRIPT=scripts\build_vs.bat"
 )
 
-if not "%2" == "" (
-    cmd /c %BUILD_SCRIPT% %1 %2
-    exit /b %errorlevel%
-)
+rem Not inside a ( ) block: there %errorlevel% is expanded when the block is read, before the
+rem build runs, so a failed single-model build returned 0.
+if "%2" == "" goto all_models
+cmd /c %BUILD_SCRIPT% %1 %2
+exit /b %errorlevel%
+:all_models
 
 if "%1" == "debug" (
     call :build_all_models debug
