@@ -205,6 +205,7 @@ rem Build native wrappers for C++ code
 %TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\regex.cpp
 %TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\thread.cpp
 %TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\http.cpp
+%TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\memory.cpp
 
 rem Build OS-specific Lib
 echo Build OS-specific Lib
@@ -212,7 +213,7 @@ echo Build OS-specific Lib
 
 rem Build DLL
 echo Build DLL
-%TOOL_PATH%\%TOOL_NAME%.exe %TRIPLE_OPT% %DBG% %MM_OPT% --emit=dll --gc-lib-path=%GC_SHARED_LIB_PATH% %TSLANG_RUNTIME_OPT% --embed-declarations=false --nowarn --no-default-lib %SRC%\src\lib.ts --obj=%OUTPUT%\%LIB_OUT%\lib.win32.obj --obj=%OUTPUT%\%LIB_OUT%\io.obj --obj=%OUTPUT%\%LIB_OUT%\datetime.obj --obj=%OUTPUT%\%LIB_OUT%\regex.obj --obj=%OUTPUT%\%LIB_OUT%\thread.obj --obj=%OUTPUT%\%LIB_OUT%\http.obj -o %OUTPUT%\%DLL_OUT%\TypeScriptDefaultLib.dll
+%TOOL_PATH%\%TOOL_NAME%.exe %TRIPLE_OPT% %DBG% %MM_OPT% --emit=dll --gc-lib-path=%GC_SHARED_LIB_PATH% %TSLANG_RUNTIME_OPT% --embed-declarations=false --nowarn --no-default-lib %SRC%\src\lib.ts --obj=%OUTPUT%\%LIB_OUT%\lib.win32.obj --obj=%OUTPUT%\%LIB_OUT%\io.obj --obj=%OUTPUT%\%LIB_OUT%\datetime.obj --obj=%OUTPUT%\%LIB_OUT%\regex.obj --obj=%OUTPUT%\%LIB_OUT%\thread.obj --obj=%OUTPUT%\%LIB_OUT%\http.obj --obj=%OUTPUT%\%LIB_OUT%\memory.obj -o %OUTPUT%\%DLL_OUT%\TypeScriptDefaultLib.dll
 
 rem Build Lib
 echo Build Lib
@@ -220,7 +221,7 @@ echo Build Lib
 rem %TOOL_PATH%\%TOOL_NAME%.exe %TRIPLE_OPT% %DBG% %MM_OPT% --emit=llvm --export=none %SRC%\src\lib.ts -o %OUTPUT%\%LIB_OUT%\lib.ll
 rem %TOOL_PATH%\%TOOL_NAME%.exe %TRIPLE_OPT% %DBG% %MM_OPT% --emit=mlir --export=none %SRC%\src\lib.ts 2> %OUTPUT%\%LIB_OUT%\lib.mlir
 
-%TSLANG_AR% /out:%OUTPUT%\%LIB_OUT%\TypeScriptDefaultLib.lib %OUTPUT%\%LIB_OUT%\lib.obj %OUTPUT%\%LIB_OUT%\lib.win32.obj %OUTPUT%\%LIB_OUT%\io.obj %OUTPUT%\%LIB_OUT%\datetime.obj %OUTPUT%\%LIB_OUT%\regex.obj %OUTPUT%\%LIB_OUT%\thread.obj %OUTPUT%\%LIB_OUT%\http.obj
+%TSLANG_AR% /out:%OUTPUT%\%LIB_OUT%\TypeScriptDefaultLib.lib %OUTPUT%\%LIB_OUT%\lib.obj %OUTPUT%\%LIB_OUT%\lib.win32.obj %OUTPUT%\%LIB_OUT%\io.obj %OUTPUT%\%LIB_OUT%\datetime.obj %OUTPUT%\%LIB_OUT%\regex.obj %OUTPUT%\%LIB_OUT%\thread.obj %OUTPUT%\%LIB_OUT%\http.obj %OUTPUT%\%LIB_OUT%\memory.obj
 
 del %OUTPUT%\%LIB_OUT%\lib.obj
 del %OUTPUT%\%LIB_OUT%\lib.win32.obj
@@ -229,6 +230,7 @@ del %OUTPUT%\%LIB_OUT%\datetime.obj
 del %OUTPUT%\%LIB_OUT%\regex.obj
 del %OUTPUT%\%LIB_OUT%\thread.obj
 del %OUTPUT%\%LIB_OUT%\http.obj
+del %OUTPUT%\%LIB_OUT%\memory.obj
 
 rem Stage into a single shared defaultlib tree with per-build subfolders under
 rem dll\ and lib\. Only the current build's subfolders are refreshed so the

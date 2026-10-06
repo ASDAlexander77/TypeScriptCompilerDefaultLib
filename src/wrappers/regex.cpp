@@ -53,7 +53,11 @@ extern "C" TSLANG_EXPORT char* regexp_match_results_format(std::cmatch *cm, cons
     std::allocator<char> alloc;
     char* buffer = alloc.allocate(len + 1);
 
+#ifdef _WIN32
+    memcpy_s(buffer, len + 1, result.c_str(), len);
+#else
     std::memcpy(buffer, result.c_str(), len);
+#endif
 
     buffer[len] = 0;
     
@@ -114,7 +118,11 @@ extern "C" TSLANG_EXPORT char* regexp_replace(const char *expr, const char *flag
         std::allocator<char> alloc;
         char* buffer = alloc.allocate(len + 1);
 
+#ifdef _WIN32
+        memcpy_s(buffer, len + 1, result.c_str(), len);
+#else
         std::memcpy(buffer, result.c_str(), len);
+#endif
 
         buffer[len] = 0;
         

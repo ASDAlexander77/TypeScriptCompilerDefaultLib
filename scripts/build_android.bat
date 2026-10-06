@@ -102,14 +102,14 @@ if exist "%OBJ%" rd /s /q "%OBJ%"
 if exist "%LIB_OUT%" rd /s /q "%LIB_OUT%"
 md "%OBJ%" "%LIB_OUT%"
 
-for %%w in (io datetime regex thread http_stub) do (
+for %%w in (io datetime regex thread http_stub memory) do (
     %CXX% -c "%ROOT%\src\wrappers\%%w.cpp" -o "%OBJ%\%%w.o" || exit /b 1
 )
 
 %TSC% "%ROOT%\src\lib.linux.ts" -o "%OBJ%\lib.linux.o" || exit /b 1
 %TSC% "%ROOT%\src\lib.ts" -o "%OBJ%\lib.o" || exit /b 1
 
-set OBJS="%OBJ%\lib.o" "%OBJ%\lib.linux.o" "%OBJ%\io.o" "%OBJ%\datetime.o" "%OBJ%\regex.o" "%OBJ%\thread.o" "%OBJ%\http_stub.o"
+set OBJS="%OBJ%\lib.o" "%OBJ%\lib.linux.o" "%OBJ%\io.o" "%OBJ%\datetime.o" "%OBJ%\regex.o" "%OBJ%\thread.o" "%OBJ%\http_stub.o" "%OBJ%\memory.o"
 %AR% rcs "%LIB_OUT%\libTypeScriptDefaultLib.a" %OBJS% || exit /b 1
 
 rd /s /q "%OBJ%"
