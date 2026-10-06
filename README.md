@@ -8,6 +8,20 @@ build.bat                  # x64, release and debug, all three memory models
 build.bat release gc       # x64, just that one
 ```
 
+Every build stages into one tree, `__build\defaultlib`, which a program takes with
+`--default-lib-path=__build`. The binaries are split by target, as its LLVM triple names it
+(arch, vendor, OS, environment), then by build mode, then by memory model:
+
+```
+__build\defaultlib\{lib,dll}\<arch>\<vendor>\<os>\<env>\<debug|release>\<gc|rc|none>\
+  e.g. lib\x86_64\pc\windows\msvc\release\gc\TypeScriptDefaultLib.lib
+       lib\aarch64\unknown\linux\android\release\gc\libTypeScriptDefaultLib.a
+__build\defaultlib\*.d.ts, generics\ ...   (the declarations, shared by every build)
+```
+
+The scripts do not spell these folders out: they ask the compiler, which looks the library up
+the same way (`tslang --print-default-lib-dir=<lib|dll> [-mtriple=...] [--di] -mm=<model>`).
+
 For 32-bit Windows, set `TSLANG_ARCH=x86` before calling `build.bat` (it is an
 environment variable, not a positional argument, the same idiom as `TSLANG_TOOLCHAIN`):
 
@@ -21,8 +35,8 @@ PowerShell) - since it is a session-wide environment variable, not a
 one-shot argument: a later plain `build.bat` or `tslang --install-default-lib`
 run in the same shell would otherwise silently build only the x86 tree.
 
-This stages into `__build\defaultlib\{lib,dll}\x86\<debug|release>\<gc|rc|none>\`,
-alongside the existing x64 tree. It requires two things already built in the compiler
+This stages into `__build\defaultlib\{lib,dll}\i386\pc\windows\msvc\<debug|release>\<gc|rc|none>\`,
+alongside the x64 tree. It requires two things already built in the compiler
 repo:
 
 - the x86 Boehm GC: `prepare_3rdParty.bat <debug|release> x86` in `TypeScriptCompiler`;
@@ -39,9 +53,9 @@ scripts\build_android.bat                        # arm64-v8a and x86_64, release
 scripts\build_android.bat arm64-v8a release gc   # just that one
 ```
 
-This builds for API level 29 (the lowest with `timespec_get`) into
-`__build\android\<abi>\defaultlib\lib\<debug|release>\<gc|rc|none>\`, one complete tree
-per ABI. It needs a `tslang.exe` that can target Android (`TOOL_PATH`, default: the compiler's
+This builds for API level 29 (the lowest with `timespec_get`) into the same tree as every
+other target: `__build\defaultlib\lib\<aarch64|x86_64>\unknown\linux\android\<debug|release>\<gc|rc|none>\`.
+It needs a `tslang.exe` that can target Android (`TOOL_PATH`, default: the compiler's
 release build tree). Android has no libcurl, so HTTP is `src\wrappers\http_stub.cpp`: `fetch()`
 throws. Only the static library is built: tslang links it into every Android binary.
 
@@ -52,7 +66,7 @@ arm64-v8a under `gc`, a shared library an app loads, or an executable:
 
 ```
 tslang --emit=dll -mtriple=aarch64-linux-android29 --opt -mm=gc ^
-    --default-lib-path=__build\android\arm64-v8a ^
+    --default-lib-path=__build ^
     --gc-lib-path=<TypeScriptCompiler>\3rdParty\gc\android\arm64-v8a\release\lib ^
     --tslang-lib-path=<TypeScriptCompiler>\__build\tslang-runtime\release\android\arm64-v8a ^
     mylib.ts -o libmylib.so
@@ -62,11 +76,12 @@ tslang --emit=dll -mtriple=aarch64-linux-android29 --opt -mm=gc ^
 static default library, collector and libc++ are linked in, so it needs only Bionic's libc, libm
 and libdl. The triple has to carry the API level (`...-android29`).
 
-The Windows release zip carries all of this prebuilt, per ABI (`arm64-v8a`, `x86_64`): the
-default library in every mode and model, the collector and async runtime as release builds:
+The Windows release zip carries all of this prebuilt for both ABIs (`arm64-v8a`, `x86_64`): the
+default library in every mode and model, in its `defaultlib` tree beside the Windows one, and the
+collector and async runtime as release builds:
 
 ```
-android\<abi>\defaultlib\...                    --default-lib-path=<zip>\android\<abi>
+defaultlib\...                                 --default-lib-path=<zip>
 android\<abi>\lib\libgc.a                       --gc-lib-path=<zip>\android\<abi>\lib
 android\<abi>\lib\libTypeScriptAsyncRuntime.a   --tslang-lib-path=<zip>\android\<abi>\lib
 ```

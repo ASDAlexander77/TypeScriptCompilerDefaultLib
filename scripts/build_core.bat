@@ -30,13 +30,10 @@ if not "%ARCH%"=="x64" if not "%ARCH%"=="x86" (
 	echo ""
 	exit /b 1
 )
-rem ARCH_DIR nests the x86 tree one level under lib\ and dll\, next to today's flat
-rem x64 layout (defaultlib/{lib,dll}/x86/...; see tslang/include/TypeScript/Defines.h).
-rem TRIPLE_OPT tells tslang.exe to target i686 instead of its host x64.
-set ARCH_DIR=
+rem TRIPLE_OPT tells tslang.exe to target i686 instead of its host x64; it also picks the
+rem target's tree in the output layout (see LIB_OUT below).
 set TRIPLE_OPT=
 if "%ARCH%"=="x86" (
-	set ARCH_DIR=\x86
 	set TRIPLE_OPT=-mtriple=i686-pc-windows-msvc
 )
 rem clang-cl targets x64 regardless of which vcvarsall was called, so an x86 LLVM build
@@ -89,12 +86,6 @@ set MM=gc
 if not "%2"=="" set MM=%2
 set MM_OPT=-mm=%MM%
 
-rem One variable per output tree, set once here and used everywhere below (rd, md, /Fo,
-rem -o, --obj, del, xcopy, the final exist check), so an x86 build never lands a file in
-rem the x64 tree by way of a spot that forgot to add ARCH_DIR.
-set LIB_OUT=lib%ARCH_DIR%\%BUILD%\%MM%
-set DLL_OUT=dll%ARCH_DIR%\%BUILD%\%MM%
-
 rem The DLL build below links TypeScriptAsyncRuntime.lib. TSLANG_LIB_PATH (set further
 rem down) defaults to the compiler's own build tree, which has no x86 subdirectory, so
 rem an x86 build points --tslang-lib-path at the separate tslang-runtime tree instead
@@ -133,6 +124,31 @@ if "%LLVM_LIB_PATH%"=="" (
 if "%TSLANG_LIB_PATH%"=="" (
 	set TSLANG_LIB_PATH=%BUILD_PATH%\%TOOL_NAME%\windows-msbuild%VER%-%BUILD%\lib
 )
+
+rem One variable per output tree, set once here and used everywhere below (rd, md, /Fo,
+rem -o, --obj, del, xcopy, the final exist check), so an x86 build never lands a file in
+rem the x64 tree by way of a spot that spells the path differently. tslang names the folders
+rem (--print-default-lib-dir) with the same target, build and model flags it compiles with
+rem below, composed the way it later looks the library up:
+rem defaultlib\{lib,dll}\<arch>\<vendor>\<os>\<env>\<build>\<model> (see
+rem tslang/include/TypeScript/Defines.h). Spelled out here, the two would drift apart.
+set LIB_OUT=
+set DLL_OUT=
+for /f "usebackq delims=" %%d in (`"%TOOL_PATH%\%TOOL_NAME%.exe" --print-default-lib-dir=lib %TRIPLE_OPT% %DBG% %MM_OPT%`) do set "LIB_OUT=%%d"
+for /f "usebackq delims=" %%d in (`"%TOOL_PATH%\%TOOL_NAME%.exe" --print-default-lib-dir=dll %TRIPLE_OPT% %DBG% %MM_OPT%`) do set "DLL_OUT=%%d"
+if "%LIB_OUT%"=="" goto no_layout
+if "%DLL_OUT%"=="" goto no_layout
+set "LIB_OUT=%LIB_OUT:/=\%"
+set "DLL_OUT=%DLL_OUT:/=\%"
+goto layout_done
+:no_layout
+echo ""
+echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+echo "XXX %TOOL_PATH%\%TOOL_NAME%.exe cannot name the output folders (--print-default-lib-dir): it predates the per-target layout, or is missing"
+echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+echo ""
+exit /b 1
+:layout_done
 
 rem Check if Visual Studio is installed at default locations. Both toolchains need this:
 rem clang-cl compiles against the MSVC headers and the Windows SDK just as cl does.
@@ -232,14 +248,17 @@ del %OUTPUT%\%LIB_OUT%\thread.obj
 del %OUTPUT%\%LIB_OUT%\http.obj
 del %OUTPUT%\%LIB_OUT%\memory.obj
 
-rem Stage into a single shared defaultlib tree with per-build subfolders under
-rem dll\ and lib\. Only the current build's subfolders are refreshed so the
-rem other mode (debug/release) staged by a separate run is preserved.
-set BUILD_LIB_PATH=.\__build\defaultlib
-rd /S /Q %BUILD_LIB_PATH%\%DLL_OUT%
-rd /S /Q %BUILD_LIB_PATH%\%LIB_OUT%
-md %BUILD_LIB_PATH%\%DLL_OUT%
-md %BUILD_LIB_PATH%\%LIB_OUT%
+rem Stage into a single shared defaultlib tree with per-target, per-build, per-model subfolders
+rem under dll\ and lib\. Only the current build's subfolders are refreshed so the other
+rem targets, modes and models staged by separate runs are preserved. LIB_OUT/DLL_OUT start
+rem with defaultlib\, so they go under STAGE_PATH; the declarations go to its defaultlib\ root,
+rem shared by every build.
+set STAGE_PATH=.\__build
+set BUILD_LIB_PATH=%STAGE_PATH%\defaultlib
+rd /S /Q %STAGE_PATH%\%DLL_OUT%
+rd /S /Q %STAGE_PATH%\%LIB_OUT%
+md %STAGE_PATH%\%DLL_OUT%
+md %STAGE_PATH%\%LIB_OUT%
 
 rem Record which compiler built this library, so a mismatch (e.g. after an ABI or
 rem codegen change in tslang) can be diagnosed from the artifact alone. The wrapper
@@ -255,8 +274,8 @@ if "%ARCH%"=="x86" set VERSION_FILE=COMPILER_VERSION.x86.txt
 echo wrappers: %TSLANG_TOOLCHAIN% (%TSLANG_CC%, %TSLANG_AR%) >> %BUILD_LIB_PATH%\%VERSION_FILE%
 echo arch: %ARCH% >> %BUILD_LIB_PATH%\%VERSION_FILE%
 
-xcopy %SRC%\%DLL_OUT% %BUILD_LIB_PATH%\%DLL_OUT% /h /i /c /k /e /r /y
-xcopy %SRC%\%LIB_OUT% %BUILD_LIB_PATH%\%LIB_OUT% /h /i /c /k /e /r /y
+xcopy %SRC%\%DLL_OUT% %STAGE_PATH%\%DLL_OUT% /h /i /c /k /e /r /y
+xcopy %SRC%\%LIB_OUT% %STAGE_PATH%\%LIB_OUT% /h /i /c /k /e /r /y
 xcopy %SRC%\src\*.d.ts %BUILD_LIB_PATH% /h /c /k /e /r /y
 xcopy %SRC%\src\generics\*.ts %BUILD_LIB_PATH%\generics /h /c /k /e /r /y
 

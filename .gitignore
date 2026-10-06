@@ -1,5 +1,6 @@
 /dll
 /lib
+/defaultlib
 /__build
 /node_modules
 /tsconfig.json

@@ -45,7 +45,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
     } else {
         $TOOL_PATH=$Env:TOOL_PATH
 	    $BUILD_PATH=$TOOL_PATH
-	    # Compiled default lib is staged under .\__build\defaultlib\{dll,lib}\<mode>
+	    # Compiled default lib is staged under .\__build\defaultlib\{dll,lib}\<target>\<mode>\<model>
 	    # relative to the DefaultLib repo root (the tests working directory).
 	    $DEFAULTLIB_BUILD_PATH=".\__build"
     }

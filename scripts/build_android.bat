@@ -12,10 +12,11 @@
 @rem   TOOL_PATH         the directory holding a tslang.exe with Android support (#506); defaults
 @rem                     to the compiler's release build tree next to this repository
 @rem
-@rem Output, one complete default-library tree per ABI (a program compiled for that ABI takes
-@rem --default-lib-path=__build\android\<abi>, the directory holding defaultlib\):
-@rem   __build\android\<abi>\defaultlib\lib\<mode>\<model>\libTypeScriptDefaultLib.a
-@rem   __build\android\<abi>\defaultlib\*.d.ts ...
+@rem Output, into the one default-library tree every target shares (a program compiled for Android
+@rem takes --default-lib-path=__build, the directory holding defaultlib\, as any other does):
+@rem   __build\defaultlib\lib\<arch>\unknown\linux\android\<mode>\<model>\libTypeScriptDefaultLib.a
+@rem     (arch: aarch64 for arm64-v8a, x86_64 for x86_64; tslang --print-default-lib-dir names it)
+@rem   __build\defaultlib\*.d.ts ...  (shared by every target)
 @rem
 @rem Differences from build.sh:
 @rem - HTTP is src\wrappers\http_stub.cpp, not http_linux.cpp: libcurl is not part of Android, so
@@ -93,9 +94,19 @@ set CXX="%NDK_BIN%\clang++.exe" --target=%TRIPLE% -fPIC -std=c++17 %DBG_CXX%
 set AR="%NDK_BIN%\llvm-ar.exe"
 set TSC=%TSLANG% -mtriple=%TRIPLE% -relocation-model=pic %DBG% -mm=%MM% --emit=obj --export=none --nowarn --no-default-lib
 
-set OUT=%ROOT%\__build\android\%ABI%\defaultlib
-set OBJ=%ROOT%\__build\android\%ABI%\obj-%MODE%-%MM%
-set LIB_OUT=%OUT%\lib\%MODE%\%MM%
+rem The archive's folder, from tslang itself with the flags it compiles with below, composed the
+rem way tslang later looks it up (see tslang/include/TypeScript/Defines.h).
+set LIB_DIR=
+for /f "usebackq delims=" %%d in (`"%TOOL_PATH%\tslang.exe" --print-default-lib-dir=lib -mtriple=%TRIPLE% %DBG% -mm=%MM%`) do set "LIB_DIR=%%d"
+if "%LIB_DIR%"=="" (
+    echo %TSLANG% cannot name the output folder ^(--print-default-lib-dir^): it predates the per-target layout
+    exit /b 1
+)
+set "LIB_DIR=%LIB_DIR:/=\%"
+
+set OUT=%ROOT%\__build\defaultlib
+set OBJ=%ROOT%\__build\obj-android-%ABI%-%MODE%-%MM%
+set LIB_OUT=%ROOT%\__build\%LIB_DIR%
 
 echo === %ABI% %MODE% %MM%
 if exist "%OBJ%" rd /s /q "%OBJ%"
@@ -114,7 +125,8 @@ set OBJS="%OBJ%\lib.o" "%OBJ%\lib.linux.o" "%OBJ%\io.o" "%OBJ%\datetime.o" "%OBJ
 
 rd /s /q "%OBJ%"
 
-rem the declarations a program compiled against this tree reads, and which compiler built it
+rem the declarations a program compiled against this tree reads (the same for every target), and
+rem which compiler built this ABI's archives, beside the other targets' records
 xcopy /E /I /Y /Q "%ROOT%\src" "%OUT%" > nul || exit /b 1
-%TSLANG% --version > "%OUT%\COMPILER_VERSION.txt" 2>&1
+%TSLANG% --version > "%OUT%\COMPILER_VERSION.android-%ABI%.txt" 2>&1
 exit /b 0
