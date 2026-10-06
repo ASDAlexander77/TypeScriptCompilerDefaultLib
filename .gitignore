@@ -2,6 +2,7 @@
 /lib
 /defaultlib
 /__build
+/__build.pre-triple
 /node_modules
 /tsconfig.json
 *.exe
