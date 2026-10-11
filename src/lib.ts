@@ -1550,8 +1550,15 @@ export static class Math {
      * @param values Numeric expressions to be evaluated.
      */
     public max(...values: number[]): number {
-        let m = Number.MIN_VALUE;
-        for (const v of values) if (v > m) m = v;
+        // -Infinity, not Number.MIN_VALUE: that is the smallest positive number, so the maximum of
+        // negative numbers came out as it. With no arguments the result is -Infinity, and any NaN
+        // makes it NaN.
+        let m = Number.NEGATIVE_INFINITY;
+        for (const v of values) {
+            if (isNaN(v)) return Number.NaN;
+            if (v > m) m = v;
+        }
+
         return m;
     }
 
@@ -1560,8 +1567,13 @@ export static class Math {
      * @param values Numeric expressions to be evaluated.
      */
     public min(...values: number[]): number {
-        let m = Number.MAX_VALUE;
-        for (const v of values) if (v < m) m = v;
+        // +Infinity, not Number.MAX_VALUE, so that Math.min() and Math.min(Infinity) are Infinity
+        let m = Number.POSITIVE_INFINITY;
+        for (const v of values) {
+            if (isNaN(v)) return Number.NaN;
+            if (v < m) m = v;
+        }
+
         return m;
     }
 
