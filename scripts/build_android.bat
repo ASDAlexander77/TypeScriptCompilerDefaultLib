@@ -3,7 +3,7 @@
 @rem
 @rem   scripts\build_android.bat [abi] [release|debug] [gc|rc|none]
 @rem
-@rem   abi    arm64-v8a | x86_64   (default: both)
+@rem   abi    arm64-v8a | armeabi-v7a | x86_64   (default: all three)
 @rem   mode   release | debug      (default: both)
 @rem   model  gc | rc | none       (default: all three - see build.sh on why each needs its own)
 @rem
@@ -15,7 +15,7 @@
 @rem Output, into the one default-library tree every target shares (a program compiled for Android
 @rem takes --default-lib-path=__build, the directory holding defaultlib\, as any other does):
 @rem   __build\defaultlib\lib\<arch>\unknown\linux\android\<mode>\<model>\libTypeScriptDefaultLib.a
-@rem     (arch: aarch64 for arm64-v8a, x86_64 for x86_64; tslang --print-default-lib-dir names it)
+@rem     (arch: aarch64 for arm64-v8a, arm for armeabi-v7a, x86_64 for x86_64; tslang --print-default-lib-dir names it)
 @rem   __build\defaultlib\*.d.ts ...  (shared by every target)
 @rem
 @rem Differences from build.sh:
@@ -41,6 +41,7 @@ set MM=%~3
 
 if "%ABI%"=="" (
     call "%~f0" arm64-v8a "%MODE%" "%MM%" || exit /b 1
+    call "%~f0" armeabi-v7a "%MODE%" "%MM%" || exit /b 1
     call "%~f0" x86_64 "%MODE%" "%MM%" || exit /b 1
     exit /b 0
 )
@@ -58,10 +59,12 @@ if "%MM%"=="" (
 
 if "%ABI%"=="arm64-v8a" (
     set TRIPLE=aarch64-linux-android29
+) else if "%ABI%"=="armeabi-v7a" (
+    set TRIPLE=armv7a-linux-androideabi29
 ) else if "%ABI%"=="x86_64" (
     set TRIPLE=x86_64-linux-android29
 ) else (
-    echo unknown ABI "%ABI%": arm64-v8a or x86_64
+    echo unknown ABI "%ABI%": arm64-v8a, armeabi-v7a or x86_64
     exit /b 1
 )
 

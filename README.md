@@ -49,12 +49,12 @@ repo:
 On a Windows host, with the Android NDK (tested with r30) in `ANDROID_NDK_HOME`:
 
 ```
-scripts\build_android.bat                        # arm64-v8a and x86_64, release and debug, all models
+scripts\build_android.bat                        # all three ABIs, release and debug, all models
 scripts\build_android.bat arm64-v8a release gc   # just that one
 ```
 
 This builds for API level 29 (the lowest with `timespec_get`) into the same tree as every
-other target: `__build\defaultlib\lib\<aarch64|x86_64>\unknown\linux\android\<debug|release>\<gc|rc|none>\`.
+other target: `__build\defaultlib\lib\<aarch64|arm|x86_64>\unknown\linux\android\<debug|release>\<gc|rc|none>\`.
 It needs a `tslang.exe` that can target Android (`TOOL_PATH`, default: the compiler's
 release build tree). Android has no libcurl, so HTTP is `src\wrappers\http_stub.cpp`: `fetch()`
 throws. Only the static library is built: tslang links it into every Android binary.
@@ -76,7 +76,7 @@ tslang --emit=dll -mtriple=aarch64-linux-android29 --opt -mm=gc ^
 static default library, collector and libc++ are linked in, so it needs only Bionic's libc, libm
 and libdl. The triple has to carry the API level (`...-android29`).
 
-The Windows release zip carries all of this prebuilt for both ABIs (`arm64-v8a`, `x86_64`): the
+The Windows release zip carries all of this prebuilt for all three ABIs (`arm64-v8a`, `armeabi-v7a`, `x86_64`): the
 default library in every mode and model, in its `defaultlib` tree beside the Windows one, and the
 collector and async runtime as release builds:
 
