@@ -573,8 +573,8 @@ export class RegExp
             const index = regexp_match_results_prefix_length(cmatch);
             const lastIndex = regexp_match_results_suffix_position(cmatch);
 
-            // get formatted replacement
-            const len = r.length;
+            // get formatted replacement: C's string, copied, then given back
+            const len = (<string>r).length;
             let result = "".clone().resize(len);
             boundedCopy(Ref(result[0]), len, r, len);
             
@@ -590,7 +590,7 @@ export class RegExp
 
     replaceAll(s: string, replacement: string): string {
         const r = regexp_replace(this.source, this.flags, s, replacement);
-        const len = r.length;
+        const len = (<string>r).length;
         let result = "".clone().resize(len);
         boundedCopy(Ref(result[0]), len, r, len);
         regexp_free_string(r);
@@ -748,7 +748,7 @@ namespace __String {
             return -1;
         }
 
-        return <index>Ref(found[0]) - <index>Ref(this[0]);
+        return <index>found - <index>Ref(this[0]);
     }        
 
     export function isWellFormed(this: string): boolean {    
