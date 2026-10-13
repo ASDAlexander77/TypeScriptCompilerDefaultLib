@@ -11,9 +11,10 @@ declare function time(destTime: Reference<long>);
 declare function strtol(str: string, end: Reference<string>, base: int): int;
 declare function strtod(str: string, end: Reference<string>): double;
 declare function strncmp(str: string, other: string, count: index): int;
-declare function strstr(str: string, other: string): string;
+// a pointer into `str`, not a string of its own: a `string` result from C is copied
+declare function strstr(str: string, other: string): Opaque;
 declare function strcoll(str: string, other: string): int;
-declare function setlocale (category: int, locale: string): string;
+declare function setlocale (category: int, locale: string): Opaque;
 declare function toupper(c: int): int;
 declare function tolower(c: int): int;
 declare function isspace(argument: int): int;
@@ -108,9 +109,10 @@ declare function regexp_match_results_sub_match_str_length(cm: Opaque, subIndex:
 declare function regexp_match_results_sub_match_str_copy_to(cm: Opaque, subIndex: index, buffer: string, count: index);
 declare function regexp_match_results_sub_match_position(cm: Opaque, subIndex: index): index;
 declare function regexp_match_results_sub_match_length(cm: Opaque, subIndex: index): index;
-declare function regexp_match_results_format(cm: Opaque, replacement: string): string;
-declare function regexp_replace(expr: string, flags: string, s: string, replacement: string): string;
-declare function regexp_free_string(s: string): void;
+// malloc'ed C strings, given back with regexp_free_string: kept as pointers, not copied
+declare function regexp_match_results_format(cm: Opaque, replacement: string): Opaque;
+declare function regexp_replace(expr: string, flags: string, s: string, replacement: string): Opaque;
+declare function regexp_free_string(s: Opaque): void;
 declare function regexp_free(cm: Opaque): void;
 
 // thread

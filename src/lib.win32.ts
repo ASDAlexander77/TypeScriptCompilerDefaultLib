@@ -100,7 +100,8 @@ export function gettimezone(): i32 {
     return time;
 }
 
-declare function _ctime64_s(buffer: string, numberOfElements: index, time: Reference<time_t>): string;
+// errno_t, not a string: declared `string`, a nonzero error would be copied as one
+declare function _ctime64_s(buffer: string, numberOfElements: index, time: Reference<time_t>): int;
 export function timestamp_to_string(maxsize: index, time: long): string {
     let timeInSec: time_t = time / 1000;
     let buffer : char[] = [];
@@ -110,7 +111,8 @@ export function timestamp_to_string(maxsize: index, time: long): string {
     return s;
 }
 
-declare function asctime_s(buffer: string, numberOfElements: index, time: Reference<tm>): string;
+// errno_t
+declare function asctime_s(buffer: string, numberOfElements: index, time: Reference<tm>): int;
 export function time_to_string(maxsize: index, time: long, isUtc: boolean): string {
     let tm = isUtc ? gmtime(time) : localtime(time);
 

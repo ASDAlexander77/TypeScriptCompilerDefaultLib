@@ -119,7 +119,8 @@ export function gettimezone(): i32 {
     return timezone;
 }
 
-declare function ctime_r(time: Reference<time_t>, buffer: string): string;
+// returns `buffer`: a pointer, not copied
+declare function ctime_r(time: Reference<time_t>, buffer: string): Opaque;
 export function timestamp_to_string(maxsize: index, time: long): string {
     let timeInSec: time_t = time / 1000;
     let buffer : char[] = [];
@@ -129,7 +130,7 @@ export function timestamp_to_string(maxsize: index, time: long): string {
     return s;
 }
 
-declare function asctime_r(time: Reference<c_tm>, buffer: string): string;
+declare function asctime_r(time: Reference<c_tm>, buffer: string): Opaque;
 export function time_to_string(maxsize: index, time: long, isUtc: boolean): string {
     let tm = c_time(time, isUtc);
 
