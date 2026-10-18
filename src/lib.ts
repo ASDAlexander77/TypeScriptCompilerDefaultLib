@@ -565,6 +565,10 @@ export class RegExp
     }    
 
     replace(s: string, replacement: string): string {
+        // "g" replaces every match, which is what replaceAll does
+        if (this.global)
+            return this.replaceAll(s, replacement);
+
         const cmatch = regexp_exec(this.source, this.flags, s, null);
         if (cmatch)
         {
@@ -585,7 +589,8 @@ export class RegExp
             return s.substring(0, index) + result + s.substring(lastIndex);
         }
 
-        return null;
+        // no match: the string is given back unchanged
+        return s;
     }
 
     replaceAll(s: string, replacement: string): string {
