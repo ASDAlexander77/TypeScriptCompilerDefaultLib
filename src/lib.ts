@@ -602,6 +602,81 @@ export class RegExp
         return result;
     }
 
+    // String.split with this as the separator: a piece between every two matches, then the
+    // capture groups of the match (an unmatched group gives "", as string[] holds no undefined).
+    // A negative limit is no limit (ToUint32 makes it huge). lastIndex is not used or changed, and
+    // the match results are its own, so a MatchResults the caller holds from exec stays valid.
+    split(s: string, limit = -1): string[] {
+        let result: string[] = [];
+        if (limit == 0)
+            return result;
+
+        const len = s.length;
+        if (len == 0)
+        {
+            // an empty string the separator matches has no pieces
+            const cmatch = regexp_exec(this.source, this.flags, s, null);
+            if (cmatch)
+            {
+                regexp_free(cmatch);
+                return result;
+            }
+
+            result.push(s);
+            return result;
+        }
+
+        let cmatch: Opaque | null = null;
+        // p: where the current piece starts, q: where the search goes on from
+        let p: index = 0;
+        let q: index = 0;
+        while (q < len)
+        {
+            const found = regexp_exec(this.source, this.flags, Ref(s[q]), cmatch);
+            if (!found)
+                break;
+
+            cmatch = found;
+            const start = q + regexp_match_results_prefix_length(cmatch);
+            const end = q + regexp_match_results_suffix_position(cmatch);
+            if (start >= len)
+                break;
+
+            // an empty match where the piece starts splits nothing: look one further on
+            if (end == p)
+            {
+                q = start + 1;
+                continue;
+            }
+
+            result.push(s.substring(p, start));
+            if (result.length == limit)
+            {
+                regexp_free(cmatch);
+                return result;
+            }
+
+            const groups = new MatchResults(cmatch);
+            for (let i = 1; i < groups.length; i++)
+            {
+                result.push(groups.get(i));
+                if (result.length == limit)
+                {
+                    regexp_free(cmatch);
+                    return result;
+                }
+            }
+
+            p = end;
+            q = end;
+        }
+
+        regexp_free(cmatch);
+
+        result.push(s.substring(p));
+        return result;
+    }
+
     // other methods
     [Symbol.dispose]() {
         // Close object.
@@ -816,6 +891,9 @@ namespace __String {
             return null;
         }
 
+        // the whole string is searched, whatever lastIndex an earlier test/exec left
+        expr.lastIndex = 0;
+
         let results: string[] = [];
         while (true)
         {
@@ -823,13 +901,23 @@ namespace __String {
             if (result == null)
                 break;
 
-            results.push(result[0]);
+            const matched = result[0];
+            results.push(matched);
+            if (!skipEmptyMatch(this, expr, matched))
+                break;
         }
 
         return results;        
     }
 
     export function *matchAll(this: string, expr: RegExp): Iterator<string[]> {
+        // as in JavaScript; a non-global exec never moves lastIndex, so this looped forever
+        if (!expr.global)
+            throw new TypeError("matchAll must be called with a global RegExp");
+
+        // unlike JavaScript, which starts a copy of expr at its lastIndex, the whole string is
+        // searched and expr.lastIndex is 0 again once all matches are read
+        expr.lastIndex = 0;
 
         while (true)
         {
@@ -837,8 +925,28 @@ namespace __String {
             if (result == null)
                 break;
 
-            yield [...result];
+            const groups = [...result];
+            yield groups;
+            if (!skipEmptyMatch(this, expr, groups[0]))
+                break;
         }
+    }
+
+    // A global exec that matched the empty string leaves lastIndex where it was, and the next
+    // exec finds the same match again: move one on, as JavaScript does. Past the end there is
+    // nothing more to search (exec would read beyond the string): lastIndex goes back to 0 and
+    // false says to stop.
+    function skipEmptyMatch(s: string, expr: RegExp, matched: string): boolean {
+        if (matched.length == 0)
+            expr.lastIndex++;
+
+        if (expr.lastIndex > s.length)
+        {
+            expr.lastIndex = 0;
+            return false;
+        }
+
+        return true;
     }
 
     export function normalize(this: string, form?: string): string {
@@ -947,6 +1055,10 @@ namespace __String {
         }
         else
         {
+            // as in JavaScript: a RegExp without "g" is a mistake, not a single replacement
+            if (!pattern.global)
+                throw new TypeError("replaceAll must be called with a global RegExp");
+
             return pattern.replaceAll(this, replacement);
         }
     }
@@ -1030,8 +1142,7 @@ namespace __String {
         }   
         else
         {
-            // TODO: finish implementation with regexp
-            return [];
+            return separator.split(this, limit != undefined ? limit : -1);
         } 
     }
     
