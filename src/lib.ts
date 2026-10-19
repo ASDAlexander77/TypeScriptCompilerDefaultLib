@@ -28,6 +28,7 @@ namespace __Boolean {
     }    
 }
 
+@final
 export class Boolean {
     public constructor(private value: boolean) {
     }
@@ -65,6 +66,7 @@ namespace __Number {
     }
 }
 
+@final
 export class Number {
     public static EPSILON = 2 ** (-52);
 
@@ -158,6 +160,7 @@ namespace __BigInt {
     }    
 }
 
+@final
 export class BigInt {
     public constructor(private value: bigint) {
     }
@@ -175,6 +178,7 @@ export class BigInt {
     }    
 }
 
+@final
 export class Date {
     private timestamp: time_t;
     constructor (valueOrYear?: time_t | i32, monthIndex?: i32, day = 1, hours = 0, minutes = 0, seconds = 0, milliseconds = 0) {
@@ -436,6 +440,7 @@ export class Date {
     }
 }
 
+@final
 export class MatchIndicesResults
 {
     constructor(private match: Opaque | null = null, private lastIndex: index = 0) {
@@ -455,6 +460,7 @@ export class MatchIndicesResults
     }    
 }
 
+@final
 export class MatchResults
 {
     private indices_: MatchIndicesResults = null;
@@ -485,6 +491,7 @@ export class MatchResults
     }
 }
 
+@final
 export class RegExp
 {
     dotAll = false;
@@ -1286,6 +1293,7 @@ class StringIterator implements ClassIterator<string> {
 }
 */
 
+@final
 export class String {
 
     public constructor(private value: string) {
@@ -1782,6 +1790,7 @@ enum States {
     View = 8,
 }
 
+@final
 export class ArrayBuffer {
 
     private arrayOfView: char[];
@@ -1882,6 +1891,7 @@ export class ArrayBuffer {
     }
 }
 
+@final
 export class Headers {
     private names: string[];
     private values: string[];
@@ -1891,8 +1901,8 @@ export class Headers {
         this.values = [];
 
         if (init != undefined) {
-            // copies: set is a method another module may override, so under -mm=own it may destroy
-            // anything, and the caller's strings cannot be lent to it
+            // copies: set may overwrite an element of this.values, and under -mm=own a call that
+            // may destroy anything cannot be lent the caller's strings
             for (const [k, v] of init) this.set(k + "", v + "");
         }
     }
@@ -1982,6 +1992,7 @@ export class Headers {
     }
 }
 
+@final
 export class Response {
     public constructor(
         public status: int,
