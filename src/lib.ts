@@ -28,6 +28,7 @@ namespace __Boolean {
     }    
 }
 
+@final
 export class Boolean {
     public constructor(private value: boolean) {
     }
@@ -65,6 +66,7 @@ namespace __Number {
     }
 }
 
+@final
 export class Number {
     public static EPSILON = 2 ** (-52);
 
@@ -158,6 +160,7 @@ namespace __BigInt {
     }    
 }
 
+@final
 export class BigInt {
     public constructor(private value: bigint) {
     }
@@ -175,6 +178,7 @@ export class BigInt {
     }    
 }
 
+@final
 export class Date {
     private timestamp: time_t;
     constructor (valueOrYear?: time_t | i32, monthIndex?: i32, day = 1, hours = 0, minutes = 0, seconds = 0, milliseconds = 0) {
@@ -436,6 +440,7 @@ export class Date {
     }
 }
 
+@final
 export class MatchIndicesResults
 {
     constructor(private match: Opaque | null = null, private lastIndex: index = 0) {
@@ -455,6 +460,7 @@ export class MatchIndicesResults
     }    
 }
 
+@final
 export class MatchResults
 {
     private indices_: MatchIndicesResults = null;
@@ -479,10 +485,13 @@ export class MatchResults
         // TODO: finish it
         //if (!this.hasIndices)
         //    return undefined;
-        return this.indices_ ??= new MatchIndicesResults(this.match, this.lastIndex);
+        // a new one each time: it holds no state of its own, and a cached one in a field could
+        // only be lent out, never returned, under -mm=own
+        return new MatchIndicesResults(this.match, this.lastIndex);
     }
 }
 
+@final
 export class RegExp
 {
     dotAll = false;
@@ -1284,6 +1293,7 @@ class StringIterator implements ClassIterator<string> {
 }
 */
 
+@final
 export class String {
 
     public constructor(private value: string) {
@@ -1780,6 +1790,7 @@ enum States {
     View = 8,
 }
 
+@final
 export class ArrayBuffer {
 
     private arrayOfView: char[];
@@ -1831,7 +1842,7 @@ export class ArrayBuffer {
         const newArrayBuffer = new ArrayBuffer(0);
         newArrayBuffer.states = this.states | States.NonResizable;
         newArrayBuffer.maxByteLength = this.maxByteLength;
-        newArrayBuffer.arrayOfView = this.arrayOfView.view(start, end);
+        newArrayBuffer.arrayOfView = this.copyOf(start, end);
         return newArrayBuffer;
     }
 
@@ -1840,7 +1851,11 @@ export class ArrayBuffer {
         const newArrayBuffer = new ArrayBuffer(0);
         newArrayBuffer.states = this.states;
         newArrayBuffer.maxByteLength = this.maxByteLength;
-        newArrayBuffer.arrayOfView = this.detach();
+        if (this.arrayOfView != null) {
+            newArrayBuffer.arrayOfView = this.copyOf(0, this.arrayOfView.length);
+        }
+
+        this.detach();
         return newArrayBuffer;
     }
 
@@ -1850,21 +1865,33 @@ export class ArrayBuffer {
         return newArrayBuffer;
     }
 
-    private detach() {
-        this.states |= States.Detached;
-        const inst = this.arrayOfView;
-        this.arrayOfView = null;
-        return inst;
+    // The bytes [start, end) in an array of their own. A slice is a copy, as in JavaScript, and a
+    // transfer copies too: the bytes cannot move out of the field into another object under
+    // -mm=own, where a read of a field only borrows it.
+    private copyOf(start: int, end: int): char[] {
+        let copy: char[] = [];
+        copy.length = end - start;
+        for (let i = start; i < end; i++) {
+            copy[i - start] = this.arrayOfView[i];
+        }
+
+        return copy;
     }
 
+    private detach() {
+        this.states |= States.Detached;
+        this.arrayOfView = null;
+    }
+
+    // the assignment releases the bytes under rc and own, and leaves them to the collector under gc
     [Symbol.dispose]() {
         if (this.arrayOfView != null && !this.detached) {
-            delete this.arrayOfView;
             this.arrayOfView = null;
         }
     }
 }
 
+@final
 export class Headers {
     private names: string[];
     private values: string[];
@@ -1874,7 +1901,9 @@ export class Headers {
         this.values = [];
 
         if (init != undefined) {
-            for (const [k, v] of init) this.set(k, v);
+            // copies: set may overwrite an element of this.values, and under -mm=own a call that
+            // may destroy anything cannot be lent the caller's strings
+            for (const [k, v] of init) this.set(k + "", v + "");
         }
     }
 
@@ -1963,6 +1992,7 @@ export class Headers {
     }
 }
 
+@final
 export class Response {
     public constructor(
         public status: int,

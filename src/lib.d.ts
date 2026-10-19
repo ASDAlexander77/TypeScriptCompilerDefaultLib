@@ -15,6 +15,7 @@ declare namespace __Boolean {
     function toString(this: boolean): string;
 }
 
+@final
 declare class Boolean {
     private value: boolean;
 
@@ -36,6 +37,7 @@ declare namespace __Number {
     function toString(this: number, radix?: int): string;
 }
 
+@final
 declare class Number {
     static EPSILON: number;
 
@@ -101,6 +103,7 @@ declare namespace __BigInt {
     function toString(this: bigint): string;
 }
 
+@final
 declare class BigInt {
     private value: bigint;
 
@@ -113,6 +116,7 @@ declare class BigInt {
     valueOf(): bigint;
 }
 
+@final
 declare class Date {
     private timestamp: time_t;
     
@@ -217,6 +221,7 @@ declare class Date {
     [Symbol.toPrimitive](hint: string) : string | number;
 }
 
+@final
 declare class MatchIndicesResults
 {
     private match: Opaque | null;
@@ -232,6 +237,7 @@ declare class MatchIndicesResults
     get length(): index;
 }
 
+@final
 declare class MatchResults
 {
     private indices_: MatchIndicesResults;
@@ -253,6 +259,7 @@ declare class MatchResults
     get indices(): MatchIndicesResults/* | undefined*/;    
 }
 
+@final
 declare class RegExp {
 
     dotAll: boolean;
@@ -357,6 +364,7 @@ declare namespace __String {
     function valueOf(this: string): string;
 }
 
+@final
 declare class String {
     private value: string;
 
@@ -639,6 +647,7 @@ declare namespace Math {
     function trunc(x: number): number;
 }
 
+@final
 declare class Headers {
     private names: string[];
     private values: string[];
@@ -660,6 +669,7 @@ declare class Headers {
     toRawString(): string;
 }
 
+@final
 declare class Response {
     status: int;
     headers: Headers;
