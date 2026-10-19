@@ -319,6 +319,7 @@ declare namespace __String {
 
     function match(this: string, expr: RegExp): string[];
 
+    @borrows("this", "expr")
     function matchAll(this: string, expr: RegExp): Iterator<string[]>;
 
     function normalize(this: string, form?: string): string;
@@ -394,6 +395,7 @@ declare class String {
 
     match(this: string, expr: RegExp): string[];
 
+    @borrows("this", "expr")
     matchAll(this: string, expr: RegExp): Iterator<string[]>;
 
     normalize(this: string, form?: string): string;
@@ -438,6 +440,7 @@ declare class String {
 
     valueOf(this: string): string;
 
+    @borrows("this")
     [Symbol.iterator](): Iterator<string>;
     //[Symbol.iterator](): ClassIterator<string>;
 }
@@ -675,6 +678,7 @@ declare class Response {
     headers: Headers;
     private body: string;
 
+    @keeps("headers", "body")
     constructor(status: int, headers: Headers, body: string);
 
     get ok(): boolean;
