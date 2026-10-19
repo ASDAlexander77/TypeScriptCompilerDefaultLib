@@ -919,6 +919,7 @@ namespace __String {
         return results;        
     }
 
+    @borrows("this", "expr")
     export function *matchAll(this: string, expr: RegExp): Iterator<string[]> {
         // as in JavaScript; a non-global exec never moves lastIndex, so this looped forever
         if (!expr.global)
@@ -934,9 +935,12 @@ namespace __String {
             if (result == null)
                 break;
 
+            // -mm=own: groups is read only to be yielded, so the yield moves it to the caller
             const groups = [...result];
+            // typed: skipEmptyMatch is declared below, after the generator's state is laid out
+            const more: boolean = skipEmptyMatch(this, expr, result.get(0));
             yield groups;
-            if (!skipEmptyMatch(this, expr, groups[0]))
+            if (!more)
                 break;
         }
     }
@@ -1347,6 +1351,7 @@ export class String {
         return this.value.match(expr);
     }
 
+    @borrows("this", "expr")
     public matchAll(expr: RegExp): Iterator<string[]> {
         return this.value.matchAll(expr);
     }
@@ -1435,6 +1440,7 @@ export class String {
         return this.value.valueOf();
     }
 
+    @borrows("this")
     public *[Symbol.iterator]() : Iterator<string> {
         for (const c of this.value) yield <string>c;
     }
@@ -1994,6 +2000,7 @@ export class Headers {
 
 @final
 export class Response {
+    @keeps("headers", "body")
     public constructor(
         public status: int,
         public headers: Headers,
@@ -2050,7 +2057,8 @@ export function fetch(url: string, init?: { method?: string, headers?: [string, 
     bodyBuffer.length = bodyLen + 1;
     bodyBuffer[bodyLen] = null;
     if (bodyLen > 0) http_response_body_copy_to(r, <string><Opaque>Ref(bodyBuffer[0]), bodyLen);
-    const responseBody = <string><Opaque>Ref(bodyBuffer[0]);
+    // a copy: the Response keeps its body (@keeps), and bodyBuffer goes with this function
+    const responseBody = <string><Opaque>Ref(bodyBuffer[0]) + "";
 
     http_response_free(r);
 

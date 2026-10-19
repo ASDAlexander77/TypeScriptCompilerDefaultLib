@@ -1,8 +1,8 @@
 @rem Builds the default library for every memory model, since a program links the build that
 @rem matches its own -mm= and there is deliberately no fallback to another model's copy.
 @rem
-@rem   build.bat                -> release and debug, all three models
-@rem   build.bat release        -> release only, all three models
+@rem   build.bat                -> release and debug, all four models
+@rem   build.bat release        -> release only, all four models
 @rem   build.bat release rc     -> just that one
 @rem
 @rem Set TSLANG_TOOLCHAIN=llvm to build the C++ wrappers with clang-cl/llvm-lib instead
@@ -22,7 +22,7 @@
 @rem release zip). The default, /MTd, matches a debug tslang build. See scripts\build_core.bat.
 @rem
 @rem See tslang/include/TypeScript/Defines.h for the resulting layout:
-@rem __build\defaultlib\{lib,dll}\<arch>\<vendor>\<os>\<env>\{debug,release}\{gc,rc,none}, as
+@rem __build\defaultlib\{lib,dll}\<arch>\<vendor>\<os>\<env>\{debug,release}\{gc,rc,none,own}, as
 @rem tslang --print-default-lib-dir names each folder, and the declarations at the defaultlib root.
 
 if /I "%TSLANG_TOOLCHAIN%" == "llvm" (
@@ -60,5 +60,7 @@ if errorlevel 1 exit /b 1
 cmd /c %BUILD_SCRIPT% %1 rc
 if errorlevel 1 exit /b 1
 cmd /c %BUILD_SCRIPT% %1 none
+if errorlevel 1 exit /b 1
+cmd /c %BUILD_SCRIPT% %1 own
 if errorlevel 1 exit /b 1
 exit /b 0

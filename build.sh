@@ -2,14 +2,14 @@
 # Builds the default library for every memory model, since a program links the build that
 # matches its own -mm= and there is deliberately no fallback to another model's copy.
 #
-#   ./build.sh                -> release and debug, all three models
-#   ./build.sh release        -> release only, all three models
+#   ./build.sh                -> release and debug, all four models
+#   ./build.sh release        -> release only, all four models
 #   ./build.sh release rc     -> just that one
 #
 # See tslang/include/TypeScript/Defines.h for the resulting layout.
 
 build_all_models() {
-    for mm in gc rc none ; do
+    for mm in gc rc none own ; do
         ./scripts/build.sh "$1" gcc pic "$mm" || return $?
     done
 }
