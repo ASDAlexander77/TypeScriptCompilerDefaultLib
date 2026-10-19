@@ -479,7 +479,9 @@ export class MatchResults
         // TODO: finish it
         //if (!this.hasIndices)
         //    return undefined;
-        return this.indices_ ??= new MatchIndicesResults(this.match, this.lastIndex);
+        // a new one each time: it holds no state of its own, and a cached one in a field could
+        // only be lent out, never returned, under -mm=own
+        return new MatchIndicesResults(this.match, this.lastIndex);
     }
 }
 
@@ -1831,7 +1833,7 @@ export class ArrayBuffer {
         const newArrayBuffer = new ArrayBuffer(0);
         newArrayBuffer.states = this.states | States.NonResizable;
         newArrayBuffer.maxByteLength = this.maxByteLength;
-        newArrayBuffer.arrayOfView = this.arrayOfView.view(start, end);
+        newArrayBuffer.arrayOfView = this.copyOf(start, end);
         return newArrayBuffer;
     }
 
@@ -1840,7 +1842,11 @@ export class ArrayBuffer {
         const newArrayBuffer = new ArrayBuffer(0);
         newArrayBuffer.states = this.states;
         newArrayBuffer.maxByteLength = this.maxByteLength;
-        newArrayBuffer.arrayOfView = this.detach();
+        if (this.arrayOfView != null) {
+            newArrayBuffer.arrayOfView = this.copyOf(0, this.arrayOfView.length);
+        }
+
+        this.detach();
         return newArrayBuffer;
     }
 
@@ -1850,16 +1856,27 @@ export class ArrayBuffer {
         return newArrayBuffer;
     }
 
-    private detach() {
-        this.states |= States.Detached;
-        const inst = this.arrayOfView;
-        this.arrayOfView = null;
-        return inst;
+    // The bytes [start, end) in an array of their own. A slice is a copy, as in JavaScript, and a
+    // transfer copies too: the bytes cannot move out of the field into another object under
+    // -mm=own, where a read of a field only borrows it.
+    private copyOf(start: int, end: int): char[] {
+        let copy: char[] = [];
+        copy.length = end - start;
+        for (let i = start; i < end; i++) {
+            copy[i - start] = this.arrayOfView[i];
+        }
+
+        return copy;
     }
 
+    private detach() {
+        this.states |= States.Detached;
+        this.arrayOfView = null;
+    }
+
+    // the assignment releases the bytes under rc and own, and leaves them to the collector under gc
     [Symbol.dispose]() {
         if (this.arrayOfView != null && !this.detached) {
-            delete this.arrayOfView;
             this.arrayOfView = null;
         }
     }
@@ -1874,7 +1891,9 @@ export class Headers {
         this.values = [];
 
         if (init != undefined) {
-            for (const [k, v] of init) this.set(k, v);
+            // copies: set is a method another module may override, so under -mm=own it may destroy
+            // anything, and the caller's strings cannot be lent to it
+            for (const [k, v] of init) this.set(k + "", v + "");
         }
     }
 

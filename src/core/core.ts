@@ -117,8 +117,9 @@ export namespace HashHelpers
     }
 
     export function hashCodeAny(key: any): int {
-        let keyLocal = key;
-        const anyPtr = Deref(<Reference<Opaque>> Ref(keyLocal));
+        // the parameter's own slot: a copy of it in a local is a second reference, which -mm=own
+        // cannot give an exported function's parameter
+        const anyPtr = Deref(<Reference<Opaque>> Ref(key));
         let anyStruct: Reference<[size: index, type: string, data: byte]> = anyPtr;
         return hashCodeBinary(Ref(anyStruct.data), anyStruct.size);
     }

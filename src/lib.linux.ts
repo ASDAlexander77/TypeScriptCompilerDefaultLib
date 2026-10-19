@@ -5,14 +5,14 @@ type errno_t = i32;
 type time_t = long; 
 
 // locale
-declare function setlocale (category: int, locale: string): void;
-declare function newlocale (category: int, locale: string, base: Opaque | null): Opaque;
-declare function uselocale (locale: Opaque): Opaque;
-declare function freelocale (locale: Opaque): void;
+@nodrops declare function setlocale (category: int, locale: string): void;
+@nodrops declare function newlocale (category: int, locale: string, base: Opaque | null): Opaque;
+@nodrops declare function uselocale (locale: Opaque): Opaque;
+@nodrops declare function freelocale (locale: Opaque): void;
 // LC_TIME
 
 @varargs
-declare function snprintf(out: string, n: index, format: string): void;
+@nodrops declare function snprintf(out: string, n: index, format: string): void;
 
 export function convertNumber(bufferSize: int, format: string, value: number): string
 {
@@ -36,13 +36,13 @@ export function convertInteger(bufferSize: int, format: string, value: i32): str
 
 
 // Date & Time
-declare function tzset();
+@nodrops declare function tzset();
 export function init_time() {
     tzset();
 }
 
 type timeval = [tv_sec: i64, tv_usec: i32];
-declare function timespec_get(tv: Reference<timeval>, base: int): int;
+@nodrops declare function timespec_get(tv: Reference<timeval>, base: int): int;
 
 const TIME_UTC = 1;
 export function getMilliseconds(): i64 {
@@ -60,7 +60,7 @@ type tm = [tm_sec: i32, tm_min: i32, tm_hour: i32, tm_mday: i32, tm_mon: i32, tm
 // struct, and strftime's %z and %Z read the last two, so every C call takes this one.
 type c_tm = [tm_sec: i32, tm_min: i32, tm_hour: i32, tm_mday: i32, tm_mon: i32, tm_year: i32, tm_wday: i32, tm_yday: i32, tm_isdst: i32, tm_gmtoff: index, tm_zone: index];
 
-declare function timegm(tv: Reference<c_tm>): long;
+@nodrops declare function timegm(tv: Reference<c_tm>): long;
 export function makegmtime(year: i32, month: i32, day: i32, hour: i32, minutes: i32, seconds: i32, milliseconds: i32): i64 {
     let tm1: c_tm = [seconds, minutes, hour, day, month, year, 0, 0, 0, 0, 0];
     const sec = timegm(Ref(tm1));
@@ -73,7 +73,7 @@ export function makegmtime(year: i32, month: i32, day: i32, hour: i32, minutes: 
     return sec * 1000 + milliseconds; // return ms
 }
 
-declare function mktime(tv: Reference<c_tm>): long;
+@nodrops declare function mktime(tv: Reference<c_tm>): long;
 export function maketime(year: i32, month: i32, day: i32, hour: i32, minutes: i32, seconds: i32, milliseconds: i32): i64 {
     // tm_isdst -1: a local time is in daylight saving time or not as the date says (0 would read
     // a summer date as standard time, an hour off)
@@ -88,8 +88,8 @@ export function maketime(year: i32, month: i32, day: i32, hour: i32, minutes: i3
     return sec * 1000 + milliseconds; // return ms
 }
 
-declare function gmtime_r(time: Reference<time_t>, tm: Reference<c_tm>) : Reference<c_tm>;
-declare function localtime_r(time: Reference<time_t>, tm: Reference<c_tm>) : Reference<c_tm>;
+@nodrops declare function gmtime_r(time: Reference<time_t>, tm: Reference<c_tm>) : Reference<c_tm>;
+@nodrops declare function localtime_r(time: Reference<time_t>, tm: Reference<c_tm>) : Reference<c_tm>;
 function c_time(time: long, isUtc: boolean): c_tm {
     let tmDest: c_tm = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     let timeInSec: time_t = time / 1000;
@@ -120,7 +120,7 @@ export function gettimezone(): i32 {
 }
 
 // returns `buffer`: a pointer, not copied
-declare function ctime_r(time: Reference<time_t>, buffer: string): Opaque;
+@nodrops declare function ctime_r(time: Reference<time_t>, buffer: string): Opaque;
 export function timestamp_to_string(maxsize: index, time: long): string {
     let timeInSec: time_t = time / 1000;
     let buffer : char[] = [];
@@ -130,7 +130,7 @@ export function timestamp_to_string(maxsize: index, time: long): string {
     return s;
 }
 
-declare function asctime_r(time: Reference<c_tm>, buffer: string): Opaque;
+@nodrops declare function asctime_r(time: Reference<c_tm>, buffer: string): Opaque;
 export function time_to_string(maxsize: index, time: long, isUtc: boolean): string {
     let tm = c_time(time, isUtc);
 
@@ -141,7 +141,7 @@ export function time_to_string(maxsize: index, time: long, isUtc: boolean): stri
     return s;
 }
 
-declare function strftime(out: string, maxsize: index, format: string, tm: Reference<c_tm>): index;
+@nodrops declare function strftime(out: string, maxsize: index, format: string, tm: Reference<c_tm>): index;
 export function time_format(maxsize: index, format: string, time: long, isUtc: boolean): string {
     let tm = c_time(time, isUtc);
 
@@ -152,7 +152,7 @@ export function time_format(maxsize: index, format: string, time: long, isUtc: b
     return s;
 }
 
-declare function strftime_l(out: string, maxsize: index, format: string, tm: Reference<c_tm>, locale: Opaque): index;
+@nodrops declare function strftime_l(out: string, maxsize: index, format: string, tm: Reference<c_tm>, locale: Opaque): index;
 export function time_format_locale(maxsize: index, format: string, time: long, locale: string, isUtc: boolean): string {
     let tm = c_time(time, isUtc);
 
