@@ -1,11 +1,11 @@
 @rem Builds the default library for Android (API 29) on a Windows host, the Android counterpart of
 @rem scripts/build.sh.
 @rem
-@rem   scripts\build_android.bat [abi] [release|debug] [gc|rc|none]
+@rem   scripts\build_android.bat [abi] [release|debug] [gc|rc|none|own]
 @rem
 @rem   abi    arm64-v8a | armeabi-v7a | x86_64   (default: all three)
 @rem   mode   release | debug      (default: both)
-@rem   model  gc | rc | none       (default: all three - see build.sh on why each needs its own)
+@rem   model  gc | rc | none | own (default: all four - see build.sh on why each needs its own)
 @rem
 @rem Needs:
 @rem   ANDROID_NDK_HOME  the Android NDK (tested with r30), e.g. C:\Android\android-ndk-r30
@@ -54,6 +54,7 @@ if "%MM%"=="" (
     call "%~f0" %ABI% %MODE% gc || exit /b 1
     call "%~f0" %ABI% %MODE% rc || exit /b 1
     call "%~f0" %ABI% %MODE% none || exit /b 1
+    call "%~f0" %ABI% %MODE% own || exit /b 1
     exit /b 0
 )
 
@@ -79,8 +80,8 @@ if "%MODE%"=="release" (
     exit /b 1
 )
 
-if not "%MM%"=="gc" if not "%MM%"=="rc" if not "%MM%"=="none" (
-    echo unknown memory model "%MM%": gc, rc or none
+if not "%MM%"=="gc" if not "%MM%"=="rc" if not "%MM%"=="none" if not "%MM%"=="own" (
+    echo unknown memory model "%MM%": gc, rc, none or own
     exit /b 1
 )
 

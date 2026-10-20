@@ -54,7 +54,7 @@ scripts\build_android.bat arm64-v8a release gc   # just that one
 ```
 
 This builds for API level 29 (the lowest with `timespec_get`) into the same tree as every
-other target: `__build\defaultlib\lib\<aarch64|arm|x86_64>\unknown\linux\android\<debug|release>\<gc|rc|none>\`.
+other target: `__build\defaultlib\lib\<aarch64|arm|x86_64>\unknown\linux\android\<debug|release>\<gc|rc|none|own>\`.
 It needs a `tslang.exe` that can target Android (`TOOL_PATH`, default: the compiler's
 release build tree). Android has no libcurl, so HTTP is `src\wrappers\http_stub.cpp`: `fetch()`
 throws. Only the static library is built: tslang links it into every Android binary.
