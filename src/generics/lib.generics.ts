@@ -440,6 +440,10 @@ class Array<T> {
         this.data.length = count;
     }
 
+    constructor(...args: T[]) {
+        this.data = args;
+    }
+
     public [index: int]: T;
 
     public get(index: int): T {
