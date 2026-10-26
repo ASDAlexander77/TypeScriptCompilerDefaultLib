@@ -10,4 +10,5 @@
 *.exp
 *.lib
 *.pdb
+*.log
 __jit/
