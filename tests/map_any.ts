@@ -1,3 +1,4 @@
+// not own: an untyped Map is Map<any, any>, which -mm=own refuses (use typed keys and values)
 const m = new Map();
 
 m.set(1, "Hello");

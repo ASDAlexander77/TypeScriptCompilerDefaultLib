@@ -1,7 +1,8 @@
 # Runs every test in .\tests, release and debug, compiled and under the JIT.
 #   .\tests.ps1              the compiler's default memory model (gc)
 #   .\tests.ps1 -Model rc    -mm=rc, against the default library built for it; also $Env:TSLANG_MM
-# A test whose first line starts with "// gc only" is skipped under any other model.
+# A test whose first line starts with "// gc only" is skipped under any other model, and one whose
+# first line starts with "// not own" under -mm=own.
 param([string]$Model = $Env:TSLANG_MM)
 
 # The library paths the environment gives when the script starts. One it does not give is worked
@@ -132,6 +133,13 @@ function Test-GcOnly([string]$path)
     return (Get-Content $path -TotalCount 1) -match '^// gc only'
 }
 
+# A test of what -mm=own refuses by design says so on its first line ("// not own: ..."), e.g. a
+# Map of `any`: under own an object goes into a Map or Set as Shared<T>.
+function Test-NotOwn([string]$path)
+{
+    return (Get-Content $path -TotalCount 1) -match '^// not own'
+}
+
 function Tests([string]$config, [string]$mode)
 {
     Write-Host "Testing..."
@@ -151,6 +159,12 @@ function Tests([string]$config, [string]$mode)
         if ($Model -and $Model -ne "gc" -and (Test-GcOnly $_.FullName)) {
             $skipped++
             Write-Host "Skipped   (gc only)" -ForegroundColor Yellow
+            return
+        }
+
+        if ($Model -eq "own" -and (Test-NotOwn $_.FullName)) {
+            $skipped++
+            Write-Host "Skipped   (not own)" -ForegroundColor Yellow
             return
         }
 
