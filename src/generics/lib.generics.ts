@@ -1040,7 +1040,7 @@ class Map<K = any, V = any> {
     }
 
     // The entries are read through `this` at each step, not kept in the state: under -mm=own the
-    // state borrows the map, and an insert may give it a new entries array.
+    // state borrows the map itself, and may not keep a field read out of it.
     @borrows("this")
     private *iter() {
         for (let i = 0; i < this.count; i++) {
@@ -1440,7 +1440,7 @@ class Set<V = any> {
     }
 
     // The entries are read through `this` at each step, not kept in the state: under -mm=own the
-    // state borrows the set, and an add may give it a new entries array.
+    // state borrows the set itself, and may not keep a field read out of it.
     @borrows("this")
     private *iter() {
         for (let i = 0; i < this.count; i++) {
