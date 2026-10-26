@@ -671,9 +671,9 @@ enum InsertionBehavior {
 
 namespace HashHelpers {
     function hashCodeGeneral<K>(key: K): int {
-        let keyLocal = key;
+        // the parameter's own bytes: a local copy of it would take it under -mm=own
         const size = sizeof<K>();
-        const valueRef = Ref(keyLocal);
+        const valueRef = Ref(key);
 
         switch (size) {
             case 4: return Deref(<Reference<i32>>valueRef);
@@ -744,7 +744,8 @@ class Map<K = any, V = any> {
     }
 
     get size() {
-        return this.count;
+        // the entries deleted are on the free list, still counted
+        return this.count - this.freeCount;
     }
 
     clear() {
@@ -776,22 +777,30 @@ class Map<K = any, V = any> {
         return this.removeValue(k);
     }
 
+    @borrows("this")
     entries() {
         return this.iter();
     }
 
+    @borrows("this")
     keys() {
         return this.iterKey();
     }
 
+    @borrows("this")
     values() {
         return this.iterValue();
     }
 
     forEach(f: (value: V, key: K, map: Map<K, V>) => void) {
-        for (const entry of this.iter()) f(entry.value, entry.key, this);
+        for (let i = 0; i < this.count; i++) {
+            if (this._entries[i].next >= -1) {
+                f(this._entries[i].value, this._entries[i].key, this);
+            }
+        }
     }
 
+    @borrows("this")
     [Symbol.iterator]() {
         return this.entries();
     }
@@ -830,31 +839,24 @@ class Map<K = any, V = any> {
     }
 
     private resizeHelper(newSize: int, forceNewHashCodes: boolean) {
-        let entries: MapEntry<K, V>[] = [];
-        entries.length = newSize;
-
         const count = this.count;
-        // entry by entry, not memcpy: under rc an entry owns its key and value, and the old array
-        // gives them up when it is replaced below - the new one has to have taken its own
-        const oldEntries = this._entries;
-        for (let i = 0; i < count; i++) entries[i] = oldEntries[i];
+        // the entries array grows where it is: its entries stay its own (under -mm=own nothing can
+        // move them out of it into another array)
+        this._entries.length = newSize;
 
         if (forceNewHashCodes) {
-            this.newHashCodes(entries);
+            this.newHashCodes(this._entries);
         }
 
-        // Assign member variables after both arrays allocated to guard against corruption from OOM if second fails
         this.buckets = [];
         this.buckets.length = newSize;
         for (let i = 0; i < count; i++) {
-            if (entries[i].next >= -1) {
-                const hashCode = entries[i].hashCode;
-                entries[i].next = this.getBucket(hashCode) - 1; // Value in _buckets is 1-based
+            if (this._entries[i].next >= -1) {
+                const hashCode = this._entries[i].hashCode;
+                this._entries[i].next = this.getBucket(hashCode) - 1; // Value in _buckets is 1-based
                 this.setBucket(hashCode, i + 1);
             }
         }
-
-        this._entries = entries;
     }
 
     private resize() {
@@ -864,64 +866,73 @@ class Map<K = any, V = any> {
     private tryInsert(key: K, value: V, behavior: InsertionBehavior): boolean {
         const hashCode = <uint>HashHelpers.hashCode(key);
 
-        let entries = this._entries;
-
         let collisionCount: uint = 0;
         let bucket = this.getBucket(hashCode);
         let i = bucket - 1; // Value in _buckets is 1-based
 
-        while (<uint>i < <uint>entries.length) {
-            if (entries[i].hashCode == hashCode && EqualityHelper.equals(entries[i].key, key)) {
-                if (behavior == InsertionBehavior.OverwriteExisting) {
-                    entries[i].value = value;
-                    return true;
-                }
-
-                if (behavior == InsertionBehavior.ThrowOnExisting) {
-                    // throw error
-                }
-
-                return false;
+        let found = -1;
+        while (<uint>i < <uint>this._entries.length) {
+            if (this._entries[i].hashCode == hashCode && EqualityHelper.equals(this._entries[i].key, key)) {
+                found = i;
+                break;
             }
 
-            i = entries[i].next;
+            i = this._entries[i].next;
             collisionCount++;
-            if (collisionCount > <uint>entries.length) {
+            if (collisionCount > <uint>this._entries.length) {
                 // throw exception
             }
         }
 
-        let index = 0;
-        if (this.freeCount > 0) {
-            index = this.freeList;
-            this.freeList = this.StartOfFreeList - entries[this.freeList].next;
-            this.freeCount--;
-        }
-        else {
-            let count = this.count;
-            if (count == entries.length) {
-                this.resize();
-                bucket = this.getBucket(hashCode);
+        if (found >= 0 && behavior != InsertionBehavior.OverwriteExisting) {
+            if (behavior == InsertionBehavior.ThrowOnExisting) {
+                // throw error
             }
 
-            index = count;
-            this.count = count + 1;
-            entries = this._entries;
+            return false;
         }
 
-        entries[index] = {
-            hashCode: hashCode,
-            next: bucket - 1, // Value in _buckets is 1-based
-            key: key,
-            value: value,
-        };
+        // The key and the value go into the entry in one place, outside the loop: under -mm=own the
+        // path that does not take them releases them. An entry overwritten keeps its place in its
+        // chain.
+        let index = found;
+        let next = 0;
+        if (found >= 0) {
+            next = this._entries[found].next;
+        }
+        else {
+            if (this.freeCount > 0) {
+                index = this.freeList;
+                this.freeList = this.StartOfFreeList - this._entries[this.freeList].next;
+                this.freeCount--;
+            }
+            else {
+                let count = this.count;
+                if (count == this._entries.length) {
+                    this.resize();
+                    bucket = this.getBucket(hashCode);
+                }
 
-        this.setBucket(hashCode, index + 1); // Value in _buckets is 1-based
+                index = count;
+                this.count = count + 1;
+            }
+
+            next = bucket - 1; // Value in _buckets is 1-based
+        }
+
+        // a tuple of the entry's fields, in their order: under -mm=own an object literal that holds
+        // what it owns moves only into a local, a tuple anywhere
+        this._entries[index] = <MapEntry<K, V>>[hashCode, next, key, value];
+
+        if (found < 0) {
+            this.setBucket(hashCode, index + 1); // Value in _buckets is 1-based
+        }
+
         this.version++;
 
         // Value types never rehash
         if (collisionCount > PrimeHelpers.hashCollisionThreshold) {
-            this.newHashCodes(entries);
+            this.newHashCodes(this._entries);
         }
 
         return true;
@@ -1028,29 +1039,35 @@ class Map<K = any, V = any> {
         return false;
     }
 
+    // The entries are read through `this` at each step, not kept in the state: under -mm=own the
+    // state borrows the map itself, and may not keep a field read out of it.
+    @borrows("this")
     private *iter() {
-        const entries = this._entries;
         for (let i = 0; i < this.count; i++) {
-            if (entries[i].next >= -1) {
-                yield <[key: K, value: V]>[entries[i].key, entries[i].value];
+            if (this._entries[i].next >= -1) {
+                const key = this._entries[i].key;
+                const value = this._entries[i].value;
+                yield <[key: K, value: V]>[key, value];
             }
         }
     }
 
+    @borrows("this")
     private *iterKey() {
-        const entries = this._entries;
         for (let i = 0; i < this.count; i++) {
-            if (entries[i].next >= -1) {
-                yield entries[i].key;
+            if (this._entries[i].next >= -1) {
+                const key = this._entries[i].key;
+                yield key;
             }
         }
     }
 
+    @borrows("this")
     private *iterValue() {
-        const entries = this._entries;
         for (let i = 0; i < this.count; i++) {
-            if (entries[i].next >= -1) {
-                yield entries[i].value;
+            if (this._entries[i].next >= -1) {
+                const value = this._entries[i].value;
+                yield value;
             }
         }
     }
@@ -1092,7 +1109,8 @@ class Set<V = any> {
     }
 
     get size() {
-        return this.count;
+        // the entries deleted are on the free list, still counted
+        return this.count - this.freeCount;
     }
 
     clear() {
@@ -1120,22 +1138,30 @@ class Set<V = any> {
         return this.removeValue(v);
     }
 
+    @borrows("this")
     entries() {
         return this.iter();
     }
 
+    @borrows("this")
     keys() {
         return this.iter();
     }
 
+    @borrows("this")
     values() {
         return this.iter();
     }
 
     forEach(f: (value: V, map: Set<V>) => void) {
-        for (const value of this.iter()) f(value, this);
+        for (let i = 0; i < this.count; i++) {
+            if (this._entries[i].next >= -1) {
+                f(this._entries[i].value, this);
+            }
+        }
     }
 
+    @borrows("this")
     [Symbol.iterator]() {
         return this.iter();
     }
@@ -1255,31 +1281,24 @@ class Set<V = any> {
     }
 
     private resizeHelper(newSize: int, forceNewHashCodes: boolean) {
-        let entries: SetEntry<V>[] = [];
-        entries.length = newSize;
-
         const count = this.count;
-        // entry by entry, not memcpy: under rc an entry owns its key and value, and the old array
-        // gives them up when it is replaced below - the new one has to have taken its own
-        const oldEntries = this._entries;
-        for (let i = 0; i < count; i++) entries[i] = oldEntries[i];
+        // the entries array grows where it is: its entries stay its own (under -mm=own nothing can
+        // move them out of it into another array)
+        this._entries.length = newSize;
 
         if (forceNewHashCodes) {
-            this.newHashCodes(entries);
+            this.newHashCodes(this._entries);
         }
 
-        // Assign member variables after both arrays allocated to guard against corruption from OOM if second fails
         this.buckets = [];
         this.buckets.length = newSize;
         for (let i = 0; i < count; i++) {
-            if (entries[i].next >= -1) {
-                const hashCode = entries[i].hashCode;
-                entries[i].next = this.getBucket(hashCode) - 1; // Value in _buckets is 1-based
+            if (this._entries[i].next >= -1) {
+                const hashCode = this._entries[i].hashCode;
+                this._entries[i].next = this.getBucket(hashCode) - 1; // Value in _buckets is 1-based
                 this.setBucket(hashCode, i + 1);
             }
         }
-
-        this._entries = entries;
     }
 
     private resize() {
@@ -1289,63 +1308,61 @@ class Set<V = any> {
     private AddIfNotPresent(value: V, behavior: InsertionBehavior): boolean {
         const hashCode = <uint>HashHelpers.hashCode(value);
 
-        let entries = this._entries;
-
         let collisionCount: uint = 0;
         let bucket = this.getBucket(hashCode);
         let i = bucket - 1; // Value in _buckets is 1-based
 
-        while (<uint>i < <uint>entries.length) {
-            if (entries[i].hashCode == hashCode && EqualityHelper.equals(entries[i].value, value)) {
-                if (behavior == InsertionBehavior.OverwriteExisting) {
-                    entries[i].value = value;
-                    return true;
-                }
-
-                if (behavior == InsertionBehavior.ThrowOnExisting) {
-                    // throw error
-                }
-
-                return false;
+        let found = false;
+        while (<uint>i < <uint>this._entries.length) {
+            if (this._entries[i].hashCode == hashCode && EqualityHelper.equals(this._entries[i].value, value)) {
+                found = true;
+                break;
             }
 
-            i = entries[i].next;
+            i = this._entries[i].next;
             collisionCount++;
-            if (collisionCount > <uint>entries.length) {
+            if (collisionCount > <uint>this._entries.length) {
                 // throw exception
             }
+        }
+
+        // outside the loop: under -mm=own the path that does not take the value releases it
+        if (found) {
+            // a value equal to one in the set is not put in again, whatever the behavior
+            if (behavior == InsertionBehavior.ThrowOnExisting) {
+                // throw error
+            }
+
+            return false;
         }
 
         let index = 0;
         if (this.freeCount > 0) {
             index = this.freeList;
-            this.freeList = this.StartOfFreeList - entries[this.freeList].next;
+            this.freeList = this.StartOfFreeList - this._entries[this.freeList].next;
             this.freeCount--;
         }
         else {
             let count = this.count;
-            if (count == entries.length) {
+            if (count == this._entries.length) {
                 this.resize();
                 bucket = this.getBucket(hashCode);
             }
 
             index = count;
             this.count = count + 1;
-            entries = this._entries;
         }
 
-        entries[index] = {
-            hashCode: hashCode,
-            next: bucket - 1, // Value in _buckets is 1-based
-            value: value,
-        };
+        // a tuple of the entry's fields, in their order: under -mm=own an object literal that holds
+        // what it owns moves only into a local, a tuple anywhere
+        this._entries[index] = <SetEntry<V>>[hashCode, bucket - 1 /* Value in _buckets is 1-based */, value];
 
         this.setBucket(hashCode, index + 1); // Value in _buckets is 1-based
         this.version++;
 
         // Value types never rehash
         if (collisionCount > PrimeHelpers.hashCollisionThreshold) {
-            this.newHashCodes(entries);
+            this.newHashCodes(this._entries);
         }
 
         return true;
@@ -1422,11 +1439,14 @@ class Set<V = any> {
         return false;
     }
 
+    // The entries are read through `this` at each step, not kept in the state: under -mm=own the
+    // state borrows the set itself, and may not keep a field read out of it.
+    @borrows("this")
     private *iter() {
-        const entries = this._entries;
         for (let i = 0; i < this.count; i++) {
-            if (entries[i].next >= -1) {
-                yield entries[i].value;
+            if (this._entries[i].next >= -1) {
+                const value = this._entries[i].value;
+                yield value;
             }
         }
     }
