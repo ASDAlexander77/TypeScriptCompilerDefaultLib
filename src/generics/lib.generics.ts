@@ -435,6 +435,11 @@ class Array<T> {
     constructor(private data: T[] = []) {
     }
 
+    constructor(count: int = 0) {
+        this.data = [];
+        this.data.length = count;
+    }
+
     public [index: int]: T;
 
     public get(index: int): T {
