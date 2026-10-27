@@ -1477,9 +1477,11 @@ namespace __Iterator
     // The lazy helpers take their source over, as in JavaScript: under -mm=own `@keeps` makes the
     // generator's state own `iter` (and the callback), so `const seq = g().map(f)` may be kept. The
     // other models ignore it.
+    // `limit` is a number, as in JavaScript: `take(Infinity)` takes everything, where an index made
+    // of Infinity is no particular count.
     @keeps("iter")
-    function *take<TIter extends { next(): {value: any, done: boolean} } >(iter: TIter, limit: index) {
-        let count: index = 0;
+    function *take<TIter extends { next(): {value: any, done: boolean} } >(iter: TIter, limit: number) {
+        let count = 0;
         for (const v of iter) {
             if (count ++ >= limit) 
                 break;
@@ -1488,8 +1490,8 @@ namespace __Iterator
     }
 
     @keeps("iter")
-    function *drop<TIter extends { next(): {value: any, done: boolean} } >(iter: TIter, limit: index) {
-        let count: index = 0;
+    function *drop<TIter extends { next(): {value: any, done: boolean} } >(iter: TIter, limit: number) {
+        let count = 0;
         for (const v of iter) {
             if (count++ < limit)
                 continue;
