@@ -321,8 +321,10 @@ namespace __Array {
         const shift = this.length - 1;
         const size = this.length >> 1;
         for (let i = 0; i < size; i++) {
-            const v = this[i];
-            this[i] = this[shift - i]
+            // a `let`, as sort's `temp`: under -mm=own a string element is copied out, where a
+            // `const` would borrow the slot overwritten next
+            let v = this[i];
+            this[i] = this[shift - i];
             this[shift - i] = v;
         }
 
@@ -362,30 +364,37 @@ namespace __Array {
         return false;
     }
 
+    // The comparison is a parameter the sort only calls, never one it assigns: under -mm=own what a
+    // callback may release is known from the functions given for it, and a parameter assigned a
+    // default is one nothing knows - so a call of it with two elements would be a use of them after
+    // it may release them.
+    function selectionSort<T>(a: T[], compare: (value1: T, value2: T) => int) {
+        const len = a.length;
+        for (let i = 0; i < len - 1; ++i) {
+            for (let j = i + 1; j < len; ++j) {
+                if (compare(a[i], a[j]) > 0) {
+                    let temp: T = a[i];
+                    a[i] = a[j];
+                    a[j] = temp;
+                }
+            }
+        }
+    }
+
     function sort<T>(this: T[], callbackfn?: (value1: T, value2: T) => int): T[] {
         if (this.length <= 0) {
             return this;
         }
 
-        if (!callbackfn) {
-            callbackfn = (a, b) => {
+        if (callbackfn) {
+            selectionSort(this, callbackfn);
+        } else {
+            selectionSort(this, (a: T, b: T) => {
                 const sa = <string>a;
                 const sb = <string>b;
                 if (sa == sb) return 0;
                 return sa > sb ? 1 : -1;
-            };
-        }
-
-        const len = this.length;
-        // simple selection sort.
-        for (let i = 0; i < len - 1; ++i) {
-            for (let j = i + 1; j < len; ++j) {
-                if (callbackfn(this[i], this[j]) > 0) {
-                    let temp: T = this[i];
-                    this[i] = this[j];
-                    this[j] = temp;
-                }
-            }
+            });
         }
 
         return this;
