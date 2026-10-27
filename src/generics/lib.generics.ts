@@ -321,11 +321,9 @@ namespace __Array {
         const shift = this.length - 1;
         const size = this.length >> 1;
         for (let i = 0; i < size; i++) {
-            // a `let`, as sort's `temp`: under -mm=own a string element is copied out, where a
-            // `const` would borrow the slot overwritten next
-            let v = this[i];
-            this[i] = this[shift - i];
-            this[shift - i] = v;
+            // an exchange of the two elements, which moves nothing: through a local, under -mm=own
+            // an object element would have two owners
+            [this[i], this[shift - i]] = [this[shift - i], this[i]];
         }
 
         return this;
@@ -373,9 +371,8 @@ namespace __Array {
         for (let i = 0; i < len - 1; ++i) {
             for (let j = i + 1; j < len; ++j) {
                 if (compare(a[i], a[j]) > 0) {
-                    let temp: T = a[i];
-                    a[i] = a[j];
-                    a[j] = temp;
+                    // an exchange, as in reverse
+                    [a[i], a[j]] = [a[j], a[i]];
                 }
             }
         }
