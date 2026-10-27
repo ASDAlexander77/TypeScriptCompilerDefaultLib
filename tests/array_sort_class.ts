@@ -1,6 +1,3 @@
-// not own: the comparison is forwarded through sort's optional parameter to its helper, and a callback
-// given on through a parameter has no facts under -mm=own yet, so the call with two elements is a use
-// of them after a call that may release them
 // sort over class instances, in place. sort's default comparison (compiled even when a comparison is
 // given) converts an element to a string, which needs a class to say how.
 class Item {
