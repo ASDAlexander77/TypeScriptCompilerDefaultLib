@@ -830,14 +830,16 @@ class Map<K = any, V = any> {
         return size;
     }
 
+    // unsigned: a negative hash code (a negative int key, or a number or a handle with its top
+    // bit set) gave a negative index, in front of the buckets
     private getBucket(hashCode: int): int {
         const buckets = this.buckets;
-        return buckets[hashCode % buckets.length];
+        return buckets[<uint>hashCode % <uint>buckets.length];
     }
 
     private setBucket(hashCode: int, value: int) {
         const buckets = this.buckets;
-        buckets[hashCode % buckets.length] = value;
+        buckets[<uint>hashCode % <uint>buckets.length] = value;
     }
 
     private newHashCodes(entries: MapEntry<K, V>[]) {
@@ -1274,14 +1276,16 @@ class Set<V = any> {
         return size;
     }
 
+    // unsigned: a negative hash code (a negative int key, or a number or a handle with its top
+    // bit set) gave a negative index, in front of the buckets
     private getBucket(hashCode: int): int {
         const buckets = this.buckets;
-        return buckets[hashCode % buckets.length];
+        return buckets[<uint>hashCode % <uint>buckets.length];
     }
 
     private setBucket(hashCode: int, value: int) {
         const buckets = this.buckets;
-        buckets[hashCode % buckets.length] = value;
+        buckets[<uint>hashCode % <uint>buckets.length] = value;
     }
 
     private newHashCodes(entries: SetEntry<V>[]) {
