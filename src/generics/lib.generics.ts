@@ -1531,7 +1531,9 @@ namespace __Iterator
     }
 
     function reduce<TIter extends { next(): {value: any, done: boolean} }, V = ElementType<TIter>>(iter: TIter, callbackFn: (v: V, t: ElementType<TIter>) => V, initial?: V) {
-        let result = initial ?? iter.next().value;
+        // a V, not the `any` that `?? iter.next().value` gives: boxed into an any, the initial
+        // value is one -mm=own cannot follow
+        let result: V = initial ?? iter.next().value;
         for (const v of iter) result = callbackFn(result, v);
         return result;
     }
