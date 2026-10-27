@@ -391,6 +391,8 @@ namespace __Array {
         return this;
     }
 
+    // the iterator borrows the array, as values() does: under -mm=own the result may not outlive it
+    @borrows("this")
     function iterator<T>(this: T[]) {
         return this.values();
     }
