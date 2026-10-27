@@ -1474,6 +1474,10 @@ namespace __Iterator
     // example how to restrict to iterators only
     // function *take<TIter extends { next(): {value: any, done: boolean} >(iter: TIter, limit: index) {
 
+    // The lazy helpers take their source over, as in JavaScript: under -mm=own `@keeps` makes the
+    // generator's state own `iter` (and the callback), so `const seq = g().map(f)` may be kept. The
+    // other models ignore it.
+    @keeps("iter")
     function *take<TIter extends { next(): {value: any, done: boolean} } >(iter: TIter, limit: index) {
         let count: index = 0;
         for (const v of iter) {
@@ -1483,11 +1487,14 @@ namespace __Iterator
         }
     }
 
-    function drop<TIter extends { next(): {value: any, done: boolean} } >(iter: TIter, limit: index) {
-        for (let i: index = 0; i < limit; i++)
-            iter.next();
-
-        return iter;
+    @keeps("iter")
+    function *drop<TIter extends { next(): {value: any, done: boolean} } >(iter: TIter, limit: index) {
+        let count: index = 0;
+        for (const v of iter) {
+            if (count++ < limit)
+                continue;
+            yield v;
+        }
     }
 
     type ElementType<T> = T extends { next(): {value: infer TElem, done: boolean} } ? TElem : never;  
@@ -1500,6 +1507,7 @@ namespace __Iterator
         return true;
     }    
 
+    @keeps("iter", "callbackFn")
     function *filter<TIter extends { next(): {value: any, done: boolean} }>(iter: TIter, callbackFn: (e: ElementType<TIter>) => boolean) {
         for (const v of iter) {
             if (!callbackFn(v)) 
@@ -1517,6 +1525,7 @@ namespace __Iterator
         for (const v of iter) callbackFn(v);
     }     
 
+    @keeps("iter", "callbackFn")
     function *map<TIter extends { next(): {value: any, done: boolean} }, R>(iter: TIter, callbackFn: (e: ElementType<TIter>) => R) {
         for (const v of iter) yield callbackFn(v);
     }
