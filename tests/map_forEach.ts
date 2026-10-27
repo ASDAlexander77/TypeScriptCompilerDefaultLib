@@ -1,3 +1,4 @@
+// not own: an untyped Map is Map<any, any>, which -mm=own refuses (use typed keys and values)
 new Map([
     ['foo', 3],
     ['bar', "test"],

@@ -2,7 +2,8 @@
 # Runs every test in ./tests, release and debug, compiled and under the JIT.
 #   ./tests.sh        the compiler's default memory model (gc)
 #   ./tests.sh rc     -mm=rc, against the default library built for it; also TSLANG_MM=rc
-# A test whose first line starts with "// gc only" is skipped under any other model.
+# A test whose first line starts with "// gc only" is skipped under any other model, and one whose
+# first line starts with "// not own" under -mm=own.
 MODEL="${1:-$TSLANG_MM}"
 
 # The library paths the environment gives when the script starts. One it does not give is worked
@@ -94,6 +95,12 @@ function gc_only() {
     head -n 1 "$1" | grep -q '^// gc only'
 }
 
+# A test of what -mm=own refuses by design says so on its first line ("// not own: ..."), e.g. a
+# Map of `any`: under own an object goes into a Map or Set as Shared<T>.
+function not_own() {
+    head -n 1 "$1" | grep -q '^// not own'
+}
+
 function tests() {
     config="$1"
     mode="$2"
@@ -112,6 +119,12 @@ function tests() {
         if [ -n "$MODEL" ] && [ "$MODEL" != "gc" ] && gc_only "$file"; then
             skipped=$((skipped + 1))
             printf "\e[33mSkipped\e[0m   (gc only)\n"
+            continue
+        fi
+
+        if [ "$MODEL" = "own" ] && not_own "$file"; then
+            skipped=$((skipped + 1))
+            printf "\e[33mSkipped\e[0m   (not own)\n"
             continue
         fi
 

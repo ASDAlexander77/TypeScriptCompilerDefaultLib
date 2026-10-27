@@ -731,6 +731,8 @@ type MapEntry<TKey, TValue> =
         value: TValue; // Value of entry
     };
 
+// -mm=own: keys and values are values, strings or Shared<T> handles; an object goes in as Shared<T>
+@sharedElements
 class Map<K = any, V = any> {
 
     const StartOfFreeList = -3;
@@ -1095,6 +1097,8 @@ type SetEntry<TValue> =
         value: TValue; // Value of entry
     };
 
+// -mm=own: elements are values, strings or Shared<T> handles; an object goes in as Shared<T>
+@sharedElements
 class Set<V = any> {
 
     const StartOfFreeList = -3;
