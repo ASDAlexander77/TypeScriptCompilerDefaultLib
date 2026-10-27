@@ -105,7 +105,10 @@ namespace __Array {
 
     function* entries<T>(this: T[]) {
         for (let i = 0; i in this; i++) {
-            yield [i, this[i]];
+            // under -mm=own the element is read into the state before the yield: a tuple made from
+            // a borrow of it in the yield itself is not one own can follow yet
+            const v = this[i];
+            yield [i, v];
         }
     }
 
@@ -438,6 +441,9 @@ namespace __Array {
     }
 }
 
+// -mm=own: elements are values, strings or Shared<T> handles, as a Map's are: concat, fill and slice
+// copy them, and an object has one owner; an object goes in as Shared<T>
+@sharedElements
 class Array<T> {
 
     constructor(private data: T[] = []) {
@@ -527,10 +533,18 @@ class Array<T> {
         return this.data.copyWithin(target, start, end);
     }
 
+    // not `this.data.concat(...other)`: under -mm=own the spread would move other's arrays into a new one
     public concat(...other: T[][]) {
-        return this.data.concat(...other);
+        let result = this.data.slice();
+        for (const item of other) {
+            for (const v of item) result.push(v);
+        }
+
+        return result;
     }
 
+    // the iterators borrow the array, as T[]'s do: under -mm=own they may not outlive it
+    @borrows("this")
     public entries() {
         return this.data.entries();
     }
@@ -551,7 +565,8 @@ class Array<T> {
         return this.data.filter(func);
     }
 
-    public *filter2(func: (v: T) => boolean) {
+    @borrows("this", "func")
+    public filter2(func: (v: T) => boolean) {
         return this.data.filter2(func);
     }
 
@@ -587,6 +602,7 @@ class Array<T> {
         return this.data.join(separator);
     }
 
+    @borrows("this")
     public keys() {
         return this.data.keys();
     }
@@ -623,6 +639,7 @@ class Array<T> {
         return this.data.sort(callbackfn);
     }
 
+    @borrows("this")
     public [Symbol.iterator]() {
         return this.data.values();
     }
@@ -635,6 +652,7 @@ class Array<T> {
         return this.data.toSorted(callbackfn);
     }
 
+    @borrows("this")
     public values() {
         return this.data.values();
     }
