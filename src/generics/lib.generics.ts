@@ -449,14 +449,14 @@ class Array<T> {
     constructor(private data: T[] = []) {
     }
 
-    // constructor(count: int = 0) {
-    //     this.data = [];
-    //     this.data.length = count;
-    // }
+    constructor(count: int = 0) {
+        this.data = [];
+        this.data.length = count;
+    }
 
-    // constructor(...args: T[]) {
-    //     this.data = args;
-    // }
+    constructor(...args: T[]) {
+        this.data = args;
+    }
 
     public [index: int]: T;
 
