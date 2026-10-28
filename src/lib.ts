@@ -1181,6 +1181,28 @@ namespace __String {
         return strncmp(<string>Ref(this[position]), searchString, lensuffix) == 0;
     }    
 
+    // `length` characters from `start`; a negative start counts from the end
+    export function substr(this: string, start: int, length: int = this.length): string {
+        if (start < 0) {
+            start = start + this.length;
+            if (start < 0) {
+                start = 0;
+            }
+        } else if (start >= this.length) {
+            return "";
+        }
+
+        if (length <= 0) {
+            return "";
+        }
+
+        if (length > this.length - start) {
+            length = this.length - start;
+        }
+
+        return this.substring(start, start + length);
+    }
+
     export function substring(this: string, indexStart: int, indexEnd: int = this.length): string {
         if (indexStart < 0) {
             indexStart = 0;
@@ -1390,6 +1412,10 @@ export class String {
 
     public split(separator?: string | RegExp, limit?: int): string[] {
         return this.value.split(separator, limit);
+    }
+
+    public substr(start: int, length?: int): string {
+        return this.value.substr(start, length);
     }
 
     public substring(indexStart: int, indexEnd?: int): string {
