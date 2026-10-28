@@ -8,54 +8,55 @@ param([string]$Model = $Env:TSLANG_MM)
 # The library paths the environment gives when the script starts. One it does not give is worked
 # out again for each pass, release or debug: set once by the first pass, it made every later one
 # link the release libraries, which a debug default library does not link with (LNK2038).
-$GivenGcLibPath = $Env:GC_LIB_PATH
-$GivenLlvmLibPath = $Env:LLVM_LIB_PATH
-$GivenTslangLibPath = $Env:TSLANG_LIB_PATH
+# They count only with $Env:TOOL_PATH, as CI gives them: without it the compiler comes from the
+# sibling build tree, and a machine-wide path (say a release-only install) would put its release
+# runtime into the debug pass (LNK2038 again), so each pass takes its own from that tree.
+$GivenGcLibPath = if ($Env:TOOL_PATH) { $Env:GC_LIB_PATH }
+$GivenLlvmLibPath = if ($Env:TOOL_PATH) { $Env:LLVM_LIB_PATH }
+$GivenTslangLibPath = if ($Env:TOOL_PATH) { $Env:TSLANG_LIB_PATH }
 
-function Test([string]$config, [string]$mode, [string]$fileName)
-{
-    $BUILD="debug"
-    $BUILD1="Debug"
-    $VER="-2026"
-    $LLVM_BUILD="Debug"
-    $ARCH="x64"
-    $DBG="--di --opt_level=0"
-    $OPTIONS="--nowarn"
+function Test([string]$config, [string]$mode, [string]$fileName) {
+    $BUILD = "debug"
+    $BUILD1 = "Debug"
+    $VER = "-2026"
+    $ARCH = "x64"
+    $DBG = "--di --opt_level=0"
+    $OPTIONS = "--nowarn"
     if ($Model) {
-        $OPTIONS+=" -mm=$Model"
+        $OPTIONS += " -mm=$Model"
     }
-    $TOOL="tslang"
+    $TOOL = "tslang"
 
-    $test=$fileName
+    $test = $fileName
     if ($config -eq "release") {
-	    $BUILD="release"
-	    $BUILD1="release"
-	    $LLVM_BUILD="Release"
-	    $DBG=""
-        $OPTIONS+=" --opt --opt_level=3"
+        $BUILD = "release"
+        $BUILD1 = "release"
+        $DBG = ""
+        $OPTIONS += " --opt --opt_level=3"
     }
 
-    $SRC="."
-    $OUTPUT="."
+    $SRC = "."
+    $OUTPUT = "."
 
     if ($null -eq $Env:TOOL_PATH) {
-	    $BUILD_PATH="..\TypeScriptCompiler\__build"
-	    #$TOOL_PATH="..\TypeScriptCompiler\__build\$TOOL\windows-msbuild$VER-$BUILD\bin"
-        $TOOL_PATH="..\TypeScriptCompiler\__build\$TOOL\windows-msbuild$VER-release\bin"
-	    $DEFAULTLIB_BUILD_PATH="..\TypeScriptCompilerDefaultLib\__build"
-    } else {
-        $TOOL_PATH=$Env:TOOL_PATH
-	    $BUILD_PATH=$TOOL_PATH
-	    # Compiled default lib is staged under .\__build\defaultlib\{dll,lib}\<target>\<mode>\<model>
-	    # relative to the DefaultLib repo root (the tests working directory).
-	    $DEFAULTLIB_BUILD_PATH=".\__build"
+        $BUILD_PATH = "..\TypeScriptCompiler\__build"
+        #$TOOL_PATH="..\TypeScriptCompiler\__build\$TOOL\windows-msbuild$VER-$BUILD\bin"
+        $TOOL_PATH = "..\TypeScriptCompiler\__build\$TOOL\windows-msbuild$VER-release\bin"
+        $DEFAULTLIB_BUILD_PATH = "..\TypeScriptCompilerDefaultLib\__build"
+    }
+    else {
+        $TOOL_PATH = $Env:TOOL_PATH
+        $BUILD_PATH = $TOOL_PATH
+        # Compiled default lib is staged under .\__build\defaultlib\{dll,lib}\<target>\<mode>\<model>
+        # relative to the DefaultLib repo root (the tests working directory).
+        $DEFAULTLIB_BUILD_PATH = ".\__build"
     }
 
     $Env:GC_LIB_PATH = if ($GivenGcLibPath) { $GivenGcLibPath } else { "$BUILD_PATH\gc\msbuild\$ARCH\$BUILD\$BUILD1" }
     $Env:LLVM_LIB_PATH = if ($GivenLlvmLibPath) { $GivenLlvmLibPath } else { "$BUILD_PATH\llvm\msbuild\$ARCH\$BUILD\$BUILD1\lib" }
     $Env:TSLANG_LIB_PATH = if ($GivenTslangLibPath) { $GivenTslangLibPath } else { "$BUILD_PATH\$TOOL\windows-msbuild$VER-$BUILD\lib" }
     if ($null -eq $Env:DEFAULT_LIB_PAT) {
-	    $Env:DEFAULT_LIB_PATH="$DEFAULTLIB_BUILD_PATH"
+        $Env:DEFAULT_LIB_PATH = "$DEFAULTLIB_BUILD_PATH"
     }
 
     $DBG_ARGS = [string[]]$(if ($DBG -ne "") { $DBG -split " " } else { @() })
@@ -80,15 +81,16 @@ function Test([string]$config, [string]$mode, [string]$fileName)
         # default above already carries, so this only stops that env var (guarded by the
         # `$Env:DEFAULT_LIB_PAT` typo elsewhere in this function, never fixed here) from being
         # the sole thing standing between an x86 run and a stale x64 value.
-        $GC_LIB_PATH_X86="..\TypeScriptCompiler\3rdParty\gc\x64\$BUILD\lib"
-        $TSLANG_LIB_PATH_X86="..\TypeScriptCompiler\__build\tslang-runtime\$BUILD"
+        $GC_LIB_PATH_X86 = "..\TypeScriptCompiler\3rdParty\gc\x64\$BUILD\lib"
+        $TSLANG_LIB_PATH_X86 = "..\TypeScriptCompiler\__build\tslang-runtime\$BUILD"
         $ARCH_ARGS = @("-mtriple=i686-pc-windows-msvc", "--gc-lib-path=$GC_LIB_PATH_X86", "--tslang-lib-path=$TSLANG_LIB_PATH_X86", "--default-lib-path=$DEFAULTLIB_BUILD_PATH")
     }
 
     if ($mode -eq "compile") {
         if ($isX86) {
             $compile_error_output = ($compile_output = & $TOOL_PATH\$TOOL.exe @DBG_ARGS @OPTIONS_ARGS @ARCH_ARGS --emit=exe $SRC\tests\$test.ts) 2>&1
-        } else {
+        }
+        else {
             $compile_error_output = ($compile_output = & $TOOL_PATH\$TOOL.exe @DBG_ARGS @OPTIONS_ARGS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=exe $SRC\tests\$test.ts) 2>&1
         }
 
@@ -113,7 +115,7 @@ function Test([string]$config, [string]$mode, [string]$fileName)
         $run_code = $LASTEXITCODE
     }
 
-    if (($run_error_output | Where-Object {$_.GetType().fullname.Contains("ErrorRecord")} | Measure-Object).Count -gt 0) {
+    if (($run_error_output | Where-Object { $_.GetType().fullname.Contains("ErrorRecord") } | Measure-Object).Count -gt 0) {
         return $false
     }
 
@@ -128,20 +130,17 @@ function Test([string]$config, [string]$mode, [string]$fileName)
 
 # A test that needs the collector says so on its first line ("// gc only: WeakRef ..."): under
 # rc, none or own the compiler rejects the collector's API, so it cannot pass there.
-function Test-GcOnly([string]$path)
-{
+function Test-GcOnly([string]$path) {
     return (Get-Content $path -TotalCount 1) -match '^// gc only'
 }
 
 # A test of what -mm=own refuses by design says so on its first line ("// not own: ..."), e.g. a
 # Map of `any`: under own an object goes into a Map or Set as Shared<T>.
-function Test-NotOwn([string]$path)
-{
+function Test-NotOwn([string]$path) {
     return (Get-Content $path -TotalCount 1) -match '^// not own'
 }
 
-function Tests([string]$config, [string]$mode)
-{
+function Tests([string]$config, [string]$mode) {
     Write-Host "Testing..."
 
     $count = (Get-ChildItem ".\tests" -Filter *.ts | Measure-Object).Count
@@ -183,7 +182,7 @@ function Tests([string]$config, [string]$mode)
         Write-Host "$time sec"
     }
 
-    Get-ChildItem -Path $SRC\tests -Include *.pdb,*.ilk,*.exe | Remove-Item
+    Get-ChildItem -Path $SRC\tests -Include *.pdb, *.ilk, *.exe | Remove-Item
 
     Write-Host "Finished $config, $mode : $success/$count passed, $skipped skipped"
 
@@ -201,7 +200,8 @@ if ($Env:TSLANG_ARCH -eq "x86") {
     Write-Host "jit is host-only; skipped for x86" -ForegroundColor Yellow
     $allFailedTests += Tests "release" "compile" | ForEach-Object { "release/compile: $_" }
     $allFailedTests += Tests "debug" "compile" | ForEach-Object { "debug/compile: $_" }
-} else {
+}
+else {
     $allFailedTests += Tests "release" "compile" | ForEach-Object { "release/compile: $_" }
     $allFailedTests += Tests "release" "jit" | ForEach-Object { "release/jit: $_" }
     $allFailedTests += Tests "debug" "compile" | ForEach-Object { "debug/compile: $_" }
