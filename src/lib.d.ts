@@ -248,7 +248,7 @@ declare class MatchResults
 
     private lastIndex: index;
 
-    constructor(match?: Opaque | null, lastIndex?: index);
+    constructor(match?: Opaque | null, hasIndices?: boolean, lastIndex?: index);
 
     [index: number]: string;
 
@@ -422,7 +422,7 @@ declare class String {
 
     substring(this: string, indexStart: int, indexEnd?: int): string;
 
-    startsWith(this: string, searchString: string, position?: int);
+    startsWith(this: string, searchString: string, position?: int): boolean;
 
     toLocaleLowerCase(this: string, locale?: string): string;
 

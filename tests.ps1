@@ -195,6 +195,13 @@ if ($Model) {
     Write-Host "Memory model: $Model"
 }
 
+# what a program is compiled against has the signatures lib.ts compiles to (one memory model is enough:
+# the signatures do not depend on it)
+pwsh -NoProfile -File "$PSScriptRoot\scripts\check_declarations.ps1"
+if ($LASTEXITCODE -ne 0) {
+    $allFailedTests += "declarations: scripts\check_declarations.ps1"
+}
+
 if ($Env:TSLANG_ARCH -eq "x86") {
     # The JIT (jit.cpp) refuses x86 targets by design; only the two compile passes apply.
     Write-Host "jit is host-only; skipped for x86" -ForegroundColor Yellow
