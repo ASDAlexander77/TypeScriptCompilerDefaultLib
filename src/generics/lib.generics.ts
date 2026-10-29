@@ -116,8 +116,10 @@ namespace __Array {
         return this.join();
     }
 
-    function every<T>(this: T[], func: (v: T) => boolean) {
-        for (const v of this) if (!func(v)) return false;
+    // A callback takes the element and its index, as JavaScript gives them; one that takes the element only
+    // is given as one taking both (the compiler's fewer-parameters thunk).
+    function every<T>(this: T[], func: (v: T, i: number) => boolean) {
+        for (let i = 0; i < this.length; i++) if (!func(this[i], i)) return false;
         return true;
     }
 
@@ -150,47 +152,46 @@ namespace __Array {
         return newArray;
     }
 
-    function filter<T>(this: T[], func: (v: T) => boolean) {
+    function filter<T>(this: T[], func: (v: T, i: number) => boolean) {
         let result: T[] = [];
-        for (const v of this) if (func(v)) result.push(v);
+        for (let i = 0; i < this.length; i++) if (func(this[i], i)) result.push(this[i]);
         return result;
     }
 
-    function* filter2<T>(this: T[], func: (v: T) => boolean) {
-        for (const v of this) if (func(v)) yield v;
+    function* filter2<T>(this: T[], func: (v: T, i: number) => boolean) {
+        for (let i = 0; i < this.length; i++) if (func(this[i], i)) yield this[i];
     }
 
-    function find<T>(this: T[], func: (v: T) => boolean): T | undefined {
-        for (const v of this) if (func(v)) return v;
+    function find<T>(this: T[], func: (v: T, i: number) => boolean): T | undefined {
+        for (let i = 0; i < this.length; i++) if (func(this[i], i)) return this[i];
         return undefined;
     }
 
-    function findIndex<T>(this: T[], func: (v: T) => boolean) {
-        let i = -1;
-        for (const v of this) if (i++, func(v)) return i;
+    function findIndex<T>(this: T[], func: (v: T, i: number) => boolean) {
+        for (let i = 0; i < this.length; i++) if (func(this[i], i)) return i;
         return -1;
     }
 
-    function findLast<T>(this: T[], func: (v: T) => boolean) {
+    function findLast<T>(this: T[], func: (v: T, i: number) => boolean) {
         for (let i = this.length - 1; i >= 0; i--) {
             const v = this[i];
-            if (func(v)) return v;
+            if (func(v, i)) return v;
         }
 
         return -1;
     }
 
-    function findLastIndex<T>(this: T[], func: (v: T) => boolean) {
+    function findLastIndex<T>(this: T[], func: (v: T, i: number) => boolean) {
         for (let i = this.length - 1; i >= 0; i--) {
             const v = this[i];
-            if (func(v)) return i;
+            if (func(v, i)) return i;
         }
 
         return -1;
     }
 
-    function forEach<T>(this: T[], func: (v: T) => void) {
-        for (const v of this) func(v);
+    function forEach<T>(this: T[], func: (v: T, i: number) => void) {
+        for (let i = 0; i < this.length; i++) func(this[i], i);
     }
 
     function includes<T>(this: T[], searchElement: T, fromIndex = 0) {
@@ -273,10 +274,10 @@ namespace __Array {
         return -1;
     }
 
-    function map<T, V>(this: T[], func: (v: T) => V) {
+    function map<T, V>(this: T[], func: (v: T, i: number) => V) {
         let result: V[] = [];
         result.length = this.length;
-        for (let i = 0; i in this; i++) result[i] = func(this[i]);
+        for (let i = 0; i in this; i++) result[i] = func(this[i], i);
         return result;
     }
 
@@ -360,8 +361,8 @@ namespace __Array {
         return newArray;
     }
 
-    function some<T>(this: T[], func: (v: T) => boolean) {
-        for (const v of this) if (func(v)) return true;
+    function some<T>(this: T[], func: (v: T, i: number) => boolean) {
+        for (let i = 0; i < this.length; i++) if (func(this[i], i)) return true;
         return false;
     }
 
@@ -553,7 +554,7 @@ class Array<T> {
         return this.join();
     }
 
-    public every(func: (v: T) => boolean) {
+    public every(func: (v: T, i: number) => boolean) {
         return this.data.every(func);
     }
 
@@ -561,32 +562,32 @@ class Array<T> {
         return this.data.fill(value, start, end);
     }
 
-    public filter(func: (v: T) => boolean) {
+    public filter(func: (v: T, i: number) => boolean) {
         return this.data.filter(func);
     }
 
     @borrows("this", "func")
-    public filter2(func: (v: T) => boolean) {
+    public filter2(func: (v: T, i: number) => boolean) {
         return this.data.filter2(func);
     }
 
-    public find(func: (v: T) => boolean) {
+    public find(func: (v: T, i: number) => boolean) {
         return this.data.find(func);
     }
 
-    public findIndex(func: (v: T) => boolean) {
+    public findIndex(func: (v: T, i: number) => boolean) {
         return this.data.findIndex(func);
     }
 
-    public findLast(func: (v: T) => boolean) {
+    public findLast(func: (v: T, i: number) => boolean) {
         return this.data.findLast(func);
     }
 
-    public findLastIndex(func: (v: T) => boolean) {
+    public findLastIndex(func: (v: T, i: number) => boolean) {
         return this.data.findLastIndex(func);
     }
 
-    public forEach(func: (v: T) => void) {
+    public forEach(func: (v: T, i: number) => void) {
         this.data.forEach(func);
     }
 
@@ -611,7 +612,7 @@ class Array<T> {
         return this.data.lastIndexOf(searchElement, fromIndex);
     }
 
-    public map<V>(func: (v: T) => V) {
+    public map<V>(func: (v: T, i: number) => V) {
         return this.data.map<V>(func);
     }
 
@@ -631,7 +632,7 @@ class Array<T> {
         return this.data.slice(start, end);
     }
 
-    public some(func: (v: T) => boolean) {
+    public some(func: (v: T, i: number) => boolean) {
         return this.data.some(func);
     }
 
