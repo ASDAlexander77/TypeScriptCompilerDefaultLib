@@ -48,11 +48,16 @@ function main() {
     resize(a, 2);
     assert(a.length == 2 && new Numbers(4).length == 4, "lengths");
 
+    let untyped = "";
     try {
         divide(1n, 0n);
     } catch (e) {
-        assert(<RangeError>e instanceof Error, "an untyped catch");
+        if (e instanceof RangeError) {
+            untyped = e.message;
+        }
     }
+
+    assert(untyped == "Division by zero", "an untyped catch");
 
     console.log("ALL DONE");
 }
