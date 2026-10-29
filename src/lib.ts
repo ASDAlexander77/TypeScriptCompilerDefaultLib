@@ -56,13 +56,47 @@ namespace __Number {
         return convertNumber(50, `%.${precision}g`, this);
     }
 
+    // In `radix` (2 to 36), as JavaScript writes it: `(255).toString(16)` is "ff" (it was C's "%a",
+    // 0x1.fe00000000000p+7) and `(10.5).toString(2)` is "1010.1" (any radix but 16 was ignored).
     export function toString(this: number, radix = 10) {
-        switch (radix) {
-            case 16:
-                return convertNumber(50, "%a", this);
-            default:
-                return <string>this;
+        if (radix == 10) {
+            return <string>this;
         }
+
+        assert(radix >= 2 && radix <= 36, "toString() radix must be between 2 and 36");
+
+        const value = this;
+        if (!isFinite(value)) {
+            return <string>value;
+        }
+
+        const digits = "0123456789abcdefghijklmnopqrstuvwxyz";
+        const negative = value < 0;
+        const magnitude = negative ? -value : value;
+
+        let whole = Math.floor(magnitude);
+        let fraction = magnitude - whole;
+
+        let integerPart = "";
+        do {
+            const digit = <int>(whole % radix);
+            integerPart = digits.substring(digit, digit + 1) + integerPart;
+            whole = Math.floor(whole / radix);
+        } while (whole > 0);
+
+        // a double's fraction ends in a power-of-two radix, each step exact (1074 binary digits at
+        // most); in another radix it may not end, and is cut at 52 digits
+        const limit = (radix & (radix - 1)) == 0 ? 1100 : 52;
+        let fractionPart = "";
+        for (let i = 0; i < limit && fraction > 0; i++) {
+            fraction *= radix;
+            const digit = <int>Math.floor(fraction);
+            fractionPart += digits.substring(digit, digit + 1);
+            fraction -= digit;
+        }
+
+        const sign = negative ? "-" : "";
+        return fractionPart.length > 0 ? sign + integerPart + "." + fractionPart : sign + integerPart;
     }
 }
 
@@ -138,7 +172,7 @@ export class Number {
     }
 
     public toString(radix = 10) {
-        this.value.toString(radix);
+        return this.value.toString(radix);
     }
 
     public valueOf() {
