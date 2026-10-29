@@ -1,7 +1,7 @@
 declare class Error {
-    private message?: string;
-    private filename?: string;
-    private line?: int;
+    public message?: string;
+    public filename?: string;
+    public line?: int;
     constructor(message?: string, filename?: string, line?: int);
 }
 
