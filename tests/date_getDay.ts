@@ -1,5 +1,6 @@
 //const birthday = new Date('August 19, 1975 23:15:30');
-const birthday = new Date(177718530000);
+// a local time: getDay is local
+const birthday = new Date(1975, 7, 19, 23, 15, 30);
 const day1 = birthday.getDay();
 // Sunday - Saturday : 0 - 6
 
