@@ -281,6 +281,9 @@ namespace __Array {
         return result;
     }
 
+    // -mm=own: with no initial value the accumulator starts as an element, which has an owner: it
+    // starts from a copy of it instead (@copies), when the elements are values, strings or arrays of values
+    @copies
     function reduce<T, V = T>(this: T[], func: (v: V, t: T) => V, initial?: V): V {
         if (initial == undefined) {
             if (this.length <= 0) {
@@ -301,6 +304,9 @@ namespace __Array {
         }
     }
 
+    // -mm=own: with no initial value the accumulator starts as an element, which has an owner: it
+    // starts from a copy of it instead (@copies), when the elements are values, strings or arrays of values
+    @copies
     function reduceRight<T, V = T>(this: T[], func: (v: V, t: T) => V, initial?: V): V {
         if (initial == undefined) {
             if (this.length <= 0) {
@@ -442,7 +448,7 @@ namespace __Array {
     }
 }
 
-// -mm=own: elements are values, strings or Shared<T> handles, as a Map's are: concat, fill and slice
+// -mm=own: elements are values, strings, `any` or Shared<T> handles, as a Map's are: concat, fill and slice
 // copy them, and an object has one owner; an object goes in as Shared<T>
 @sharedElements
 class Array<T> {
@@ -758,7 +764,7 @@ type MapEntry<TKey, TValue> =
         value: TValue; // Value of entry
     };
 
-// -mm=own: keys and values are values, strings or Shared<T> handles; an object goes in as Shared<T>
+// -mm=own: keys and values are values, strings, `any` or Shared<T> handles; an object goes in as Shared<T>
 @sharedElements
 class Map<K = any, V = any> {
 
@@ -1126,7 +1132,7 @@ type SetEntry<TValue> =
         value: TValue; // Value of entry
     };
 
-// -mm=own: elements are values, strings or Shared<T> handles; an object goes in as Shared<T>
+// -mm=own: elements are values, strings, `any` or Shared<T> handles; an object goes in as Shared<T>
 @sharedElements
 class Set<V = any> {
 
