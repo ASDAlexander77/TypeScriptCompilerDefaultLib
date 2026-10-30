@@ -1,4 +1,3 @@
-// not own: an Array<T> of objects, which -mm=own refuses (an object goes into an Array<T> as Shared<T>)
 // splice, shift and unshift on an Array<T> (the class, not T[]): they were missing, so
 // `childNodes: Array<Node>` could not remove a child (TypeScriptCompiler #231).
 
