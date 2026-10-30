@@ -1,5 +1,6 @@
 //const birthday = new Date('March 13, 08 04:20');
-const birthday = new Date(1205382000000);
+// a local time: getHours is local
+const birthday = new Date(2008, 2, 13, 4, 20);
 
 console.log(birthday.getHours());
 // Expected output: 4
