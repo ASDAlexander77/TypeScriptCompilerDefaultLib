@@ -106,11 +106,13 @@ function to_tm(t: c_tm): tm {
     return [t.tm_sec, t.tm_min, t.tm_hour, t.tm_mday, t.tm_mon, t.tm_year, t.tm_wday, t.tm_yday, t.tm_isdst];
 }
 
-export function gmtime(time: long): tm {
+// Not named gmtime / localtime: under the JIT the library is a shared object, and its calls to an
+// exported name go to the first definition loaded - libc's gmtime(const time_t *), already there.
+export function gmtime_tm(time: long): tm {
     return to_tm(c_time(time, true));
 }
 
-export function localtime(time: long): tm {
+export function localtime_tm(time: long): tm {
     return to_tm(c_time(time, false));
 }
 

@@ -80,6 +80,16 @@ extern "C" TSLANG_EXPORT long long parse_date(const char* dateStr)
                 milliseconds = 0;
             }
 
+            // "March 13, 08 04:20": libstdc++'s %Y takes the two digits as the year 8 (MSVC's fails
+            // and the %y format after it reads 2008). Outside ISO forms a year under 100 is two
+            // digits, read as JavaScript engines do: 0-49 is 20xx, 50-99 is 19xx.
+            auto year = tm.tm_year + 1900;
+            auto iso = format[0] == '%' && (format[1] == 'F' || (format[1] == 'Y' && format[2] == '-'));
+            if (!iso && year >= 0 && year < 100)
+            {
+                tm.tm_year = (year < 50 ? year + 2000 : year + 1900) - 1900;
+            }
+
             // Convert to time_t (seconds since Unix epoch)
             auto time = std::mktime(&tm);
             if (time == -1)

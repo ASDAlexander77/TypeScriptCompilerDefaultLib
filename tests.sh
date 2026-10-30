@@ -44,7 +44,7 @@ function test_script() {
 
     if [ -z "$TOOL_PATH" ]; then
         BUILD_PATH="../TypeScriptCompiler/__build"
-        TOOL_PATH="../TypeScriptCompiler/__build/$TOOL/linux-ninja-gcc-$BUILD/bin"
+        TOOL_PATH="../TypeScriptCompiler/__build/$TOOL/ninja/$BUILD/bin"
         #DEFAULTLIB_BUILD_PATH="../TypeScriptCompilerDefaultLib/__build"
     else
         BUILD_PATH="$TOOL_PATH"
@@ -56,13 +56,20 @@ function test_script() {
 
     export GC_LIB_PATH="${GIVEN_GC_LIB_PATH:-$BUILD_PATH/gc/ninja/$BUILD}"
     export LLVM_LIB_PATH="${GIVEN_LLVM_LIB_PATH:-$BUILD_PATH/llvm/ninja/$BUILD/lib}"
-    export TSLANG_LIB_PATH="${GIVEN_TSLANG_LIB_PATH:-$BUILD_PATH/$TOOL/linux-ninja-gcc-$BUILD/lib}"
+    export TSLANG_LIB_PATH="${GIVEN_TSLANG_LIB_PATH:-$BUILD_PATH/$TOOL/ninja/$BUILD/lib}"
     export DEFAULT_LIB_PATH="${DEFAULT_LIB_PATH:-$DEFAULTLIB_BUILD_PATH}"
+
+    # The runtime sits next to the compiler where CI stages them together; the compiler's own
+    # build puts it in lib/.
+    RUNTIME="$TOOL_PATH/libTypeScriptRuntime.so"
+    if [ ! -f "$RUNTIME" ]; then
+        RUNTIME="$TSLANG_LIB_PATH/libTypeScriptRuntime.so"
+    fi
 
     if [ "$mode" == "compile" ]; then
         # apt install ninja-build libcurl4-openssl-dev
         # and -lcurl will be included in compile process in tslang
-        compile_output=$( "$TOOL_PATH/$TOOL" $DBG $OPTIONS --shared-libs="$TOOL_PATH/libTypeScriptRuntime.so" --emit=exe "$SRC/tests/$test.ts" 2>&1 )
+        compile_output=$( "$TOOL_PATH/$TOOL" $DBG $OPTIONS --shared-libs="$RUNTIME" --emit=exe "$SRC/tests/$test.ts" 2>&1 )
         compile_code=$?
 
         if [ $compile_code -ne 0 ]; then
@@ -76,11 +83,19 @@ function test_script() {
     fi
 
     if [ "$mode" == "jit" ]; then
-        run_output=$( "$TOOL_PATH/$TOOL" $DBG $OPTIONS --shared-libs="$TOOL_PATH/libTypeScriptRuntime.so" --emit=jit "$SRC/tests/$test.ts" 2>&1 )
+        run_output=$( "$TOOL_PATH/$TOOL" $DBG $OPTIONS --shared-libs="$RUNTIME" --emit=jit "$SRC/tests/$test.ts" 2>&1 )
         run_code=$?
     fi
 
     if [[ "$run_output" == *"Error"* ]]; then
+        return 1
+    fi
+
+    # A test ends by printing "ALL DONE", as tests.ps1 also asks: a run that never got that far -
+    # the compiler missing, a crash - says nothing with "Error" in it and would pass otherwise.
+    if [[ "$run_output" != *"ALL DONE"* ]]; then
+        echo -e "\e[31mRun Error (no 'ALL DONE' marker)\e[0m"
+        echo "Output: $run_output"
         return 1
     fi
 

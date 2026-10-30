@@ -78,7 +78,7 @@ export function maketime(year: i32, month: i32, day: i32, hour: i32, minutes: i3
 }
 
 @nodrops declare function _gmtime64_s(tm: Reference<tm>, time: Reference<time_t>) : errno_t;
-export function gmtime(time: long): tm {
+export function gmtime_tm(time: long): tm {
     let tmDest: tm = [0, 0, 0, 0, 0, 0, 0, 0, 0];
     let timeInSec: long = time / 1000;
     const error = _gmtime64_s(Ref(tmDest), Ref(timeInSec));
@@ -86,7 +86,7 @@ export function gmtime(time: long): tm {
 }
 
 @nodrops declare function _localtime64_s(tm: Reference<tm>, time: Reference<time_t>) : errno_t;
-export function localtime(time: long): tm {
+export function localtime_tm(time: long): tm {
     let tmDest: tm = [0, 0, 0, 0, 0, 0, 0, 0, 0];
     let timeInSec: long = time / 1000;
     const error = _localtime64_s(Ref(tmDest), Ref(timeInSec));
@@ -114,7 +114,7 @@ export function timestamp_to_string(maxsize: index, time: long): string {
 // errno_t
 @nodrops declare function asctime_s(buffer: string, numberOfElements: index, time: Reference<tm>): int;
 export function time_to_string(maxsize: index, time: long, isUtc: boolean): string {
-    let tm = isUtc ? gmtime(time) : localtime(time);
+    let tm = isUtc ? gmtime_tm(time) : localtime_tm(time);
 
     let buffer : char[] = [];
     buffer.length = maxsize;
@@ -125,7 +125,7 @@ export function time_to_string(maxsize: index, time: long, isUtc: boolean): stri
 
 @nodrops declare function strftime(out: string, maxsize: index, format: string, tm: Reference<tm>): index;
 export function time_format(maxsize: index, format: string, time: long, isUtc: boolean): string {
-    let tm = isUtc ? gmtime(time) : localtime(time);
+    let tm = isUtc ? gmtime_tm(time) : localtime_tm(time);
 
     let buffer : char[] = [];
     buffer.length = maxsize;
@@ -136,7 +136,7 @@ export function time_format(maxsize: index, format: string, time: long, isUtc: b
 
 @nodrops declare function _strftime_l(out: string, maxsize: index, format: string, tm: Reference<tm>, locale: Opaque): index;
 export function time_format_locale(maxsize: index, format: string, time: long, locale: string, isUtc: boolean): string {
-    let tm = isUtc ? gmtime(time) : localtime(time);
+    let tm = isUtc ? gmtime_tm(time) : localtime_tm(time);
 
     const locale_t = _create_locale(LC_TIME, locale);
 

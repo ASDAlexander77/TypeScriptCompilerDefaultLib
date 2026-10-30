@@ -14,8 +14,8 @@
 @nodrops declare function makegmtime(year: i32, month: i32, day: i32, hour: i32, minutes: i32, seconds: i32, milliseconds: i32): i64;
 
 type tm = [tm_sec: i32, tm_min: i32, tm_hour: i32, tm_mday: i32, tm_mon: i32, tm_year: i32, tm_wday: i32, tm_yday: i32, tm_isdst: i32];
-@nodrops declare function localtime(time: long): tm;
-@nodrops declare function gmtime(time: long): tm;
+@nodrops declare function localtime_tm(time: long): tm;
+@nodrops declare function gmtime_tm(time: long): tm;
 
 @nodrops declare function gettimezone(): i32;
 
