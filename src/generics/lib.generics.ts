@@ -39,6 +39,7 @@ namespace __Array {
         return this[index];
     }
 
+    @sharesElements
     function copyWithin<T>(this: T[], target: int, start: int, end = this.length) {
 
         if (target < 0) {
@@ -86,6 +87,7 @@ namespace __Array {
     }
 
     // to prevent cycling initialization of T[][] as Array<Array<....>> which causes inf. cycle
+    @sharesElements
     function concat<T>(this: T[], ...other: T[][]) {
         let count = this.length;
         for (const item of other)
@@ -103,6 +105,7 @@ namespace __Array {
         return newArray;
     }
 
+    @sharesElements
     function* entries<T>(this: T[]) {
         for (let i = 0; i in this; i++) {
             // under -mm=own the element is read into the state before the yield: a tuple made from
@@ -123,6 +126,7 @@ namespace __Array {
         return true;
     }
 
+    @sharesElements
     function fill<T>(this: T[], value: T, start = 0, end = this.length) {
         let newArray = this.slice();
 
@@ -152,12 +156,14 @@ namespace __Array {
         return newArray;
     }
 
+    @sharesElements
     function filter<T>(this: T[], func: (v: T, i: number) => boolean) {
         let result: T[] = [];
         for (let i = 0; i < this.length; i++) if (func(this[i], i)) result.push(this[i]);
         return result;
     }
 
+    @sharesElements
     function* filter2<T>(this: T[], func: (v: T, i: number) => boolean) {
         for (let i = 0; i < this.length; i++) if (func(this[i], i)) yield this[i];
     }
@@ -339,6 +345,7 @@ namespace __Array {
         return this;
     }
 
+    @sharesElements
     function slice<T>(this: T[], start = 0, end = this.length) {
         if (start < 0) {
             if (-this.length <= start) {
@@ -413,24 +420,28 @@ namespace __Array {
         return this.values();
     }
 
+    @sharesElements
     function toReversed<T>(this: T[]) {
         let newArray = this.slice();
         newArray.reverse();
         return newArray;
     }
 
+    @sharesElements
     function toSorted<T>(this: T[], callbackfn?: (value1: T, value2: T) => int): T[] {
         let newArray = this.slice();
         newArray.sort(callbackfn);
         return newArray;
     }
 
+    @sharesElements
     function* values<T>(this: T[]) {
         for (const v of this) {
             yield v;
         }
     }
 
+    @sharesElements
     function _with<T>(this: T[], index: int, value: T) {
         if (index < 0) {
             if (-this.length <= index) {
@@ -448,9 +459,8 @@ namespace __Array {
     }
 }
 
-// -mm=own: elements are values, strings, `any` or Shared<T> handles, as a Map's are: concat, fill and slice
-// copy them, and an object has one owner; an object goes in as Shared<T>
-@sharedElements
+// -mm=own: the array owns its elements. push, unshift and splice take what they are given (their
+// callers give it up) and splice and shift give back what they remove; an element read is a borrow.
 class Array<T> {
 
     constructor(private data: T[] = []) {
@@ -475,9 +485,11 @@ class Array<T> {
         this.data[index] = value;
     }
 
+    // each element is moved out of `args`, not read: -mm=own then keeps them, and the callers give
+    // them up
     public push(...args: T[]): int {
-        for (const v of args)
-            this.data.push(v);
+        while (args.length > 0)
+            this.data.push(args.shift());
         return this.data.length;
     }
 
@@ -490,8 +502,8 @@ class Array<T> {
     }
 
     public unshift(...args: T[]): int {
-        for (let i = args.length - 1; i >= 0; i--)
-            this.data.unshift(args[i]);
+        while (args.length > 0)
+            this.data.unshift(args.pop());
         return this.data.length;
     }
 
@@ -512,14 +524,21 @@ class Array<T> {
             count = length - start;
         }
 
-        // push takes a reference of its own to each, so the removed elements outlive the splice
-        let removed: T[] = [];
-        for (let i = 0; i < count; i++)
-            removed.push(this.data[start + i]);
+        // the removed elements are moved out, not read: each is swapped to the end, the first last,
+        // and popped off in order
+        const last = this.data.length - 1;
+        for (let k = 0; k < count; k++) {
+            for (let j = start; j < last - k; j++) {
+                [this.data[j], this.data[j + 1]] = [this.data[j + 1], this.data[j]];
+            }
+        }
 
-        this.data.splice(start, count);
-        for (let i = 0; i < items.length; i++)
-            this.data.splice(start + i, 0, items[i]);
+        const removed: T[] = [];
+        for (let k = 0; k < count; k++)
+            removed.push(this.data.pop());
+
+        for (let i = 0; items.length > 0; i++)
+            this.data.splice(start + i, 0, items.shift());
 
         return removed;
     }
@@ -536,11 +555,13 @@ class Array<T> {
         return this[index];
     }
 
+    @sharesElements
     public copyWithin(target: int, start: int, end = this.length) {
         return this.data.copyWithin(target, start, end);
     }
 
     // not `this.data.concat(...other)`: under -mm=own the spread would move other's arrays into a new one
+    @sharesElements
     public concat(...other: T[][]) {
         let result = this.data.slice();
         for (const item of other) {
@@ -552,6 +573,7 @@ class Array<T> {
 
     // the iterators borrow the array, as T[]'s do: under -mm=own they may not outlive it
     @borrows("this")
+    @sharesElements
     public entries() {
         return this.data.entries();
     }
@@ -564,15 +586,18 @@ class Array<T> {
         return this.data.every(func);
     }
 
+    @sharesElements
     public fill(value: T, start = 0, end = this.length) {
         return this.data.fill(value, start, end);
     }
 
+    @sharesElements
     public filter(func: (v: T, i: number) => boolean) {
         return this.data.filter(func);
     }
 
     @borrows("this", "func")
+    @sharesElements
     public filter2(func: (v: T, i: number) => boolean) {
         return this.data.filter2(func);
     }
@@ -634,6 +659,7 @@ class Array<T> {
         return this.data.reverse();
     }
 
+    @sharesElements
     public slice(start = 0, end = this.length) {
         return this.data.slice(start, end);
     }
@@ -647,23 +673,28 @@ class Array<T> {
     }
 
     @borrows("this")
+    @sharesElements
     public [Symbol.iterator]() {
         return this.data.values();
     }
 
+    @sharesElements
     public toReversed() {
         return this.data.toReversed();
     }
 
+    @sharesElements
     public toSorted(callbackfn?: (value1: T, value2: T) => int): T[] {
         return this.data.toSorted(callbackfn);
     }
 
     @borrows("this")
+    @sharesElements
     public values() {
         return this.data.values();
     }
 
+    @sharesElements
     public _with(index: int, value: T) {
         return this.data._with(index, value);
     }
