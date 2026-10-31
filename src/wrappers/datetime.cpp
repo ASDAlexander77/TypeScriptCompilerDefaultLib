@@ -198,7 +198,9 @@ extern "C" TSLANG_EXPORT long long parse_date(const char* dateStr)
 
         std::istringstream ss(dateStr);
         ss >> std::get_time(&tm, format);
-        if (ss.fail())
+        // GCC 13's and older libstdc++'s %c "succeeds" reading nothing, which left the zeroed tm
+        // (31 Dec 1899) as every date: a format that read no day of the month did not match
+        if (ss.fail() || tm.tm_mday == 0)
         {
             continue;
         }
