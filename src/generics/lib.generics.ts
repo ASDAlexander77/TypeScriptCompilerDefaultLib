@@ -463,7 +463,8 @@ namespace __Array {
 // callers give it up) and splice and shift give back what they remove; an element read is a borrow.
 class Array<T> {
 
-    constructor(private data: T[] = []) {
+    // protected: TypedArray takes a reference to an element of it for Atomics
+    constructor(protected data: T[] = []) {
     }
 
     constructor(count: int = 0) {
@@ -714,6 +715,17 @@ class TypedArray<T> extends Array<T> {
     constructor(data: T[] = []) {
         super(data);
     }
+
+    // The element itself, for Atomics. Only the reference is taken here, never an atomic operation:
+    // every method of a generic class is built for each T it is used with, and Float32Array and
+    // Float64Array are TypedArrays too, which LLVM's integer atomics do not take.
+    public __elementRef(index: int): Reference<T> {
+        if (index < 0 || index >= this.data.length) {
+            throw new RangeError();
+        }
+
+        return Ref(this.data[index]);
+    }
 }
 
 type Int8Array = TypedArray<s8>;
@@ -735,6 +747,65 @@ type BigUint64Array = TypedArray<u64>;
 type Float32Array = TypedArray<f32>;
 
 type Float64Array = TypedArray<f64>;
+
+// Atomic operations on an integer TypedArray's elements, each sequentially consistent, as in
+// JavaScript. Each is one LLVM `atomicrmw` or `cmpxchg` on the element. The operation codes are
+// written out, not passed in: the builtins take them only as constants. The value is a `number`,
+// not a `T`, so the array alone decides T - a literal `1` would otherwise make it s32 and reject a
+// Uint16Array. There is no SharedArrayBuffer and a TypedArray is not a view over a buffer, so an
+// operation acts on the array's own elements. `wait`, `waitAsync` and `notify` are not here: there
+// is no other thread to wait for yet.
+namespace Atomics {
+    // atomicrmw operations: 0 xchg, 1 add, 2 sub, 3 and, 5 or, 6 xor; ordering 7: seq_cst
+
+    function add<T>(typedArray: TypedArray<T>, index: int, value: number): T {
+        return atomicrmw(1, typedArray.__elementRef(index), <T>value, 7);
+    }
+
+    function sub<T>(typedArray: TypedArray<T>, index: int, value: number): T {
+        return atomicrmw(2, typedArray.__elementRef(index), <T>value, 7);
+    }
+
+    function and<T>(typedArray: TypedArray<T>, index: int, value: number): T {
+        return atomicrmw(3, typedArray.__elementRef(index), <T>value, 7);
+    }
+
+    function or<T>(typedArray: TypedArray<T>, index: int, value: number): T {
+        return atomicrmw(5, typedArray.__elementRef(index), <T>value, 7);
+    }
+
+    function xor<T>(typedArray: TypedArray<T>, index: int, value: number): T {
+        return atomicrmw(6, typedArray.__elementRef(index), <T>value, 7);
+    }
+
+    function exchange<T>(typedArray: TypedArray<T>, index: int, value: number): T {
+        return atomicrmw(0, typedArray.__elementRef(index), <T>value, 7);
+    }
+
+    // the value that was there; the replacement is written only when that was `expectedValue`
+    function compareExchange<T>(typedArray: TypedArray<T>, index: int, expectedValue: number, replacementValue: number): T {
+        return cmpxchg(typedArray.__elementRef(index), <T>expectedValue, <T>replacementValue, 7, 7)[0];
+    }
+
+    // an `or` with 0 reads the element and leaves it as it was
+    function load<T>(typedArray: TypedArray<T>, index: int): T {
+        const zero: T = 0;
+        return atomicrmw(5, typedArray.__elementRef(index), zero, 7);
+    }
+
+    // returns the value stored, as JavaScript does, not the one it replaced
+    function store<T>(typedArray: TypedArray<T>, index: int, value: number): T {
+        const stored = <T>value;
+        atomicrmw(0, typedArray.__elementRef(index), stored, 7);
+        return stored;
+    }
+
+    // generic, like `sleep`: a plain function here is built into the library and into every
+    // program too, and a debug link then finds it defined twice
+    function isLockFree<T = int>(size: T): boolean {
+        return size == 1 || size == 2 || size == 4 || size == 8;
+    }
+}
 
 enum InsertionBehavior {
     None,
