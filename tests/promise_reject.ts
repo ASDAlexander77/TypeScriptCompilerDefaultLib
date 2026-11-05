@@ -1,6 +1,5 @@
-// not own: -mm=own cannot build Promise.reject (a thrown parameter), nor carry the string
-// Promise.resolve returns, a borrow of its argument, out of an `await`.
 // A rejected promise is a thrown exception: Promise.reject throws its reason, with its own class.
+// The string Promise.resolve returns borrows its argument; under -mm=own the await gives back a copy.
 
 async function greet(name: string): Promise<string> {
     return "hello " + name;

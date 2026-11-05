@@ -140,7 +140,7 @@ Generics (`src/generics/lib.generics.ts`):
 - `Promise`: `resolve`, `reject`, `all`, `allSettled`, `race`, `any`. The compiler takes
   `Promise<T>` as `T` (an async function returns its value and `await` gives it back), so
   these work on values that have already settled and a rejection is a thrown exception.
-  There is no `then`/`catch`/`finally`. Under `-mm=own`, `reject` doesn't build yet.
+  There is no `then`/`catch`/`finally`.
 
 Errors (`src/core/core.d.ts`):
 

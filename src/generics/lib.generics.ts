@@ -815,8 +815,7 @@ namespace Promise {
     }
 
     // throws the reason: what awaiting a rejected promise does. The reason keeps its own type, so a
-    // `catch (e: Error)` catches an Error. -mm=own cannot build it yet: a thrown parameter is "kept",
-    // but `@keeps` on it is "keeps nothing".
+    // `catch (e: Error)` catches an Error.
     function reject<T = never, R = Error>(reason: R): T {
         throw reason;
     }
