@@ -749,10 +749,10 @@ type Float32Array = TypedArray<f32>;
 type Float64Array = TypedArray<f64>;
 
 // Atomic operations on an integer TypedArray's elements, each sequentially consistent, as in
-// JavaScript. Each is one LLVM `atomicrmw` or `cmpxchg` on the element. The operation codes are
-// written out, not passed in: the builtins take them only as constants. The value is a `number`,
-// not a `T`, so the array alone decides T - a literal `1` would otherwise make it s32 and reject a
-// Uint16Array. There is no SharedArrayBuffer and a TypedArray is not a view over a buffer, so an
+// JavaScript. Each is one LLVM atomic `load`, `store`, `atomicrmw` or `cmpxchg` on the element. The
+// operation codes are written out, not passed in: the builtins take them only as constants. The
+// value is a `number`, as in JavaScript, and wraps to the element's width (300 added to a Uint8Array
+// element adds 44). There is no SharedArrayBuffer and a TypedArray is not a view over a buffer, so an
 // operation acts on the array's own elements. `wait`, `waitAsync` and `notify` are not here: there
 // is no other thread to wait for yet.
 namespace Atomics {
@@ -787,16 +787,14 @@ namespace Atomics {
         return cmpxchg(typedArray.__elementRef(index), <T>expectedValue, <T>replacementValue, 7, 7)[0];
     }
 
-    // an `or` with 0 reads the element and leaves it as it was
     function load<T>(typedArray: TypedArray<T>, index: int): T {
-        const zero: T = 0;
-        return atomicrmw(5, typedArray.__elementRef(index), zero, 7);
+        return atomicload(typedArray.__elementRef(index), 7);
     }
 
     // returns the value stored, as JavaScript does, not the one it replaced
     function store<T>(typedArray: TypedArray<T>, index: int, value: number): T {
         const stored = <T>value;
-        atomicrmw(0, typedArray.__elementRef(index), stored, 7);
+        atomicstore(typedArray.__elementRef(index), stored, 7);
         return stored;
     }
 
@@ -805,6 +803,66 @@ namespace Atomics {
     function isLockFree<T = int>(size: T): boolean {
         return size == 1 || size == 2 || size == 4 || size == 8;
     }
+}
+
+// The compiler takes `Promise<T>` as T: an async function returns its value, and `await` gives the
+// value back once the expression has run. So a promise here is the value itself, already settled,
+// and these are the functions over such values. A rejected promise is a thrown exception. There is
+// no `then`: a value has no methods. Each is generic, as `isLockFree` is above.
+namespace Promise {
+    function resolve<T>(value: T): T {
+        return value;
+    }
+
+    // throws the reason: what awaiting a rejected promise does. The reason keeps its own type, so a
+    // `catch (e: Error)` catches an Error.
+    function reject<T = never, R = Error>(reason: R): T {
+        throw reason;
+    }
+
+    // the values, in order: every one has already settled. A new array, as in JavaScript: under
+    // -mm=own the result then owns its elements and can leave an `await`, which the argument cannot.
+    function all<T>(values: T[]): T[] {
+        const results: T[] = [];
+        for (const value of values) {
+            results.push(value);
+        }
+
+        return results;
+    }
+
+    // the first value: it settled first
+    function race<T>(values: T[]): T {
+        if (values.length == 0) {
+            throw new Error("Promise.race of no values never settles");
+        }
+
+        return values[0];
+    }
+
+    // the first value: none of them was rejected
+    function any<T>(values: T[]): T {
+        if (values.length == 0) {
+            throw new Error("All promises were rejected");
+        }
+
+        return values[0];
+    }
+
+    // every value as fulfilled: a rejection would have thrown before the array was built
+    function allSettled<T>(values: T[]): PromiseFulfilledResult<T>[] {
+        const results: PromiseFulfilledResult<T>[] = [];
+        for (const value of values) {
+            results.push({ status: "fulfilled", value: value });
+        }
+
+        return results;
+    }
+}
+
+interface PromiseFulfilledResult<T> {
+    status: string;
+    value: T;
 }
 
 enum InsertionBehavior {
