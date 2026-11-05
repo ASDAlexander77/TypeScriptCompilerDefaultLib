@@ -135,11 +135,17 @@ Generics (`src/generics/lib.generics.ts`):
   `BigUint64Array`, `Float32Array`, `Float64Array`)
 - `Map<K, V>`
 - `Set<V>`
+- `Atomics`: `add`, `sub`, `and`, `or`, `xor`, `exchange`, `compareExchange`, `load`,
+  `store`, `isLockFree` over the integer typed arrays (no `wait`/`notify`)
+- `Promise`: `resolve`, `reject`, `all`, `allSettled`, `race`, `any`. The compiler takes
+  `Promise<T>` as `T` (an async function returns its value and `await` gives it back), so
+  these work on values that have already settled and a rejection is a thrown exception.
+  There is no `then`/`catch`/`finally`. Under `-mm=own`, `reject` doesn't build yet.
 
 Errors (`src/core/core.d.ts`):
 
 - `Error`
 - `RangeError`
 
-Not yet implemented: `Promise`, `JSON.parse`/`JSON.stringify`, `Symbol` (beyond the
+Not yet implemented: a `Promise` object (`then`/`catch`/`finally`), `JSON.parse`/`JSON.stringify`, `Symbol` (beyond the
 well-known symbols used internally), `WeakMap`/`WeakSet`.
