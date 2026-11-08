@@ -103,6 +103,10 @@ build trees under `TypeScriptCompiler` (the compiler appends `x86` to each itsel
 x64 value already set in `$Env:GC_LIB_PATH`/`$Env:TSLANG_LIB_PATH` for the session can't
 leak into the x86 build.
 
+A test that reads standard input (`console.readLine`) gets it from `tests/<name>.stdin`, which
+`tests.ps1` and `tests.sh` pipe into it. `.gitattributes` keeps those files byte for byte, so a
+`\r\n` in one stays part of the test. Under `tests.sh` a test without one reads an empty input.
+
 ## Docs
 
 - [fetch / Headers / Response](docs/fetch.md) — built-in HTTP client
@@ -117,16 +121,25 @@ Globals (`src/lib.ts`):
 - `BigInt`
 - `Date`
 - `RegExp`, `MatchResults`, `MatchIndicesResults`
-- `String` (plus the `string` prototype methods it wraps: `at`, `charAt`, `charCodeAt`,
+- `String`: `String.fromCharCode` (each code written as UTF-8, a surrogate pair as one
+  character), plus the `string` prototype methods it wraps: `at`, `charAt`, `charCodeAt`,
   `codePointAt`, `concat`, `endsWith`, `includes`, `indexOf`, `lastIndexOf`,
   `localeCompare`, `match`, `matchAll`, `normalize`, `padEnd`, `padStart`, `repeat`,
   `replace`, `replaceAll`, `search`, `slice`, `split`, `startsWith`, `substring`,
   `toLocaleLowerCase`, `toLocaleUpperCase`, `toLowerCase`, `toUpperCase`,
-  `toWellFormed`, `trim`, `trimStart`, `trimEnd`)
+  `toWellFormed`, `trim`, `trimStart`, `trimEnd`
 - `Math` (static)
 - `ArrayBuffer`
 - `Headers`, `Response`, `fetch` — see [docs/fetch.md](docs/fetch.md)
-- `console` (static): `log`, `warn`, `error`, `assert`
+- `console` (static): `log`, `warn`, `error`, `assert`, and `readLine`, which returns the next
+  line of standard input without its line break, or `null` at the end of input:
+
+  ```typescript
+  let line: string | null = null;
+  while ((line = console.readLine()) != null) {
+      console.log(`> ${line}`);
+  }
+  ```
 
 Generics (`src/generics/lib.generics.ts`):
 
