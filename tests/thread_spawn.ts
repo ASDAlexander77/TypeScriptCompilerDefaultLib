@@ -1,10 +1,7 @@
-// not own: the threads share one Int32Array, and one returns an object; -mm=own allows neither yet
-// (see thread_move.ts for what it runs).
-//
 // Thread.spawn runs a function on a new thread; join waits for it and gives back what it returned,
-// or throws an Error with the message of what it threw. The threads here share an Int32Array the
-// functions captured, and change it only through Atomics: N threads adding to one element must sum
-// exactly.
+// or throws an Error with the message of what it threw. The threads here share an Int32Array held in
+// a Shared the functions captured, and change it only through Atomics: N threads adding to one element
+// must sum exactly.
 
 function sumOf(values: number[]) {
     let total = 0;
@@ -43,13 +40,13 @@ function main() {
     assert(caught == "out of range on the thread", "join throws what the thread threw");
 
     // N threads, each adding to one shared element: atomic adds lose nothing
-    const counter = new Int32Array([0]);
+    const counter = new Shared(new Int32Array([0]));
     const threads: ThreadHandle<int>[] = [];
     const perThread = 20000;
     for (let t = 0; t < 4; t++) {
         threads.push(Thread.spawn((): int => {
             for (let i = 0; i < perThread; i++) {
-                Atomics.add(counter, 0, 1);
+                Atomics.add(counter.value, 0, 1);
             }
             return perThread;
         }));
@@ -58,7 +55,7 @@ function main() {
     let added = 0;
     for (const thread of threads) added += thread.join();
     assert(added == 4 * perThread, "every thread ran");
-    assert(Atomics.load(counter, 0) == 4 * perThread, "no add was lost");
+    assert(Atomics.load(counter.value, 0) == 4 * perThread, "no add was lost");
 
     assert(Thread.hardwareConcurrency() >= 0, "hardwareConcurrency");
 
