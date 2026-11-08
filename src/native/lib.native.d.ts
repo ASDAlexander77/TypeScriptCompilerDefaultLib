@@ -126,11 +126,10 @@ declare function GC_gcollect(): void;
 // thread
 @nodrops declare function std_this_thread_sleep_for(milliseconds: u32): void;
 
-// Threads (wrappers/thread.cpp). `entry` is a function `(arg: Opaque) => u32` cast to an Opaque: a
-// function-typed parameter of a declared function reaches C as a three-pointer struct, not a code
-// pointer. The new thread calls back into TypeScript, but only into the ThreadStart `arg` names,
-// which the Thread keeps until join: nothing the caller lends is dropped.
-@nodrops declare function tslang_thread_spawn(entry: Opaque, arg: Opaque): Opaque;
+// Threads (wrappers/thread.cpp). @cdecl: `entry` reaches C as a function pointer. The new thread calls
+// back into TypeScript, but only into the ThreadStart `arg` names, which the Thread keeps until join:
+// nothing the caller lends is dropped.
+@cdecl @nodrops declare function tslang_thread_spawn(entry: (arg: Opaque) => u32, arg: Opaque): Opaque;
 @nodrops declare function tslang_thread_join(handle: Opaque): void;
 @nodrops declare function tslang_thread_hardware_concurrency(): u32;
 // Atomics.wait / notify: 0 "ok", 1 "not-equal", 2 "timed-out"; notify answers how many it woke

@@ -873,7 +873,7 @@ class ThreadHandle<R> {
         // thread does too, so their counts change atomically from here on (erased under the
         // other models)
         Shared.share(this.start);
-        this.handle = tslang_thread_spawn(<Opaque>__thread_entry<R>, <Opaque>this.start);
+        this.handle = tslang_thread_spawn(__thread_entry<R>, <Opaque>this.start);
     }
 
     join(): R {
