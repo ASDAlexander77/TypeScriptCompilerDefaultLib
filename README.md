@@ -131,6 +131,18 @@ Globals (`src/lib.ts`):
 - `Math` (static)
 - `ArrayBuffer`
 - `Headers`, `Response`, `fetch` — see [docs/fetch.md](docs/fetch.md)
+- `JSON.parse`, and the `JsonValue` it gives. There are no objects whose fields are found at run
+  time, so a value is read through accessors: `kind`, `isNull`, `asBoolean`, `asNumber`, `asString`,
+  `length`, `at(i)`, `has(key)`, `get(key)`, `keys()`. Asking for the wrong kind is a `TypeError`; a
+  key or index that is not there gives a JSON null. Text that is not JSON is a `SyntaxError`, and
+  nesting past 512 levels a `RangeError`. A `\u0000` in a string is a `SyntaxError`, because a string
+  ends at its first 0. A value is built with `JsonValue.ofBoolean`, `ofNumber`, `ofString`, `newArray`
+  and `newObject`, then `push` and `set`.
+
+  ```ts
+  const config = JSON.parse(`{"name":"tslang","sizes":[1,2]}`);
+  console.log(config.get("name").asString(), config.get("sizes").at(1).asNumber());
+  ```
 - `console` (static): `log`, `warn`, `error`, `assert`, and `readLine`, which returns the next
   line of standard input without its line break, or `null` at the end of input:
 
@@ -173,6 +185,15 @@ Generics (`src/generics/lib.generics.ts`):
   for (const w of workers) w.join();
   console.log(Atomics.load(counter, 0)); // 4000
   ```
+- `JSON.stringify(value, null, space)` takes numbers, strings, booleans, `null`, arrays of those,
+  `JsonValue`s, and classes with a `toJSON()`, which can return a `JsonValue` to write out the class's
+  fields. An object literal or a tuple is a `TypeError`, a `BigInt` too. `space` is a number or a
+  string; a replacer is not supported, only `null`.
+  Under `-mm=own` it takes a number or a string only (use `value.stringify()` for a `JsonValue`), and a
+  `JsonValue` is built one step at a time, not with chained `set`s.
+- `WeakMap<K, V>`: `get`, `set`, `has`, `delete`. `WeakSet<K>`: `add`, `has`, `delete`. Keys are
+  objects, compared by identity. `-mm=gc` only, as `WeakRef` is. A value is held strongly, so a value
+  that refers to its own key keeps that key alive.
 - `Promise`: `resolve`, `reject`, `all`, `allSettled`, `race`, `any`. The compiler takes
   `Promise<T>` as `T` (an async function returns its value and `await` gives it back), so
   these work on values that have already settled and a rejection is a thrown exception.
@@ -200,6 +221,9 @@ Errors (`src/core/core.d.ts`):
 
 - `Error`
 - `RangeError`
+- `SyntaxError`
 
-Not yet implemented: a `Promise` object (`then`/`catch`/`finally`), `JSON.parse`/`JSON.stringify`, `Symbol` (beyond the
-well-known symbols used internally), `WeakMap`/`WeakSet`.
+Not yet implemented, both needing changes in the compiler rather than here: a `Promise` object
+(`then`/`catch`/`finally`), since the compiler takes `Promise<T>` as `T`; and `Symbol` beyond the
+well-known symbols used internally, since `Symbol` is built into the compiler and a library
+declaration of it hides `[Symbol.iterator]`.

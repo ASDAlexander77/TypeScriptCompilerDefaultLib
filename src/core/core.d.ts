@@ -13,6 +13,10 @@ declare class TypeError extends Error {
     constructor(message?: string, filename?: string, line?: int);
 }
 
+declare class SyntaxError extends Error {
+    constructor(message?: string, filename?: string, line?: int);
+}
+
 declare namespace PrimeHelpers
 {
     declare const hashPrime: int;

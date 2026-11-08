@@ -17,6 +17,12 @@ export class TypeError extends Error {
     }
 }
 
+export class SyntaxError extends Error {
+    public constructor(message?: string, filename?: string, line?: int) {
+        super(message, filename, line);
+    }
+}
+
 export namespace PrimeHelpers
 {
     export const hashPrime = 101;

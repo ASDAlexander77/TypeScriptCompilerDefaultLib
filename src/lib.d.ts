@@ -691,7 +691,53 @@ declare class Response {
 
     text(): string;
 
-    json(): any;
+    json(): JsonValue;
+}
+
+@final
+declare class JsonValue {
+    private tag: int;
+    private flag: boolean;
+    private num: number;
+    private str: string;
+    private items: JsonValue[];
+    private names: string[];
+    private absent: JsonValue[];
+
+    constructor();
+
+    static ofBoolean(value: boolean): JsonValue;
+    static ofNumber(value: number): JsonValue;
+    static ofString(value: string): JsonValue;
+    static newArray(): JsonValue;
+    static newObject(): JsonValue;
+    static parse(text: string): JsonValue;
+
+    get kind(): string;
+    isNull(): boolean;
+    asBoolean(): boolean;
+    asNumber(): number;
+    asString(): string;
+    get length(): int;
+    @lends("this")
+    at(position: int): JsonValue;
+    @lends("this")
+    @keeps("value")
+    push(value: JsonValue): JsonValue;
+    has(key: string): boolean;
+    @lends("this")
+    get(key: string): JsonValue;
+    @lends("this")
+    @keeps("value")
+    set(key: string, value: JsonValue): JsonValue;
+    keys(): string[];
+    stringify(space?: string): string;
+    toString(): string;
+    toJSON(): string;
+}
+
+declare namespace JSON {
+    function parse(text: string): JsonValue;
 }
 
 declare function fetch(url: string, init?: { method?: string, headers?: [string, string][], body?: string }): Response;
