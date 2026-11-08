@@ -85,6 +85,9 @@ rem that matches its own -mm=, so each model needs its own. See tslang/include/T
 set MM=gc
 if not "%2"=="" set MM=%2
 set MM_OPT=-mm=%MM%
+rem thread.cpp registers the threads it starts with the collector, which only the gc build links
+set WRAPPER_MM_DEF=
+if "%MM%"=="gc" set WRAPPER_MM_DEF=/DTSLANG_MM_GC
 
 rem The DLL build below links TypeScriptAsyncRuntime.lib. TSLANG_LIB_PATH (set further
 rem down) defaults to the compiler's own build tree, which has no x86 subdirectory, so
@@ -219,7 +222,7 @@ rem Build native wrappers for C++ code
 %TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\io.cpp
 %TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\datetime.cpp
 %TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\regex.cpp
-%TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\thread.cpp
+%TSLANG_CC% %DBG_CL% /EHsc /Wall %WRAPPER_MM_DEF% /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\thread.cpp
 %TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\http.cpp
 %TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\memory.cpp
 
