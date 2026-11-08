@@ -69,9 +69,8 @@ struct CollectorRegistration
 
 typedef uint32_t (*ThreadEntry)(void *);
 
-extern "C" TSLANG_EXPORT void *tslang_thread_spawn(void *entry, void *arg)
+extern "C" TSLANG_EXPORT void *tslang_thread_spawn(ThreadEntry start, void *arg)
 {
-    auto start = reinterpret_cast<ThreadEntry>(entry);
     return new std::thread([start, arg]() {
 #ifdef TSLANG_MM_GC
         CollectorRegistration registration;
