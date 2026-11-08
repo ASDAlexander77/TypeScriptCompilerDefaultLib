@@ -716,6 +716,15 @@ class TypedArray<T> extends Array<T> {
         super(data);
     }
 
+    // `length` elements, each 0, as in JavaScript: new Uint8Array(4096) is a buffer for Stdio.read
+    constructor(length: int) {
+        super();
+        this.data.length = length;
+        for (let i = 0; i < length; i++) {
+            this.data[i] = <T>0;
+        }
+    }
+
     // The element itself, for Atomics. Only the reference is taken here, never an atomic operation:
     // every method of a generic class is built for each T it is used with, and Float32Array and
     // Float64Array are TypedArrays too, which LLVM's integer atomics do not take.
