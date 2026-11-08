@@ -1209,6 +1209,68 @@ namespace Promise {
     }
 }
 
+// JSON.stringify, over JsonValue (src/lib.ts, with JSON.parse). Generic: it is told what it was given by
+// the type each call is made with. There is no walking the fields of an object or a class at run time,
+// so a class goes by its `toJSON()`, and an object literal or a tuple is a TypeError.
+namespace JSON {
+    // A value as a JsonValue. R: a signature is read before lib.ts declares JsonValue, a default type
+    // only when the function is used. An else chain: code after an `if` the type settles is still
+    // compiled for that type, and a null cannot be cast to a number.
+    function toValue<T, R = JsonValue>(value: T): R {
+        if (typeof value == "string") {
+            return JsonValue.ofString(<string>value);
+        } else if (typeof value == "boolean") {
+            return JsonValue.ofBoolean(<boolean>value);
+        } else if (typeof value == "null") {
+            return new JsonValue();
+        } else if (typeof value == "undefined") {
+            return new JsonValue();
+        } else if (typeof value == "array") {
+            const result = JsonValue.newArray();
+            for (const element of value) {
+                result.push(toValue(element));
+            }
+
+            return result;
+        } else if (typeof value == "class") {
+            if (value instanceof JsonValue) {
+                return <JsonValue>value;
+            }
+
+            return toValue(value.toJSON());
+        } else if (typeof value == "tuple") {
+            throw new TypeError("JSON.stringify cannot read the fields of an object literal or a tuple: build a JsonValue");
+        } else if (typeof value == "bigint") {
+            throw new TypeError("JSON.stringify cannot serialize a BigInt");
+        } else {
+            return JsonValue.ofNumber(<number>value);
+        }
+    }
+
+    // up to 10 of them, as in JavaScript
+    function indent<S>(space: S): string {
+        if (typeof space == "string") {
+            return (<string>space).substring(0, 10);
+        } else {
+            let result = "";
+            for (let i = 0; i < 10 && i < <number>space; i++) {
+                result += " ";
+            }
+
+            return result;
+        }
+    }
+
+    // `replacer` is there for `JSON.stringify(value, null, 2)`: only null is taken
+    function stringify<T, S = string>(value: T, replacer?: null, space?: S): string {
+        if (space == undefined) {
+            return toValue(value).stringify();
+        }
+
+        return toValue(value).stringify(indent(<S>space));
+    }
+}
+
 interface PromiseFulfilledResult<T> {
     status: string;
     value: T;
@@ -2117,5 +2179,126 @@ class WeakRef<T extends object> {
             return undefined;
         }
         return <T><Opaque>(~hidden);
+    }
+}
+
+// what a WeakMap keeps for a key: a weak reference to the key, which says whether it is still alive,
+// and the value
+class WeakMapEntry<K extends object, V> {
+    public values: V[];
+
+    constructor(public ref: WeakRef<K>, value: V) {
+        this.values = [value];
+    }
+}
+
+// gc only, as WeakRef is. Keys are objects, compared by identity. The table is keyed by the key's
+// address complemented (see WeakRef), so it does not hold the key: the collector clears the entry's
+// WeakRef when the key goes, and the entry is then as if deleted. The collector does not move objects,
+// so an address stays the key's for as long as it lives; one reused by a later object finds a dead
+// entry and replaces it. The values are held strongly: a value that refers to its own key keeps that
+// key alive, as the collector has no ephemerons.
+class WeakMap<K extends object, V> {
+    private table: Map<index, WeakMapEntry<K, V>>;
+    // the size at which `set` next looks for dead entries; doubles with what stays, so a run of sets
+    // does linear work overall
+    private sweepAt: int;
+
+    constructor(entries?: [K, V][]) {
+        this.table = new Map<index, WeakMapEntry<K, V>>();
+        this.sweepAt = 32;
+        if (entries != undefined) {
+            for (const [key, value] of entries) {
+                this.set(key, value);
+            }
+        }
+    }
+
+    get(key: K): V | undefined {
+        const entry = this.table.get(this.hide(key));
+        if (entry == undefined || entry.ref.deref() == undefined) {
+            return undefined;
+        }
+
+        return entry.values[0];
+    }
+
+    set(key: K, value: V) {
+        if (this.table.size >= this.sweepAt) {
+            this.sweep();
+        }
+
+        this.table.set(this.hide(key), new WeakMapEntry<K, V>(new WeakRef<K>(key), value));
+        return this;
+    }
+
+    has(key: K): boolean {
+        const entry = this.table.get(this.hide(key));
+        return entry != undefined && entry.ref.deref() != undefined;
+    }
+
+    delete(key: K): boolean {
+        const present = this.has(key);
+        this.drop(this.hide(key));
+        return present;
+    }
+
+    private hide(key: K): index {
+        return ~(<index><Opaque>key);
+    }
+
+    // Takes the entry out. Map leaves a deleted entry in its slot until the slot is used again, so
+    // the entry lets go of its value first: otherwise it would keep the value alive.
+    private drop(hidden: index) {
+        const entry = this.table.get(hidden);
+        if (entry != undefined) {
+            entry.values = [];
+            this.table.delete(hidden);
+        }
+    }
+
+    private sweep() {
+        const dead: index[] = [];
+        for (const [hidden, entry] of this.table) {
+            if (entry.ref.deref() == undefined) {
+                dead.push(hidden);
+            }
+        }
+
+        for (const hidden of dead) {
+            this.drop(hidden);
+        }
+
+        this.sweepAt = this.table.size * 2;
+        if (this.sweepAt < 32) {
+            this.sweepAt = 32;
+        }
+    }
+}
+
+// gc only: a WeakMap with nothing to say about each key
+class WeakSet<K extends object> {
+    private keys: WeakMap<K, boolean>;
+
+    constructor(values?: K[]) {
+        this.keys = new WeakMap<K, boolean>();
+        if (values != undefined) {
+            for (const value of values) {
+                this.keys.set(value, true);
+            }
+        }
+    }
+
+    add(value: K) {
+        this.keys.set(value, true);
+        return this;
+    }
+
+    has(value: K): boolean {
+        return this.keys.has(value);
+    }
+
+    delete(value: K): boolean {
+        return this.keys.delete(value);
     }
 }

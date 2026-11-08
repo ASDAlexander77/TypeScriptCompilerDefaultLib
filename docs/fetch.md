@@ -30,7 +30,7 @@ class Response {
 
     get ok(): boolean;      // true for 2xx status codes
     text(): string;
-    json(): any;             // TODO: parses nothing yet, returns the raw body
+    json(): JsonValue;       // the body as JSON; a SyntaxError if it is not
 }
 ```
 
@@ -61,8 +61,8 @@ const posted = fetch("http://example.com/api", {
   `Headers..size` COMDAT symbols) when a program using `Headers` was compiled and
   linked against the static default lib. Parallel arrays sidestep it; header lists
   are always small, so the O(n) lookup cost is negligible.
-- **`json()` doesn't parse JSON yet** — there's no `JSON.parse` in the default lib.
-  It currently just returns the raw body text.
+- **`json()` returns a `JsonValue`**, not an object with fields: the compiler has no
+  objects whose fields are found at run time. See `JSON.parse` in the README.
 
 ## Platform implementation
 

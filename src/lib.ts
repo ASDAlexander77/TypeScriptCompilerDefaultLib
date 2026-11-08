@@ -2113,9 +2113,8 @@ export class Response {
         return this.body;
     }
 
-    json(): any {
-        // TODO: replace with a real JSON.parse once available
-        return this.body;
+    json(): JsonValue {
+        return JsonValue.parse(this.body);
     }
 }
 
@@ -2161,6 +2160,704 @@ export function fetch(url: string, init?: { method?: string, headers?: [string, 
     http_response_free(r);
 
     return new Response(status, headers, responseBody);
+}
+
+const JSON_NULL = 0;
+const JSON_BOOLEAN = 1;
+const JSON_NUMBER = 2;
+const JSON_STRING = 3;
+const JSON_ARRAY = 4;
+const JSON_OBJECT = 5;
+// A parser and a writer that recurse: past this a deep input would run off the native stack.
+const JSON_MAX_DEPTH = 512;
+
+function jsonAppend(output: char[], text: string): void {
+    for (let i = 0; i < text.length; i++) {
+        output.push(text[i]);
+    }
+}
+
+function jsonNewLine(output: char[], space: string, level: int): void {
+    if (space.length == 0) {
+        return;
+    }
+
+    output.push(<char>0x0A);
+    for (let i = 0; i < level; i++) {
+        jsonAppend(output, space);
+    }
+}
+
+function jsonHexDigit(digit: int): char {
+    if (digit < 10) {
+        return <char>(0x30 + digit);
+    }
+
+    return <char>(0x61 + digit - 10);
+}
+
+function jsonAppendQuoted(output: char[], text: string): void {
+    output.push(<char>0x22);
+    for (let i = 0; i < text.length; i++) {
+        const c = <int>text[i];
+        let escape = 0;
+        switch (c) {
+            case 0x22: escape = 0x22; break;
+            case 0x5C: escape = 0x5C; break;
+            case 0x08: escape = 0x62; break;
+            case 0x0C: escape = 0x66; break;
+            case 0x0A: escape = 0x6E; break;
+            case 0x0D: escape = 0x72; break;
+            case 0x09: escape = 0x74; break;
+        }
+
+        if (escape != 0) {
+            output.push(<char>0x5C);
+            output.push(<char>escape);
+        } else if (c < 0x20) {
+            jsonAppend(output, "\\u00");
+            output.push(jsonHexDigit(c >> 4));
+            output.push(jsonHexDigit(c & 15));
+        } else {
+            // the bytes of a character past ASCII go as they are: the text is UTF-8
+            output.push(text[i]);
+        }
+    }
+
+    output.push(<char>0x22);
+}
+
+// A JSON value. The compiler has no objects whose fields are found at run time, so `JSON.parse` gives
+// one of these and its accessors take the place of `value.field`. What is asked of the wrong kind of
+// value is a TypeError; a key or an index that is not there gives a JSON null (`has` tells them apart).
+@final
+export class JsonValue {
+    private tag: int;
+    private flag: boolean;
+    private num: number;
+    private str: string;
+    private items: JsonValue[];
+    private names: string[];
+    // holds the JSON null `at` and `get` give for what is not there: under -mm=own what they return
+    // is lent by this value, so a new one could not go back the same way
+    private absent: JsonValue[];
+
+    // JSON's null
+    public constructor() {
+        this.tag = JSON_NULL;
+        this.flag = false;
+        this.num = 0;
+        this.str = "";
+        this.items = [];
+        this.names = [];
+        this.absent = [];
+    }
+
+    public static ofBoolean(value: boolean): JsonValue {
+        const result = new JsonValue();
+        result.tag = JSON_BOOLEAN;
+        result.flag = value;
+        return result;
+    }
+
+    public static ofNumber(value: number): JsonValue {
+        const result = new JsonValue();
+        result.tag = JSON_NUMBER;
+        result.num = value;
+        return result;
+    }
+
+    public static ofString(value: string): JsonValue {
+        const result = new JsonValue();
+        result.tag = JSON_STRING;
+        result.str = value;
+        return result;
+    }
+
+    public static newArray(): JsonValue {
+        const result = new JsonValue();
+        result.tag = JSON_ARRAY;
+        return result;
+    }
+
+    public static newObject(): JsonValue {
+        const result = new JsonValue();
+        result.tag = JSON_OBJECT;
+        return result;
+    }
+
+    // what JSON.parse does: a SyntaxError for what is not JSON
+    public static parse(text: string): JsonValue {
+        // a copy: under -mm=own the parser keeps what it is given, and this function only borrows it
+        const parser = new JsonParser(text + "");
+        return parser.parseDocument();
+    }
+
+    public get kind(): string {
+        switch (this.tag) {
+            case JSON_BOOLEAN: return "boolean";
+            case JSON_NUMBER: return "number";
+            case JSON_STRING: return "string";
+            case JSON_ARRAY: return "array";
+            case JSON_OBJECT: return "object";
+        }
+
+        return "null";
+    }
+
+    public isNull(): boolean {
+        return this.tag == JSON_NULL;
+    }
+
+    public asBoolean(): boolean {
+        this.expect(JSON_BOOLEAN, "boolean");
+        return this.flag;
+    }
+
+    public asNumber(): number {
+        this.expect(JSON_NUMBER, "number");
+        return this.num;
+    }
+
+    public asString(): string {
+        this.expect(JSON_STRING, "string");
+        return this.str;
+    }
+
+    // how many elements an array has, or members an object has
+    public get length(): int {
+        this.expectContainer();
+        return this.items.length;
+    }
+
+    // an array's element, or a JSON null past its end
+    @lends("this")
+    public at(position: int): JsonValue {
+        this.expect(JSON_ARRAY, "array");
+        if (position < 0 || position >= this.items.length) {
+            return this.nothing();
+        }
+
+        return this.items[position];
+    }
+
+    @lends("this")
+    @keeps("value")
+    public push(value: JsonValue): JsonValue {
+        this.expect(JSON_ARRAY, "array");
+        this.items.push(value);
+        return this;
+    }
+
+    public has(key: string): boolean {
+        this.expect(JSON_OBJECT, "object");
+        return this.indexOf(key) >= 0;
+    }
+
+    // an object's member, or a JSON null when it has none
+    @lends("this")
+    public get(key: string): JsonValue {
+        this.expect(JSON_OBJECT, "object");
+        const position = this.indexOf(key);
+        if (position < 0) {
+            return this.nothing();
+        }
+
+        return this.items[position];
+    }
+
+    // A key already there keeps its place and takes the new value, as in JavaScript.
+    @lends("this")
+    @keeps("value")
+    public set(key: string, value: JsonValue): JsonValue {
+        this.expect(JSON_OBJECT, "object");
+        let position = this.indexOf(key);
+        if (position < 0) {
+            position = this.items.length;
+            // a copy: only this path takes the key, and under -mm=own a parameter is taken on every path or none
+            this.names.push(key + "");
+            this.items.length = position + 1;
+        }
+
+        // in one place, for the same reason
+        this.items[position] = value;
+        return this;
+    }
+
+    // an object's keys, in their order
+    public keys(): string[] {
+        this.expect(JSON_OBJECT, "object");
+        const result: string[] = [];
+        for (const name of this.names) {
+            result.push(name);
+        }
+
+        return result;
+    }
+
+    // the JSON text; `space` indents it, one per level
+    public stringify(space = ""): string {
+        const output: char[] = [];
+        this.write(output, space, 0);
+        output.push(<char>0);
+        // a copy: output goes with this function
+        return <string><Opaque>Ref(output[0]) + "";
+    }
+
+    public toString(): string {
+        return this.stringify();
+    }
+
+    // Its text, as Date's toJSON is. JSON.stringify takes a JsonValue as it is and never calls this; a
+    // result of JsonValue here would have it instantiate itself for the same type, which the compiler
+    // cannot do.
+    public toJSON(): string {
+        return this.stringify();
+    }
+
+    @lends("this")
+    private nothing(): JsonValue {
+        if (this.absent.length == 0) {
+            this.absent.push(new JsonValue());
+        }
+
+        return this.absent[0];
+    }
+
+    private indexOf(key: string): int {
+        for (let i = 0; i < this.names.length; i++) {
+            if (this.names[i] == key) return i;
+        }
+
+        return -1;
+    }
+
+    private expect(tag: int, name: string): void {
+        if (this.tag != tag) {
+            throw new TypeError(`JSON value is not a ${name}`);
+        }
+    }
+
+    private expectContainer(): void {
+        if (this.tag != JSON_ARRAY && this.tag != JSON_OBJECT) {
+            throw new TypeError("JSON value is not an array or an object");
+        }
+    }
+
+    private write(output: char[], space: string, level: int): void {
+        if (level > JSON_MAX_DEPTH) {
+            throw new RangeError("JSON value is nested too deeply, or contains itself");
+        }
+
+        switch (this.tag) {
+            case JSON_BOOLEAN:
+                jsonAppend(output, this.flag ? "true" : "false");
+                return;
+            case JSON_NUMBER:
+                // JavaScript's text for a number; JSON has no NaN or Infinity, and no -0
+                if (!isFinite(this.num)) {
+                    jsonAppend(output, "null");
+                } else if (this.num == 0) {
+                    jsonAppend(output, "0");
+                } else {
+                    jsonAppend(output, this.num.toString());
+                }
+
+                return;
+            case JSON_STRING:
+                jsonAppendQuoted(output, this.str);
+                return;
+            case JSON_ARRAY:
+            case JSON_OBJECT:
+                this.writeContainer(output, space, level);
+                return;
+        }
+
+        jsonAppend(output, "null");
+    }
+
+    private writeContainer(output: char[], space: string, level: int): void {
+        const isObject = this.tag == JSON_OBJECT;
+        output.push(<char>(isObject ? 0x7B : 0x5B));
+        const count = this.items.length;
+        for (let i = 0; i < count; i++) {
+            if (i > 0) {
+                output.push(<char>0x2C);
+            }
+
+            jsonNewLine(output, space, level + 1);
+            if (isObject) {
+                jsonAppendQuoted(output, this.names[i]);
+                output.push(<char>0x3A);
+                if (space.length > 0) {
+                    output.push(<char>0x20);
+                }
+            }
+
+            this.items[i].write(output, space, level + 1);
+        }
+
+        if (count > 0) {
+            jsonNewLine(output, space, level);
+        }
+
+        output.push(<char>(isObject ? 0x7D : 0x5D));
+    }
+}
+
+// RFC 8259, as JSON.parse reads it: no comments, no trailing commas, whitespace only between tokens.
+class JsonParser {
+    private pos: int;
+    private depth: int;
+    private size: int;
+
+    @keeps("text")
+    public constructor(private text: string) {
+        this.pos = 0;
+        this.depth = 0;
+        this.size = text.length;
+    }
+
+    public parseDocument(): JsonValue {
+        this.skipSpace();
+        const value = this.parseValue();
+        this.skipSpace();
+        if (this.pos != this.size) {
+            this.fail();
+        }
+
+        return value;
+    }
+
+    private fail(): void {
+        if (this.pos >= this.size) {
+            throw new SyntaxError("Unexpected end of JSON input");
+        }
+
+        throw new SyntaxError(`Unexpected token in JSON at position ${this.pos}`);
+    }
+
+    // the byte at the position, or -1 at the end of the text
+    private peek(): int {
+        if (this.pos < this.size) {
+            return <int>this.text[this.pos];
+        }
+
+        return -1;
+    }
+
+    private skipSpace(): void {
+        let c = this.peek();
+        while (c == 0x20 || c == 0x0A || c == 0x0D || c == 0x09) {
+            this.pos++;
+            c = this.peek();
+        }
+    }
+
+    private parseValue(): JsonValue {
+        const c = this.peek();
+        if (c == 0x7B) return this.parseObject();
+        if (c == 0x5B) return this.parseArray();
+        if (c == 0x22) return JsonValue.ofString(this.parseString());
+        if (c == 0x2D || this.isDigit(c)) return JsonValue.ofNumber(this.parseNumber());
+        if (c == 0x74) {
+            this.expectWord("true");
+            return JsonValue.ofBoolean(true);
+        }
+
+        if (c == 0x66) {
+            this.expectWord("false");
+            return JsonValue.ofBoolean(false);
+        }
+
+        if (c == 0x6E) {
+            this.expectWord("null");
+            return new JsonValue();
+        }
+
+        this.fail();
+        return new JsonValue();
+    }
+
+    private enter(): void {
+        this.depth++;
+        if (this.depth > JSON_MAX_DEPTH) {
+            throw new RangeError("JSON text is nested too deeply");
+        }
+    }
+
+    private parseArray(): JsonValue {
+        this.enter();
+        this.pos++;
+        const result = JsonValue.newArray();
+        this.skipSpace();
+        if (this.peek() == 0x5D) {
+            this.pos++;
+            this.depth--;
+            return result;
+        }
+
+        while (true) {
+            this.skipSpace();
+            result.push(this.parseValue());
+            this.skipSpace();
+            const c = this.peek();
+            if (c == 0x2C) {
+                this.pos++;
+                continue;
+            }
+
+            if (c == 0x5D) {
+                this.pos++;
+                this.depth--;
+                return result;
+            }
+
+            this.fail();
+        }
+    }
+
+    private parseObject(): JsonValue {
+        this.enter();
+        this.pos++;
+        const result = JsonValue.newObject();
+        this.skipSpace();
+        if (this.peek() == 0x7D) {
+            this.pos++;
+            this.depth--;
+            return result;
+        }
+
+        while (true) {
+            this.skipSpace();
+            if (this.peek() != 0x22) {
+                this.fail();
+            }
+
+            const key = this.parseString();
+            this.skipSpace();
+            if (this.peek() != 0x3A) {
+                this.fail();
+            }
+
+            this.pos++;
+            this.skipSpace();
+            result.set(key, this.parseValue());
+            this.skipSpace();
+            const c = this.peek();
+            if (c == 0x2C) {
+                this.pos++;
+                continue;
+            }
+
+            if (c == 0x7D) {
+                this.pos++;
+                this.depth--;
+                return result;
+            }
+
+            this.fail();
+        }
+    }
+
+    private expectWord(word: string): void {
+        for (let i = 0; i < word.length; i++) {
+            if (this.peek() != <int>word[i]) {
+                this.fail();
+            }
+
+            this.pos++;
+        }
+    }
+
+    private isDigit(c: int): boolean {
+        return c >= 0x30 && c <= 0x39;
+    }
+
+    private digits(output: char[]): void {
+        if (!this.isDigit(this.peek())) {
+            this.fail();
+        }
+
+        while (this.isDigit(this.peek())) {
+            output.push(<char>this.peek());
+            this.pos++;
+        }
+    }
+
+    private parseNumber(): number {
+        const output: char[] = [];
+        if (this.peek() == 0x2D) {
+            output.push(<char>0x2D);
+            this.pos++;
+        }
+
+        // a leading zero stands alone
+        if (this.peek() == 0x30) {
+            output.push(<char>0x30);
+            this.pos++;
+        } else {
+            this.digits(output);
+        }
+
+        if (this.peek() == 0x2E) {
+            output.push(<char>0x2E);
+            this.pos++;
+            this.digits(output);
+        }
+
+        if (this.peek() == 0x65 || this.peek() == 0x45) {
+            output.push(<char>0x65);
+            this.pos++;
+            if (this.peek() == 0x2B || this.peek() == 0x2D) {
+                output.push(<char>this.peek());
+                this.pos++;
+            }
+
+            this.digits(output);
+        }
+
+        output.push(<char>0);
+        return parseFloat(<string><Opaque>Ref(output[0]));
+    }
+
+    private parseHex4(): int {
+        let code = 0;
+        for (let i = 0; i < 4; i++) {
+            const c = this.peek();
+            let digit = -1;
+            if (c >= 0x30 && c <= 0x39) {
+                digit = c - 0x30;
+            } else if (c >= 0x61 && c <= 0x66) {
+                digit = c - 0x61 + 10;
+            } else if (c >= 0x41 && c <= 0x46) {
+                digit = c - 0x41 + 10;
+            }
+
+            if (digit < 0) {
+                this.fail();
+            }
+
+            code = code * 16 + digit;
+            this.pos++;
+        }
+
+        return code;
+    }
+
+    private appendCodePoint(output: char[], code: int): void {
+        if (code < 0x80) {
+            output.push(<char>code);
+        } else if (code < 0x800) {
+            output.push(<char>(0xC0 | (code >> 6)));
+            output.push(<char>(0x80 | (code & 63)));
+        } else if (code < 0x10000) {
+            output.push(<char>(0xE0 | (code >> 12)));
+            output.push(<char>(0x80 | ((code >> 6) & 63)));
+            output.push(<char>(0x80 | (code & 63)));
+        } else {
+            output.push(<char>(0xF0 | (code >> 18)));
+            output.push(<char>(0x80 | ((code >> 12) & 63)));
+            output.push(<char>(0x80 | ((code >> 6) & 63)));
+            output.push(<char>(0x80 | (code & 63)));
+        }
+    }
+
+    // After the backslash-u of a code unit. A surrogate pair is one character; a surrogate alone has
+    // no UTF-8 form and becomes U+FFFD. A string here ends at its first 0, so an escaped 0 would cut
+    // it short without a word: that is an error instead.
+    private parseUnicodeEscape(output: char[]): void {
+        let code = this.parseHex4();
+        if (code == 0) {
+            throw new SyntaxError("\\u0000 in a JSON string is not supported: a string ends at its first 0");
+        }
+
+        if (code >= 0xD800 && code <= 0xDBFF) {
+            const start = this.pos;
+            let low = 0;
+            if (this.peek() == 0x5C) {
+                this.pos++;
+                if (this.peek() == 0x75) {
+                    this.pos++;
+                    low = this.parseHex4();
+                }
+            }
+
+            if (low >= 0xDC00 && low <= 0xDFFF) {
+                code = 0x10000 + ((code - 0xD800) << 10) + (low - 0xDC00);
+            } else {
+                // what followed was not this one's other half: it is read again on its own
+                this.pos = start;
+                code = 0xFFFD;
+            }
+        } else if (code >= 0xDC00 && code <= 0xDFFF) {
+            code = 0xFFFD;
+        }
+
+        this.appendCodePoint(output, code);
+    }
+
+    private parseEscape(output: char[]): void {
+        const c = this.peek();
+        let plain = -1;
+        switch (c) {
+            case 0x22: plain = 0x22; break;
+            case 0x5C: plain = 0x5C; break;
+            case 0x2F: plain = 0x2F; break;
+            case 0x62: plain = 0x08; break;
+            case 0x66: plain = 0x0C; break;
+            case 0x6E: plain = 0x0A; break;
+            case 0x72: plain = 0x0D; break;
+            case 0x74: plain = 0x09; break;
+        }
+
+        if (plain >= 0) {
+            output.push(<char>plain);
+            this.pos++;
+            return;
+        }
+
+        if (c == 0x75) {
+            this.pos++;
+            this.parseUnicodeEscape(output);
+            return;
+        }
+
+        this.fail();
+    }
+
+    private parseString(): string {
+        this.pos++;
+        const output: char[] = [];
+        while (true) {
+            const c = this.peek();
+            if (c < 0x20) {
+                // the end of the text, or a control character, which JSON has only escaped
+                this.fail();
+            }
+
+            this.pos++;
+            if (c == 0x22) {
+                break;
+            }
+
+            if (c == 0x5C) {
+                this.parseEscape(output);
+            } else {
+                output.push(<char>c);
+            }
+        }
+
+        output.push(<char>0);
+        // a copy: output goes with this function
+        return <string><Opaque>Ref(output[0]) + "";
+    }
+}
+
+export namespace JSON {
+    export function parse(text: string): JsonValue {
+        return JsonValue.parse(text);
+    }
 }
 
 export static class console {
