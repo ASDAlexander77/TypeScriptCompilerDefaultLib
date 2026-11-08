@@ -84,3 +84,83 @@ extern "C" TSLANG_EXPORT void stdio_line_copy_to(char *buffer, int count)
     auto size = currentLine.size() < static_cast<std::size_t>(count) ? currentLine.size() : static_cast<std::size_t>(count);
     currentLine.copy(buffer, size);
 }
+
+// Stdio.read / readAll / write / writeError (src/generics/lib.generics.ts): bytes as they are.
+//
+// On Windows stdin and stdout are text streams, which turn "\n" into "\r\n" on the way out and
+// end the input at a 0x1A byte on the way in, so each of these puts its stream in binary mode for
+// the call and gives it back its own mode after: console.log and console.readLine keep text mode.
+// _setmode flushes nothing itself, hence the fflush of an output stream before each switch; never
+// of stdin, where the C runtime would throw away what it has buffered (a readLine's read-ahead).
+static void flush_output(std::FILE *stream)
+{
+    if (stream != stdin)
+    {
+        std::fflush(stream);
+    }
+}
+
+#ifdef _WIN32
+#include <fcntl.h>
+#include <io.h>
+
+static int set_binary(std::FILE *stream)
+{
+    flush_output(stream);
+    return _setmode(_fileno(stream), _O_BINARY);
+}
+
+static void restore_mode(std::FILE *stream, int mode)
+{
+    flush_output(stream);
+    if (mode != -1)
+    {
+        _setmode(_fileno(stream), mode);
+    }
+}
+#else
+static int set_binary(std::FILE *stream)
+{
+    flush_output(stream);
+    return -1;
+}
+
+static void restore_mode(std::FILE *stream, int)
+{
+    flush_output(stream);
+}
+#endif
+
+// Up to `count` bytes of stdin into `buffer`: how many it read. It fills the buffer unless the
+// input ends first, so fewer than `count` means the end of input, and 0 that nothing was left.
+extern "C" TSLANG_EXPORT int stdio_read(char *buffer, int count)
+{
+    if (buffer == nullptr || count <= 0)
+    {
+        return 0;
+    }
+
+    // a prompt written without a line break shows before the program waits for input
+    std::fflush(stdout);
+
+    auto mode = set_binary(stdin);
+    auto read = std::fread(buffer, 1, static_cast<std::size_t>(count), stdin);
+    restore_mode(stdin, mode);
+    return static_cast<int>(read);
+}
+
+// `count` bytes to stdout (fileNo 1) or stderr (2), flushed: under the JIT nothing flushes this
+// library's stdout at exit (see stdio_write), and bytes need not end with a line break.
+extern "C" TSLANG_EXPORT int stdio_write_bytes(int fileNo, const char *bytes, int count)
+{
+    if (bytes == nullptr || count <= 0)
+    {
+        return 0;
+    }
+
+    std::FILE *stream = fileNo == 2 ? stderr : stdout;
+    auto mode = set_binary(stream);
+    auto written = std::fwrite(bytes, 1, static_cast<std::size_t>(count), stream);
+    restore_mode(stream, mode);
+    return static_cast<int>(written);
+}

@@ -905,6 +905,246 @@ namespace Thread {
     }
 }
 
+// Bytes to and from the standard streams, as they are: on Windows each call puts its stream in
+// binary mode and back, so a "\n" stays one byte and a 0x1A does not end the input (console.log
+// and console.readLine keep text mode). A Uint8Array is not a view over a buffer here, so `read`
+// fills the array's own elements. Each is generic, as `sleep` is: see there. See src/wrappers/io.cpp.
+namespace Stdio {
+    // Reads stdin into `buffer` and says how many bytes it read: it fills the buffer unless the
+    // input ends first, so fewer than buffer.length means the input has ended, and 0 that nothing
+    // was left.
+    function read<T = u8>(buffer: Uint8Array): int {
+        if (buffer.length == 0) {
+            return 0;
+        }
+
+        return stdio_read(<Opaque>buffer.__elementRef(0), buffer.length);
+    }
+
+    // the rest of stdin, to its end
+    function readAll<T = u8>(): Uint8Array {
+        const bytes: u8[] = [];
+        const chunk: u8[] = [];
+        chunk.length = 4096;
+        let count = 0;
+        while ((count = stdio_read(<Opaque>Ref(chunk[0]), chunk.length)) > 0) {
+            for (let i = 0; i < count; i++) {
+                bytes.push(chunk[i]);
+            }
+        }
+
+        return new Uint8Array(bytes);
+    }
+
+    // writes the bytes to stdout and flushes them; says how many it wrote
+    function write<T = u8>(bytes: Uint8Array): int {
+        if (bytes.length == 0) {
+            return 0;
+        }
+
+        return stdio_write_bytes(1, <Opaque>bytes.__elementRef(0), bytes.length);
+    }
+
+    // the same, to stderr
+    function writeError<T = u8>(bytes: Uint8Array): int {
+        if (bytes.length == 0) {
+            return 0;
+        }
+
+        return stdio_write_bytes(2, <Opaque>bytes.__elementRef(0), bytes.length);
+    }
+}
+
+// Strings are UTF-8 already, so encoding is a copy of their bytes. UTF-8 only, as in JavaScript.
+// Generic, as every class here is: a plain one would be built into the library and into every
+// program, and a debug link then finds it twice. `new TextEncoder()` takes the default.
+class TextEncoder<T = u8> {
+    get encoding() {
+        return "utf-8";
+    }
+
+    // the string's UTF-8 bytes
+    encode(input = ""): Uint8Array {
+        const bytes: u8[] = [];
+        bytes.length = input.length;
+        if (input.length > 0) {
+            memcpy(<Opaque>Ref(bytes[0]), <Opaque>input, input.length);
+        }
+
+        return new Uint8Array(bytes);
+    }
+
+    // Writes as many whole characters of `source` as fit into `destination`: `read` counts them in
+    // UTF-16 units, as JavaScript does (a 4-byte character is 2), `written` in bytes.
+    encodeInto(source: string, destination: Uint8Array): TextEncoderEncodeIntoResult {
+        const bytes = this.encode(source);
+        let read = 0;
+        let written = 0;
+        while (written < bytes.length) {
+            const lead = bytes[written];
+            let size = 1;
+            if (lead >= 0xF0) {
+                size = 4;
+            } else if (lead >= 0xE0) {
+                size = 3;
+            } else if (lead >= 0xC0) {
+                size = 2;
+            }
+
+            if (written + size > destination.length) {
+                break;
+            }
+
+            for (let i = 0; i < size; i++) {
+                destination[written + i] = bytes[written + i];
+            }
+
+            written += size;
+            if (size == 4) {
+                read += 2;
+            } else {
+                read += 1;
+            }
+        }
+
+        return { read: read, written: written };
+    }
+}
+
+interface TextEncoderEncodeIntoResult {
+    read: int;
+    written: int;
+}
+
+interface TextDecoderOptions {
+    fatal?: boolean;
+    ignoreBOM?: boolean;
+}
+
+// UTF-8 bytes to a string, as JavaScript's TextDecoder: each ill-formed sequence becomes U+FFFD
+// (the WHATWG decoder's maximal subparts), or, with `fatal`, a TypeError. A leading byte order mark
+// is dropped unless `ignoreBOM`. UTF-8 only: another label is a RangeError. No `stream` option: a
+// decode takes whole input. A string ends at its first 0, so a 0 byte ends the result there.
+class TextDecoder<T = u8> {
+    private isFatal = false;
+    private keepsBOM = false;
+
+    constructor(label = "utf-8", options?: TextDecoderOptions) {
+        const name = label.trim().toLowerCase();
+        if (name != "utf-8" && name != "utf8" && name != "unicode-1-1-utf-8") {
+            throw new RangeError(`The encoding label provided ('${label}') is not supported`);
+        }
+
+        if (options != undefined) {
+            if (options.fatal != undefined) {
+                this.isFatal = options.fatal;
+            }
+
+            if (options.ignoreBOM != undefined) {
+                this.keepsBOM = options.ignoreBOM;
+            }
+        }
+    }
+
+    get encoding() {
+        return "utf-8";
+    }
+
+    get fatal() {
+        return this.isFatal;
+    }
+
+    get ignoreBOM() {
+        return this.keepsBOM;
+    }
+
+    decode(input?: Uint8Array): string {
+        if (input == undefined) {
+            return "";
+        }
+
+        const output: char[] = [];
+        let start = 0;
+        if (!this.keepsBOM && input.length >= 3 && input[0] == 0xEF && input[1] == 0xBB && input[2] == 0xBF) {
+            start = 3;
+        }
+
+        // the WHATWG UTF-8 decoder: a sequence that is whole and well-formed is copied as it is
+        let needed = 0;
+        let seen = 0;
+        let lower = 0x80;
+        let upper = 0xBF;
+        let sequenceStart = 0;
+        let i = start;
+        while (i < input.length) {
+            const b = <int>input[i];
+            if (needed == 0) {
+                sequenceStart = i;
+                if (b <= 0x7F) {
+                    output.push(<char>b);
+                } else if (b >= 0xC2 && b <= 0xDF) {
+                    needed = 1;
+                } else if (b >= 0xE0 && b <= 0xEF) {
+                    if (b == 0xE0) lower = 0xA0;
+                    if (b == 0xED) upper = 0x9F;
+                    needed = 2;
+                } else if (b >= 0xF0 && b <= 0xF4) {
+                    if (b == 0xF0) lower = 0x90;
+                    if (b == 0xF4) upper = 0x8F;
+                    needed = 3;
+                } else {
+                    this.replacement(output);
+                }
+
+                i++;
+                continue;
+            }
+
+            if (b < lower || b > upper) {
+                // the sequence so far is one error, and this byte starts again
+                needed = 0;
+                seen = 0;
+                lower = 0x80;
+                upper = 0xBF;
+                this.replacement(output);
+                continue;
+            }
+
+            lower = 0x80;
+            upper = 0xBF;
+            seen++;
+            i++;
+            if (seen == needed) {
+                for (let j = sequenceStart; j < i; j++) {
+                    output.push(<char>input[j]);
+                }
+
+                needed = 0;
+                seen = 0;
+            }
+        }
+
+        if (needed != 0) {
+            this.replacement(output);
+        }
+
+        output.push(<char>0);
+        // a copy: output goes with this function
+        return <string><Opaque>Ref(output[0]) + "";
+    }
+
+    private replacement(output: char[]) {
+        if (this.isFatal) {
+            throw new TypeError("The encoded data was not valid for encoding utf-8");
+        }
+
+        // U+FFFD
+        output.push(<char>0xEF);
+        output.push(<char>0xBF);
+        output.push(<char>0xBD);
+    }
+}
+
 // The compiler takes `Promise<T>` as T: an async function returns its value, and `await` gives the
 // value back once the expression has run. So a promise here is the value itself, already settled,
 // and these are the functions over such values. A rejected promise is a thrown exception. There is

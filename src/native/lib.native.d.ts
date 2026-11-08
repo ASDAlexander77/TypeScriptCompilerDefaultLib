@@ -11,6 +11,9 @@
 // See src/wrappers/io.cpp.
 @nodrops declare function stdio_read_line(): int;
 @nodrops declare function stdio_line_copy_to(buffer: string, count: int): void;
+// Stdio.read / write: bytes as they are, in binary mode for the call. See src/wrappers/io.cpp.
+@nodrops declare function stdio_read(buffer: Opaque, count: int): int;
+@nodrops declare function stdio_write_bytes(fileNo: int, bytes: Opaque, count: int): int;
 
 // Time (in seconds)
 @nodrops declare function time(destTime: Reference<long>);
