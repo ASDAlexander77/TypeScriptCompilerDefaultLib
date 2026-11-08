@@ -753,8 +753,8 @@ type Float64Array = TypedArray<f64>;
 // operation codes are written out, not passed in: the builtins take them only as constants. The
 // value is a `number`, as in JavaScript, and wraps to the element's width (300 added to a Uint8Array
 // element adds 44). There is no SharedArrayBuffer and a TypedArray is not a view over a buffer, so an
-// operation acts on the array's own elements. `wait`, `waitAsync` and `notify` are not here: there
-// is no other thread to wait for yet.
+// operation acts on the array's own elements: threads share the array itself (see Thread.spawn).
+// `waitAsync` is not here: there is no event loop to resolve its promise.
 namespace Atomics {
     // atomicrmw operations: 0 xchg, 1 add, 2 sub, 3 and, 5 or, 6 xor; ordering 7: seq_cst
 
@@ -802,6 +802,106 @@ namespace Atomics {
     // program too, and a debug link then finds it defined twice
     function isLockFree<T = int>(size: T): boolean {
         return size == 1 || size == 2 || size == 4 || size == 8;
+    }
+
+    // Sleeps until notify wakes it, while the element is `value`: "not-equal" at once when it is
+    // not, "timed-out" after `timeout` milliseconds (none: forever). Int32Array and BigInt64Array
+    // only, as in JavaScript - any other 4- or 8-byte array is compared as the integer it holds.
+    function wait<T>(typedArray: TypedArray<T>, index: int, value: number, timeout?: number): string {
+        const element = typedArray.__elementRef(index);
+        const timeoutMs = timeout == undefined ? Infinity : timeout;
+        let result = 0;
+        switch (sizeof<T>()) {
+            case 4:
+                result = tslang_atomics_wait32(<Reference<s32>>element, <s32>value, timeoutMs);
+                break;
+            case 8:
+                result = tslang_atomics_wait64(<Reference<s64>>element, <s64>value, timeoutMs);
+                break;
+            default:
+                throw new TypeError("Atomics.wait takes an Int32Array or a BigInt64Array");
+        }
+
+        return result == 0 ? "ok" : result == 1 ? "not-equal" : "timed-out";
+    }
+
+    // wakes the first `count` threads waiting on the element (none given: all of them), in the
+    // order they began to wait, and says how many it woke
+    function notify<T>(typedArray: TypedArray<T>, index: int, count?: number): int {
+        const element = typedArray.__elementRef(index);
+        return tslang_atomics_notify(<Opaque>element, count == undefined ? -1 : <int>count);
+    }
+}
+
+// What a thread runs: the function, then its result or what it threw. The thread reaches it only
+// through the Opaque handed to the native side, so the ThreadHandle keeps it until join.
+class ThreadStart<R> {
+    result: R;
+    failed = false;
+    message: string = "";
+
+    constructor(public fn: () => R) {}
+
+    run() {
+        try {
+            const result = this.fn();
+            this.result = result;
+        } catch (e) {
+            this.failed = true;
+            this.message = e instanceof Error ? (<Error>e).message : `${e}`;
+        }
+    }
+}
+
+// the native thread's entry point: generic, as `sleep` is, so it is built into the program that
+// spawns and not twice into a debug link
+function __thread_entry<R>(arg: Opaque): u32 {
+    const start = <ThreadStart<R>>arg;
+    start.run();
+    return 0;
+}
+
+// A running thread. join() waits for it to end and gives back what its function returned, or
+// throws an Error with the message of what the function threw. Join every thread: the function and
+// what it captured live until then.
+class ThreadHandle<R> {
+    private handle: Opaque;
+    private joined = false;
+
+    constructor(private start: ThreadStart<R>) {
+        // -mm=rc: the thread takes and drops references to what the function captured while this
+        // thread does too, so their counts change atomically from here on (erased under the
+        // other models)
+        Shared.share(this.start);
+        this.handle = tslang_thread_spawn(<Opaque>__thread_entry<R>, <Opaque>this.start);
+    }
+
+    join(): R {
+        if (!this.joined) {
+            tslang_thread_join(this.handle);
+            this.joined = true;
+        }
+
+        // a new Error, not the one thrown: under -mm=own what the thread threw belongs to its
+        // ThreadStart and can't be thrown again from here
+        if (this.start.failed) {
+            throw new Error(this.start.message);
+        }
+
+        return this.start.result;
+    }
+}
+
+namespace Thread {
+    // runs `fn` on a new thread. Shared memory is what both threads reach: an Int32Array the
+    // function captured, say, used through Atomics.
+    function spawn<R>(fn: () => R): ThreadHandle<R> {
+        return new ThreadHandle<R>(new ThreadStart<R>(fn));
+    }
+
+    // how many threads the machine runs at once (0 when it can't tell)
+    function hardwareConcurrency<T = int>(): u32 {
+        return tslang_thread_hardware_concurrency();
     }
 }
 

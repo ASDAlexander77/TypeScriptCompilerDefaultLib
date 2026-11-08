@@ -37,6 +37,11 @@ if [ -n "$4" ] ; then
 	MM=$4
 fi
 MM_OPT=-mm=$MM
+# thread.cpp registers the threads it starts with the collector, which only the gc build links
+WRAPPER_MM_DEF=
+if [ "$MM" = "gc" ] ; then
+	WRAPPER_MM_DEF=-DTSLANG_MM_GC
+fi
 
 SRC=.
 OUTPUT=.
@@ -79,7 +84,7 @@ mkdir -p $LIB_OUT
 $TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/io.cpp -o $OUTPUT/$LIB_OUT/io.o
 $TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/datetime.cpp -o $OUTPUT/$LIB_OUT/datetime.o
 $TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/regex.cpp -o $OUTPUT/$LIB_OUT/regex.o
-$TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/thread.cpp -o $OUTPUT/$LIB_OUT/thread.o
+$TOOL $DBG_GCC $CPP_FLAGS $WRAPPER_MM_DEF -c $SRC/src/wrappers/thread.cpp -o $OUTPUT/$LIB_OUT/thread.o
 $TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/http_linux.cpp -o $OUTPUT/$LIB_OUT/http_linux.o
 $TOOL $DBG_GCC $CPP_FLAGS -c $SRC/src/wrappers/memory.cpp -o $OUTPUT/$LIB_OUT/memory.o
 

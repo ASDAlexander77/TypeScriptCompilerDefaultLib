@@ -117,8 +117,11 @@ if exist "%OBJ%" rd /s /q "%OBJ%"
 if exist "%LIB_OUT%" rd /s /q "%LIB_OUT%"
 md "%OBJ%" "%LIB_OUT%"
 
+rem thread.cpp registers the threads it starts with the collector, which only the gc build links
+set WRAPPER_MM_DEF=
+if "%MM%"=="gc" set WRAPPER_MM_DEF=-DTSLANG_MM_GC
 for %%w in (io datetime regex thread http_stub memory) do (
-    %CXX% -c "%ROOT%\src\wrappers\%%w.cpp" -o "%OBJ%\%%w.o" || exit /b 1
+    %CXX% %WRAPPER_MM_DEF% -c "%ROOT%\src\wrappers\%%w.cpp" -o "%OBJ%\%%w.o" || exit /b 1
 )
 
 %TSC% "%ROOT%\src\lib.linux.ts" -o "%OBJ%\lib.linux.o" || exit /b 1
