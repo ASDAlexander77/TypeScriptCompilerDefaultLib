@@ -145,7 +145,8 @@ Generics (`src/generics/lib.generics.ts`):
 
 - `Array<T>`, `TypedArray<T>` (and the typed-array aliases: `Int8Array`, `Uint8Array`,
   `Int16Array`, `Uint16Array`, `Int32Array`, `Uint32Array`, `BigInt64Array`,
-  `BigUint64Array`, `Float32Array`, `Float64Array`)
+  `BigUint64Array`, `Float32Array`, `Float64Array`). A typed array is made from an array of
+  its elements (`new Uint8Array([1, 2, 3])`) or a length (`new Uint8Array(4096)`, each element 0)
 - `Map<K, V>`
 - `Set<V>`
 - `Atomics`: `add`, `sub`, `and`, `or`, `xor`, `exchange`, `compareExchange`, `load`,
