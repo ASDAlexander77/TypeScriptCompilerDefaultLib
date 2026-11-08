@@ -158,20 +158,21 @@ Generics (`src/generics/lib.generics.ts`):
   once. Threads share memory through what their functions capture, such as an `Int32Array` used
   with `Atomics`. Join every thread. Under `-mm=rc` what the function captures is marked shared
   (`Shared.share`), so its counts change atomically. Under `-mm=gc` the thread registers with the
-  collector. Under `-mm=own` captured values move into the thread, so two threads can't share one
-  array, and a thread can't yet return an object (a string or a number is fine).
+  collector. Under `-mm=own` captured values move into the thread, so threads that share an array
+  hold it in a `const` `Shared<T>` each function captures, which works under every model. A thread
+  can return an object; `join()` lends it, and the `ThreadHandle` keeps it.
 
   ```ts
-  const counter = new Int32Array([0]);
+  const counter = new Shared(new Int32Array([0]));
   const workers: ThreadHandle<int>[] = [];
   for (let t = 0; t < 4; t++) {
       workers.push(Thread.spawn((): int => {
-          for (let i = 0; i < 1000; i++) Atomics.add(counter, 0, 1);
+          for (let i = 0; i < 1000; i++) Atomics.add(counter.value, 0, 1);
           return 1000;
       }));
   }
   for (const w of workers) w.join();
-  console.log(Atomics.load(counter, 0)); // 4000
+  console.log(Atomics.load(counter.value, 0)); // 4000
   ```
 - `Promise`: `resolve`, `reject`, `all`, `allSettled`, `race`, `any`. The compiler takes
   `Promise<T>` as `T` (an async function returns its value and `await` gives it back), so
