@@ -7,6 +7,10 @@
 // Buffered counterpart of write(), sharing stdio's buffer with print()/puts() so the
 // two cannot reorder relative to each other. See src/wrappers/io.cpp.
 @nodrops declare function stdio_write(fileNo: int, s: string, count: int);
+// console.readLine(): the next line of stdin, its length or -1 at the end of input, then copied out.
+// See src/wrappers/io.cpp.
+@nodrops declare function stdio_read_line(): int;
+@nodrops declare function stdio_line_copy_to(buffer: string, count: int): void;
 
 // Time (in seconds)
 @nodrops declare function time(destTime: Reference<long>);

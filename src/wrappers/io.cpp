@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <string>
 
 #include "tslang_export.h"
 
@@ -29,4 +30,57 @@ extern "C" TSLANG_EXPORT void stdio_write(int fileNo, const char *s, int count)
     {
         std::fflush(stream);
     }
+}
+
+// console.readLine(): stdio_read_line reads the next line of stdin into a per-thread buffer and gives its
+// length (without the line break, "\n" or "\r\n"), or -1 at the end of input; stdio_line_copy_to
+// then copies it into a buffer the program owns, the way fetch() takes a response body.
+//
+// Reading through this wrapper rather than a getchar() the program declares itself matters under
+// the JIT: as with stdio_write above, this runs against the default-lib DLL's own CRT, whose stdin
+// buffer is not the host's, so a program mixing the two would lose whatever one of them buffered.
+static thread_local std::string currentLine;
+
+extern "C" TSLANG_EXPORT int stdio_read_line()
+{
+    // before reading, so a prompt written with console.log/stdio_write without a line break shows
+    std::fflush(stdout);
+
+    currentLine.clear();
+
+    auto read = false;
+    int c;
+    while ((c = std::fgetc(stdin)) != EOF)
+    {
+        read = true;
+        if (c == '\n')
+        {
+            break;
+        }
+
+        currentLine.push_back(static_cast<char>(c));
+    }
+
+    if (!read)
+    {
+        return -1;
+    }
+
+    if (!currentLine.empty() && currentLine.back() == '\r')
+    {
+        currentLine.pop_back();
+    }
+
+    return static_cast<int>(currentLine.size());
+}
+
+extern "C" TSLANG_EXPORT void stdio_line_copy_to(char *buffer, int count)
+{
+    if (buffer == nullptr || count <= 0)
+    {
+        return;
+    }
+
+    auto size = currentLine.size() < static_cast<std::size_t>(count) ? currentLine.size() : static_cast<std::size_t>(count);
+    currentLine.copy(buffer, size);
 }
