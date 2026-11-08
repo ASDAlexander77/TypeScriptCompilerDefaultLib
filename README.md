@@ -145,7 +145,8 @@ Generics (`src/generics/lib.generics.ts`):
 
 - `Array<T>`, `TypedArray<T>` (and the typed-array aliases: `Int8Array`, `Uint8Array`,
   `Int16Array`, `Uint16Array`, `Int32Array`, `Uint32Array`, `BigInt64Array`,
-  `BigUint64Array`, `Float32Array`, `Float64Array`)
+  `BigUint64Array`, `Float32Array`, `Float64Array`). A typed array is made from an array of
+  its elements (`new Uint8Array([1, 2, 3])`) or a length (`new Uint8Array(4096)`, each element 0)
 - `Map<K, V>`
 - `Set<V>`
 - `Atomics`: `add`, `sub`, `and`, `or`, `xor`, `exchange`, `compareExchange`, `load`,
@@ -176,6 +177,24 @@ Generics (`src/generics/lib.generics.ts`):
   `Promise<T>` as `T` (an async function returns its value and `await` gives it back), so
   these work on values that have already settled and a rejection is a thrown exception.
   There is no `then`/`catch`/`finally`.
+- `Stdio`: bytes to and from the standard streams, as they are. `Stdio.read(buffer)` fills a
+  `Uint8Array` from stdin and says how many bytes it read (fewer than `buffer.length` only at
+  the end of input, 0 when nothing was left); `Stdio.readAll()` gives the rest of stdin;
+  `Stdio.write(bytes)` / `Stdio.writeError(bytes)` write to stdout / stderr and flush. On
+  Windows each call switches its stream to binary mode and back, so `"\n"` stays one byte and a
+  0x1A byte doesn't end the input, while `console.log`/`console.readLine` keep text mode. Reads
+  share stdin's buffer with `console.readLine`, so the two can be mixed.
+- `TextEncoder`, `TextDecoder` (UTF-8 only). `encode` copies a string's bytes (strings are UTF-8
+  already); `encodeInto` writes whole characters that fit and reports `read` in UTF-16 units.
+  `decode` turns each ill-formed sequence into U+FFFD, or throws a `TypeError` with
+  `{ fatal: true }`, and drops a leading BOM unless `{ ignoreBOM: true }`. Another encoding label
+  is a `RangeError`, and there is no `stream` option. A string ends at its first 0, so a 0 byte
+  ends the decoded string there.
+
+  ```ts
+  const text = new TextDecoder().decode(Stdio.readAll());
+  Stdio.write(new TextEncoder().encode(text.toUpperCase()));
+  ```
 
 Errors (`src/core/core.d.ts`):
 
