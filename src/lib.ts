@@ -1359,6 +1359,44 @@ export class String {
     public constructor(private value: string) {
     }
 
+    // Strings are UTF-8, so each code is written as its UTF-8 bytes; a UTF-16 surrogate pair
+    // (two codes) is one character of four bytes, as `String.fromCharCode(0xD83D, 0xDE00)` is one
+    // character in JavaScript. A code is a UTF-16 unit: only its low 16 bits count. A string ends at
+    // its first 0, so a 0 code ends the result there.
+    public static fromCharCode(...codes: int[]): string {
+        let buffer: char[] = [];
+        for (let i = 0; i < codes.length; i++) {
+            let code = codes[i] & 0xFFFF;
+            if (code >= 0xD800 && code <= 0xDBFF && i + 1 < codes.length) {
+                const low = codes[i + 1] & 0xFFFF;
+                if (low >= 0xDC00 && low <= 0xDFFF) {
+                    code = 0x10000 + ((code - 0xD800) << 10) + (low - 0xDC00);
+                    i++;
+                }
+            }
+
+            if (code < 0x80) {
+                buffer.push(<char>code);
+            } else if (code < 0x800) {
+                buffer.push(<char>(0xC0 | (code >> 6)));
+                buffer.push(<char>(0x80 | (code & 0x3F)));
+            } else if (code < 0x10000) {
+                buffer.push(<char>(0xE0 | (code >> 12)));
+                buffer.push(<char>(0x80 | ((code >> 6) & 0x3F)));
+                buffer.push(<char>(0x80 | (code & 0x3F)));
+            } else {
+                buffer.push(<char>(0xF0 | (code >> 18)));
+                buffer.push(<char>(0x80 | ((code >> 12) & 0x3F)));
+                buffer.push(<char>(0x80 | ((code >> 6) & 0x3F)));
+                buffer.push(<char>(0x80 | (code & 0x3F)));
+            }
+        }
+
+        buffer.push(<char>0);
+        // a copy: buffer goes with this function
+        return <string><Opaque>Ref(buffer[0]) + "";
+    }
+
     public at(index: int) {
         return this.value.at(index);
     }
@@ -2126,6 +2164,21 @@ export function fetch(url: string, init?: { method?: string, headers?: [string, 
 }
 
 export static class console {
+    // The next line of stdin without its line break ("\n" or "\r\n"), or null at the end of input.
+    // A last line with no line break is still a line. A member of console, not a global function:
+    // a global readLine would clash with any program's own. See src/wrappers/io.cpp.
+    public readLine(): string | null {
+        const length = stdio_read_line();
+        if (length < 0) return null;
+
+        let buffer: char[] = [];
+        buffer.length = length + 1;
+        buffer[length] = null;
+        if (length > 0) stdio_line_copy_to(<string><Opaque>Ref(buffer[0]), length);
+        // a copy: buffer goes with this function
+        return <string><Opaque>Ref(buffer[0]) + "";
+    }
+
     public assert(condition?: boolean, ...data: string[]): void {
         assert(condition || false, data.length > 0 ? data[0] : "");
     }

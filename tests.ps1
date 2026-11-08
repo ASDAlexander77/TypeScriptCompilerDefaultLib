@@ -64,6 +64,10 @@ function Test([string]$config, [string]$mode, [string]$fileName) {
 
     $isX86 = ($Env:TSLANG_ARCH -eq "x86")
 
+    # tests\<name>.stdin, when there is one, is the test's standard input (console.readLine).
+    $stdinFile = "$SRC\tests\$test.stdin"
+    $stdinText = if (Test-Path $stdinFile) { Get-Content -Raw $stdinFile } else { $null }
+
     if ($isX86) {
         # x86 mode hardcodes the sibling ..\TypeScriptCompiler layout for GC_LIB_PATH_X86 and
         # TSLANG_LIB_PATH_X86 below, unlike the x64 path above: it ignores $Env:TOOL_PATH (and
@@ -102,15 +106,25 @@ function Test([string]$config, [string]$mode, [string]$fileName) {
             return $false
         }
 
-        $run_error_output = ($run_output = & $SRC\tests\$test.exe) 2>&1
+        if ($null -ne $stdinText) {
+            $run_error_output = ($run_output = $stdinText | & $SRC\tests\$test.exe) 2>&1
+        }
+        else {
+            $run_error_output = ($run_output = & $SRC\tests\$test.exe) 2>&1
+        }
 
         $run_code = $LASTEXITCODE
 
-        Get-ChildItem $SRC\tests\$test.* -Exclude *.ts | Remove-Item
+        Get-ChildItem $SRC\tests\$test.* -Exclude *.ts, *.stdin | Remove-Item
     }
 
     if ($mode -eq "jit") {
-        $run_error_output = ($run_output = & $TOOL_PATH\$TOOL.exe @DBG_ARGS @OPTIONS_ARGS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=jit $SRC\tests\$test.ts) 2>&1
+        if ($null -ne $stdinText) {
+            $run_error_output = ($run_output = $stdinText | & $TOOL_PATH\$TOOL.exe @DBG_ARGS @OPTIONS_ARGS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=jit $SRC\tests\$test.ts) 2>&1
+        }
+        else {
+            $run_error_output = ($run_output = & $TOOL_PATH\$TOOL.exe @DBG_ARGS @OPTIONS_ARGS --shared-libs=$TOOL_PATH\TypeScriptRuntime.dll --emit=jit $SRC\tests\$test.ts) 2>&1
+        }
 
         $run_code = $LASTEXITCODE
     }

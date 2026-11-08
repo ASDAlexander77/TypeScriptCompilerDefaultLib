@@ -1,0 +1,2 @@
+# a test's standard input, byte for byte: its "\r\n" line endings are part of the test
+*.stdin -text

@@ -372,7 +372,9 @@ declare class String {
     private value: string;
 
     constructor(value: string);
-    
+
+    static fromCharCode(...codes: int[]): string;
+
     at(index: int): string;
 
     charAt(this: string, index: int): string;
@@ -695,6 +697,8 @@ declare class Response {
 declare function fetch(url: string, init?: { method?: string, headers?: [string, string][], body?: string }): Response;
 
 declare namespace console {
+    function readLine(): string | null;
+
     function assert(condition?: boolean, ...data: string[]): void;
 
     function log(...data: string[]): void;

@@ -62,11 +62,11 @@ try {
     }
 
     # spellings of one signature: `int` and `s32` (both a 32-bit integer), a `void` result and none, and
-    # `T | null` of a class or an opaque pointer and T (a pointer that may be null either way)
+    # `T | null` of a class, a string or an opaque pointer and T (a pointer that may be null either way)
     function Get-Normalized([string]$signature) {
         $signature = $signature -replace '\bsi(\d+)\b', 'i$1'
         $signature = $signature -replace ', !ts\.void, (true|false)>$', ', , $1>'
-        $signature = $signature -replace '!ts\.union<(!ts\.class<@[^,>]+, !ts\.class_storage<@[^>]+>>|!ts\.opaque), !ts\.null>', '$1'
+        $signature = $signature -replace '!ts\.union<(!ts\.class<@[^,>]+, !ts\.class_storage<@[^>]+>>|!ts\.string|!ts\.opaque), !ts\.null>', '$1'
         return $signature
     }
 

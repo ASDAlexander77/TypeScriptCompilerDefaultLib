@@ -66,6 +66,13 @@ function test_script() {
         RUNTIME="$TSLANG_LIB_PATH/libTypeScriptRuntime.so"
     fi
 
+    # tests/<name>.stdin, when there is one, is the test's standard input (console.readLine);
+    # otherwise the test reads an empty one, never the terminal.
+    stdin_file="$SRC/tests/$test.stdin"
+    if [ ! -f "$stdin_file" ]; then
+        stdin_file=/dev/null
+    fi
+
     if [ "$mode" == "compile" ]; then
         # apt install ninja-build libcurl4-openssl-dev
         # and -lcurl will be included in compile process in tslang
@@ -78,12 +85,12 @@ function test_script() {
             return 1
         fi
 
-        run_output=$( "$SRC/tests/$test" 2>&1 )
+        run_output=$( "$SRC/tests/$test" 2>&1 < "$stdin_file" )
         run_code=$?
     fi
 
     if [ "$mode" == "jit" ]; then
-        run_output=$( "$TOOL_PATH/$TOOL" $DBG $OPTIONS --shared-libs="$RUNTIME" --emit=jit "$SRC/tests/$test.ts" 2>&1 )
+        run_output=$( "$TOOL_PATH/$TOOL" $DBG $OPTIONS --shared-libs="$RUNTIME" --emit=jit "$SRC/tests/$test.ts" 2>&1 < "$stdin_file" )
         run_code=$?
     fi
 
@@ -162,7 +169,7 @@ function tests() {
         echo "$runtime sec"
     done
 
-    find "$SRC/tests" -not -name "*.ts" -type f -delete
+    find "$SRC/tests" -not -name "*.ts" -not -name "*.stdin" -type f -delete
     echo "Finished $config, $mode : $success/$count passed, $skipped skipped"
 }
 
