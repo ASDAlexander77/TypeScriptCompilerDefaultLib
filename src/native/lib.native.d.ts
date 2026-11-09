@@ -3,7 +3,6 @@
 // that never call back into TypeScript; the GC_* ones below can run finalizers and have none.
 
 // IO
-@nodrops declare function write(fileNo: int, s: string, count: int);
 // Buffered counterpart of write(), sharing stdio's buffer with print()/puts() so the
 // two cannot reorder relative to each other. See src/wrappers/io.cpp.
 @nodrops declare function stdio_write(fileNo: int, s: string, count: int);
