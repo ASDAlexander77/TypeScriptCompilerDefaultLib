@@ -993,6 +993,16 @@ class MessageQueue<T> {
         this.unlock();
     }
 
+    // close() and clear() at once: a taker gets nothing more, not even what was queued before
+    discard() {
+        this.lock();
+        this.sync[2] = 1;
+        this.items.length = 0;
+        Atomics.add(this.sync, 1, 1);
+        this.unlock();
+        Atomics.notify(this.sync, 1);
+    }
+
     get closed() {
         return Atomics.load(this.sync, 2) != 0;
     }
@@ -1117,10 +1127,11 @@ function __worker_entry<In, Out>(arg: Opaque): u32 {
 // A worker (MDN's Worker): `body` runs on a new thread with the worker's scope, sets its onmessage,
 // and returns; the worker then handles each message posted to it until it calls close(). There is no
 // event loop to deliver what the worker posts back, so the creating thread asks: receive() takes the
-// next message, join() hands each to onmessage until the worker has closed and then ends its thread.
-// What the worker throws goes to onerror, from either. Join every worker. A message is handed over,
-// not copied: under -mm=own it moves; elsewhere the sender should leave it alone. See
-// docs/worker-design.md.
+// next message, dispatch() hands what has arrived to onmessage, join() does so until the worker has
+// closed and then ends its thread. What the worker throws goes to onerror. A worker that never
+// closes, as most browser workers, is ended with terminate(). Join or terminate every worker. A
+// message is handed over, not copied: under -mm=own it moves; elsewhere the sender should leave it
+// alone. See docs/worker-design.md.
 class Worker<In, Out> {
     // none set: join() drops what the worker posts. Always a function: see WorkerScope.onmessage.
     onmessage: (e: MessageEvent<Out>) => void;
@@ -1194,15 +1205,52 @@ class Worker<In, Out> {
             }
         }
 
-        if (!this.joined) {
-            this.joined = true;
-            tslang_thread_join(this.handle);
+        this.endThread();
+    }
+
+    // Hands each message and error that has arrived from the worker to onmessage / onerror, and says
+    // how many. With nothing arrived yet, waits up to `timeout` milliseconds for the first (none: does
+    // not wait). This is the creating thread's event loop, called from its own loop.
+    dispatch(timeout?: number): int {
+        let count = 0;
+        let wait = timeout == undefined ? 0 : timeout;
+        while (true) {
+            const post = this.toCreator.value.take(wait);
+            if (post == undefined) {
+                return count;
+            }
+
+            if (post instanceof ErrorEvent) {
+                this.onerror(<ErrorEvent>post);
+            } else {
+                this.onmessage(<MessageEvent<Out>>post);
+            }
+
+            count++;
+            wait = 0;
         }
+    }
+
+    // Ends the worker: what was queued for it is dropped, it stops once the handler running now
+    // returns (it is not interrupted: a handler that never returns makes this wait for good), its
+    // thread ends, and what it posted that was not yet delivered is dropped. After this, onmessage and
+    // onerror are not called again for this worker and postMessage is ignored. Again: does nothing.
+    terminate() {
+        this.toWorker.value.discard();
+        this.endThread();
+        this.toCreator.value.discard();
     }
 
     // true once the worker has ended and everything it posted has been taken
     get closed() {
         return this.toCreator.value.closed && this.toCreator.value.length == 0;
+    }
+
+    private endThread() {
+        if (!this.joined) {
+            this.joined = true;
+            tslang_thread_join(this.handle);
+        }
     }
 }
 
