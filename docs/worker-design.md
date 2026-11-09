@@ -87,7 +87,7 @@ worker.join();     // delivers every message until the worker closes, then joins
 
 | Member | Behaviour |
 |---|---|
-| `constructor(body: (self: WorkerScope<In, Out>) => void)` | Starts the thread (through `Thread.spawn` or the same native entry). |
+| `constructor(body: (self: WorkerScope<In, Out>) => void, name?: string)` | Starts the thread through the same native entry `Thread.spawn` uses. `name` is a plain string, not MDN's `{ name }` options object (my call in step 2: the options object had nothing else in it). |
 | `postMessage(message: In): void` | Queues the message for the worker. After `terminate()` or after the worker closed, it is dropped silently, as in browsers. |
 | `onmessage: (e: MessageEvent<Out>) => void` | Called by `dispatch()` / `join()` for each message from the worker. |
 | `onerror: (e: ErrorEvent) => void` | Called the same way for each error the worker reported. With no handler, the error is printed to stderr and dropped (browsers log it to the console). |
@@ -111,7 +111,7 @@ shapes:
 | `postMessage(message: Out): void` | Queues the message for the creator. |
 | `onmessage: (e: MessageEvent<In>) => void` | Called by the library's loop for each message. |
 | `close(): void` | The loop stops after the handler that called it returns; messages still queued for the worker are dropped. Messages it already posted still reach the creator. |
-| `name: string` | From an optional `{ name }` second constructor argument, as MDN's `options.name`. |
+| `name: string` | The constructor's optional second argument, as MDN's `options.name`. |
 
 It is passed to `body` as a parameter instead of being the global `self`, because there is one
 program-wide global scope here. Naming the parameter `self` keeps ported code reading the same.
@@ -133,6 +133,8 @@ The constructor spawns a thread whose entry does:
    (browsers fail the worker when its script throws at top level).
 2. loop: wait for the next message toward the worker, or for a stop request; call
    `scope.onmessage(event)` inside a `try`; on a throw, post an error event and continue.
+   (Until step 3, a throw from `body` or a handler ends the worker instead, and `join()` throws it:
+   see "Memory models".)
 3. leave the loop when `close()` or `terminate()` was called; then mark the worker ended and wake
    the creator. (Nothing notices a creator that dropped its `Worker` without ending it: there is no
    finalizer to rely on under every model. See "Ending the program".)
@@ -205,8 +207,30 @@ under the JIT:
 - **Both threads reach the queue through a `const` `Shared<MessageQueue<T>>`** each function
   captures, under every model, as threads sharing an `Int32Array` do.
 
-Still open for step 2: **a handler that captures a local of the creating thread.** Under `-mm=own` a
-closure stored in an object takes what it captures with it, so this is a compile error:
+What step 2 (`Worker`, `WorkerScope`, `MessageEvent`; `tests/worker_echo.ts`,
+`tests/worker_objects.ts`) settled, the same way:
+
+- **The browser shape works in the worker under every model**, `own` included: `body` sets
+  `self.onmessage = (e) => { self.postMessage(...); self.close(); }`, a handler capturing `self`.
+- **The worker can't start through a closure given to `Thread.spawn` under `own`**: the closure
+  can't take `body`, a parameter of the `Worker` constructor, with it ("its value is the caller's").
+  So `Worker` keeps a `WorkerStart` object (the function, both queue handles, the name) and starts
+  the thread with `tslang_thread_spawn` itself, as `ThreadHandle` does with its `ThreadStart`. The
+  constructor is `@keeps("body", "name")`.
+- **`onmessage` is always a function** (a no-op until set), on both sides, not an optional field:
+  calling it only when set moves the message on some paths only, which `own` rejects.
+- **Until `onerror` exists (step 3), `join()` throws** an `Error` with the message of what the worker
+  threw, as `ThreadHandle.join` does, and the worker ends. The queues are closed in a `finally`, so
+  a throw never leaves the creator waiting.
+- **A tslang crash** found on the way: the first `Worker` started its thread from a closure in the
+  constructor; with a field initializer (`private joined = false`) in that class, the program died
+  with an access violation under `gc`, `rc` and `none`, and assigning the field in the constructor
+  instead made it run. A cut-down class does not show it, so the repro is the full one:
+  [known-issues-worker-ctor-initializer.md](known-issues-worker-ctor-initializer.md). The
+  `WorkerStart` shape does not hit it.
+
+Still open: **a handler on the creating thread that captures a local.** Under `-mm=own` a closure
+stored in an object takes what it captures with it, so this is a compile error:
 
 ```ts
 let total = 0;
@@ -215,16 +239,19 @@ print(total);   // error: 'total' is captured by a closure that escapes, and is 
 ```
 
 The creator's handler has to keep its state somewhere both can reach: a `Shared<T>` it captures, or
-a field of an object the handler alone owns, or it can use `receive()` instead of `onmessage`. The
-builder should pick the shape the `own` tests and README example use; anything that does not work
-goes in the README as a limit, as the `Thread` notes do today.
+a field of an object the handler alone owns, or it can use `receive()` instead of `onmessage`.
+`tests/worker_echo.ts` collects into a `Shared<T>` the handler captures, which works under every
+model; the README example should do the same and name the limit.
 
 ## Order of work
 
 1. **Done:** `MessageQueue<T>` (`push`, `take(timeout?)`, `close`, `clear`, `closed`, `length`) in
    `lib.generics.ts`, and `tests/message_queue.ts`, where two threads pass 10 000 numbers, strings
    and class instances through it in order, under all four models.
-2. `Worker` / `WorkerScope` with `postMessage`, `onmessage`, `receive`, `join`, `close`.
+2. **Done:** `Worker` / `WorkerScope` / `MessageEvent` with `postMessage`, `onmessage`, `receive`,
+   `join`, `close`, `closed`, `name`, in `lib.generics.ts`; `tests/worker_echo.ts` (numbers in,
+   strings out, posting from `body`, `receive` timing out, a handler that throws) and
+   `tests/worker_objects.ts` (1 000 class instances each way).
 3. Errors: `onerror`, throws from `body` and from handlers.
 4. `terminate()` and `dispatch(timeout)`.
 5. README section, next to `Thread`, and the CI matrix picking up the new tests.
@@ -251,13 +278,9 @@ see the comment on `Atomics.isLockFree`).
 
 ## Left to the builder
 
-- Whether the worker's entry reuses `ThreadHandle` or calls `tslang_thread_spawn` directly.
-- Whether `onmessage` / `onerror` are optional fields or fields with no-op defaults (whichever the
-  compiler handles in a generic class; note the known crash with `cond ? <T>x : undefined` in a
-  generic class, use `if`/`else`).
+- `onerror` should be a no-op-default field like `onmessage` (see step 2 above); note the known
+  crash with `cond ? <T>x : undefined` in a generic class, use `if`/`else`.
 - `MessageQueue.take` takes items out with `shift()`, which is O(n) in what is queued. Fine at
   10 000 items; a ring buffer is the change if a worker ever falls far behind.
-
-(`receive` can return `MessageEvent<Out> | undefined` as written: `MessageQueue.take` returns
-`T | undefined` and compiles under every model.)
-- The `{ name }` option can be dropped if it costs anything.
+- (Settled: `receive` returns `MessageEvent<Out> | undefined` as written; `MessageQueue.take`
+  returns `T | undefined` and compiles under every model.)
