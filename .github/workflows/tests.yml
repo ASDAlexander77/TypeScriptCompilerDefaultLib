@@ -28,7 +28,7 @@ jobs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
       # Every release so far is a prerelease, which /releases/latest does not return. One tag for
-      # both test jobs, so they cannot straddle a release published while this run starts.
+      # all test jobs, so they cannot straddle a release published while this run starts.
       - name: Resolve the tag
         id: tag
         shell: bash
@@ -43,11 +43,17 @@ jobs:
           echo "Compiler release: $tag" | tee -a "$GITHUB_STEP_SUMMARY"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
+  # One job per memory model, so the models run side by side. Each job builds the library itself:
+  # the build takes a minute or two, far less than a model's tests.
   test_windows:
-    name: Test (Windows)
+    name: Test (Windows, -mm=${{ matrix.model }})
     needs: compiler
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [gc, rc, none, own]
     runs-on: windows-2025-vs2026
-    timeout-minutes: 180
+    timeout-minutes: 120
     env:
       # All four together: tests.ps1 honours the library paths only alongside TOOL_PATH. A release
       # package is flat, with the compiler and its libraries side by side.
@@ -83,37 +89,38 @@ jobs:
           .\build.bat
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      # Each model in its own pwsh: tests.ps1 reads the library paths once, at its start. All of them
-      # run before a failure fails the step.
-      - name: Test the default library
+      # In its own pwsh: tests.ps1 reads the library paths once, at its start.
+      - name: Test the default library (-mm=${{ matrix.model }})
         shell: pwsh
+        env:
+          MODEL: ${{ matrix.model }}
         run: |
-          $failed = @()
           New-Item -ItemType Directory -Force results | Out-Null
-          foreach ($model in "gc", "rc", "none", "own") {
-            Write-Host "=== -mm=$model ==="
-            pwsh -NoProfile -File .\tests.ps1 -Model $model
-            $outcome = "passing"
-            if ($LASTEXITCODE -ne 0) { $failed += $model; $outcome = "failing" }
-            New-Item -ItemType File "results\windows-$model.$outcome" | Out-Null
-          }
-          if ($failed.Count -gt 0) { Write-Host "Failed models: $($failed -join ', ')"; exit 1 }
+          pwsh -NoProfile -File .\tests.ps1 -Model $env:MODEL
+          $code = $LASTEXITCODE
+          $outcome = if ($code -eq 0) { "passing" } else { "failing" }
+          New-Item -ItemType File "results\windows-$env:MODEL.$outcome" | Out-Null
+          exit $code
 
       # Also after a failure: the badges job reports each model from these.
-      - name: Keep the results for the badges
+      - name: Keep the result for the badges
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: results-windows
+          name: results-windows-${{ matrix.model }}
           path: results
           if-no-files-found: ignore
           retention-days: 1
 
   test_linux:
-    name: Test (Ubuntu 24.04)
+    name: Test (Ubuntu 24.04, -mm=${{ matrix.model }})
     needs: compiler
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [gc, rc, none, own]
     runs-on: ubuntu-24.04
-    timeout-minutes: 180
+    timeout-minutes: 120
     env:
       TOOL_PATH: ${{ github.workspace }}/__tslang
       GC_LIB_PATH: ${{ github.workspace }}/__tslang
@@ -144,24 +151,23 @@ jobs:
         shell: bash
         run: ./build.sh
 
-      - name: Test the default library
+      - name: Test the default library (-mm=${{ matrix.model }})
         shell: bash
+        env:
+          MODEL: ${{ matrix.model }}
         run: |
-          failed=""
           mkdir -p results
-          for model in gc rc none own; do
-            echo "=== -mm=$model ==="
-            outcome=passing
-            ./tests.sh "$model" || { failed="$failed $model"; outcome=failing; }
-            touch "results/linux-$model.$outcome"
-          done
-          if [ -n "$failed" ]; then echo "Failed models:$failed"; exit 1; fi
+          code=0
+          ./tests.sh "$MODEL" || code=$?
+          if [ "$code" -eq 0 ]; then outcome=passing; else outcome=failing; fi
+          touch "results/linux-$MODEL.$outcome"
+          exit "$code"
 
-      - name: Keep the results for the badges
+      - name: Keep the result for the badges
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: results-linux
+          name: results-linux-${{ matrix.model }}
           path: results
           if-no-files-found: ignore
           retention-days: 1
