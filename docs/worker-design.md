@@ -242,6 +242,33 @@ What step 3 (`ErrorEvent`, `onerror`; `tests/worker_errors.ts`) settled, the sam
 - `receive(timeout)` hands errors to `onerror` on the way to the next message and waits up to
   `timeout` again after each; the timeout is per wait, not overall.
 
+What step 4 (`terminate()`, `dispatch()`; `tests/worker_terminate.ts`) settled, the same way:
+
+- **`terminate()` stops the worker by closing its queue, not by a flag**: `MessageQueue.discard()`
+  closes the queue toward the worker and drops what is in it under one lock, so the worker's next
+  `take()` gives nothing and its loop ends after the handler running now. Then the thread is joined
+  and the queue toward the creator is discarded the same way, so nothing it posted is delivered
+  afterwards and `closed` is true. `postMessage` after it is ignored (the queue is closed), and a
+  second `terminate()` or a `join()` after it does nothing.
+- **`dispatch(timeout?)`** waits up to `timeout` for the first event only (none given: no wait),
+  then delivers whatever else has already arrived, and returns how many it delivered.
+- **Under `own`, sharing state with a worker's handler** (checked on the tslang of 2026-11-09,
+  16:05):
+  - the handler can't capture what the worker's function captured from the creating thread (the
+    function only lends its captures, and the handler is kept past the call: "borrows a field");
+  - taking a second handle inside the function first works: `const counter = handled;` (a
+    `Shared<T>`), then the handler captures `counter`;
+  - but **once the worker's function captures anything from the creating thread, a handler that
+    captures `self` does not compile** ("a closure that escapes owns what it captures, but -mm=own
+    cannot move this variable into it: its value is the caller's"), whether or not it also captures
+    `counter`. A worker whose function captures nothing (all of `worker_echo`) is fine.
+
+  So under `own` a worker's handler can use state shared with the creator, or post with `self`, not
+  both. `worker_terminate` tests each shape on its own. Ways out, none taken yet: give `onmessage` the
+  scope as a second argument again (step 2 had it), so a handler can post without capturing `self`;
+  or pass the shared state in a message. The README should name the limit. It looks like a compiler
+  limit rather than a rule, so it may be worth taking to the compiler repo.
+
 Still open: **a handler on the creating thread that captures a local.** Under `-mm=own` a closure
 stored in an object takes what it captures with it, so this is a compile error:
 
@@ -267,7 +294,8 @@ model; the README example should do the same and name the limit.
    `tests/worker_objects.ts` (1 000 class instances each way).
 3. **Done:** `ErrorEvent`, `Worker.onerror`; a throw from a handler is an error event and the worker
    goes on, a throw from `body` is an error event and the worker ends; `tests/worker_errors.ts`.
-4. `terminate()` and `dispatch(timeout)`.
+4. **Done:** `terminate()`, `dispatch(timeout)`, `MessageQueue.discard()`;
+   `tests/worker_terminate.ts`.
 5. README section, next to `Thread`, and the CI matrix picking up the new tests.
 
 ## Tests (each runs under gc, rc, none and own unless it says otherwise)
@@ -276,8 +304,11 @@ model; the README example should do the same and name the limit.
 - `worker_objects`: a class instance as a message both ways (lists the `own` limit if there is one).
 - `worker_errors`: a throw from `body`, a throw from a handler (the worker keeps going), a thrown
   string. (No `onerror` set, printed to stderr, is not in the test: the runner fails on stderr.)
-- `worker_terminate`: terminate a waiting worker; terminate while messages are queued (they are
-  dropped); `postMessage` after terminate is ignored; terminate twice.
+- `worker_terminate`: `dispatch()` from the creator's loop, then terminate a worker that never
+  closes; terminate while 1 000 messages are queued for a slow worker (most are dropped); terminate
+  while a slow worker's replies are arriving (none is delivered afterwards); `postMessage`,
+  `dispatch`, `receive`, `join` and `terminate` after terminate; terminate an idle worker and one that
+  already closed.
 - `worker_many`: `Thread.hardwareConcurrency()` workers each summing a slice, results gathered with
   `receive()`.
 - `worker_gc_collect` (gc only): `GC_gcollect()` while messages are queued; they arrive intact.
