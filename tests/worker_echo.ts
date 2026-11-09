@@ -75,30 +75,9 @@ function receiveTimesOut() {
     worker.join();
 }
 
-// a worker whose handler throws ends, and join throws an Error with the message (onerror comes later)
-function workerThrows() {
-    const worker = new Worker<int, int>((self: WorkerScope<int, int>) => {
-        self.onmessage = (e: MessageEvent<int>) => {
-            throw new Error(`bad message ${e.data}`);
-        };
-    });
-
-    worker.postMessage(5);
-    let caught = "";
-    try {
-        worker.join();
-    } catch (e: Error) {
-        caught = e.message;
-    }
-
-    assert(caught == "bad message 5", "join throws what the worker threw");
-    assert(worker.closed, "the worker has ended");
-}
-
 function main() {
     squares();
     postsFromBody();
     receiveTimesOut();
-    workerThrows();
     print("ALL DONE");
 }

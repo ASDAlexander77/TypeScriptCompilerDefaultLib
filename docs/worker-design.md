@@ -133,8 +133,6 @@ The constructor spawns a thread whose entry does:
    (browsers fail the worker when its script throws at top level).
 2. loop: wait for the next message toward the worker, or for a stop request; call
    `scope.onmessage(event)` inside a `try`; on a throw, post an error event and continue.
-   (Until step 3, a throw from `body` or a handler ends the worker instead, and `join()` throws it:
-   see "Memory models".)
 3. leave the loop when `close()` or `terminate()` was called; then mark the worker ended and wake
    the creator. (Nothing notices a creator that dropped its `Worker` without ending it: there is no
    finalizer to rely on under every model. See "Ending the program".)
@@ -219,15 +217,30 @@ What step 2 (`Worker`, `WorkerScope`, `MessageEvent`; `tests/worker_echo.ts`,
   constructor is `@keeps("body", "name")`.
 - **`onmessage` is always a function** (a no-op until set), on both sides, not an optional field:
   calling it only when set moves the message on some paths only, which `own` rejects.
-- **Until `onerror` exists (step 3), `join()` throws** an `Error` with the message of what the worker
-  threw, as `ThreadHandle.join` does, and the worker ends. The queues are closed in a `finally`, so
-  a throw never leaves the creator waiting.
+- **(Step 2 only, replaced by step 3:)** a throw ended the worker and `join()` threw it. The queues
+  are closed in a `finally`, so a throw never leaves the creator waiting; that part stays.
 - **A tslang crash** found on the way: the first `Worker` started its thread from a closure in the
   constructor; with a field initializer (`private joined = false`) in that class, the program died
   with an access violation under `gc`, `rc` and `none`, and assigning the field in the constructor
   instead made it run. A cut-down class does not show it, so the repro is the full one:
   [known-issues-worker-ctor-initializer.md](known-issues-worker-ctor-initializer.md). The
   `WorkerStart` shape does not hit it.
+
+What step 3 (`ErrorEvent`, `onerror`; `tests/worker_errors.ts`) settled, the same way:
+
+- **One queue toward the creator carries both kinds of event**, as the event objects themselves:
+  `MessageQueue<MessageEvent<Out> | ErrorEvent>` (`type WorkerPost<Out>`). Errors arrive in order
+  with the messages, and `join()` / `receive()` tell them apart with `instanceof ErrorEvent`.
+- **An envelope with a `data: T | undefined` field does not work under `own`**: the message can't be
+  moved out of the field (a plain move is "borrows a field"; a destructuring swap works for a string
+  but not for a class instance). Queueing the events themselves moves nothing out of a field.
+- **What is thrown becomes text**: an `Error`'s `message`, or anything else as `${e}`. Under `own`
+  the text is borrowed from the thrown object, so `WorkerScope.postError` copies it.
+- **The default `onerror` writes `Worker error: <message>` to stderr** with `console.error`. The
+  test runner counts any stderr as a failure, so `worker_errors` sets `onerror` everywhere.
+- `ErrorEvent` is in `src/core/core.ts` and `core.d.ts`, next to `SyntaxError`.
+- `receive(timeout)` hands errors to `onerror` on the way to the next message and waits up to
+  `timeout` again after each; the timeout is per wait, not overall.
 
 Still open: **a handler on the creating thread that captures a local.** Under `-mm=own` a closure
 stored in an object takes what it captures with it, so this is a compile error:
@@ -252,7 +265,8 @@ model; the README example should do the same and name the limit.
    `join`, `close`, `closed`, `name`, in `lib.generics.ts`; `tests/worker_echo.ts` (numbers in,
    strings out, posting from `body`, `receive` timing out, a handler that throws) and
    `tests/worker_objects.ts` (1 000 class instances each way).
-3. Errors: `onerror`, throws from `body` and from handlers.
+3. **Done:** `ErrorEvent`, `Worker.onerror`; a throw from a handler is an error event and the worker
+   goes on, a throw from `body` is an error event and the worker ends; `tests/worker_errors.ts`.
 4. `terminate()` and `dispatch(timeout)`.
 5. README section, next to `Thread`, and the CI matrix picking up the new tests.
 
@@ -260,8 +274,8 @@ model; the README example should do the same and name the limit.
 
 - `worker_echo`: the example above; numbers in, strings out, order kept, `close()` from inside.
 - `worker_objects`: a class instance as a message both ways (lists the `own` limit if there is one).
-- `worker_errors`: a throw from `body`, a throw from a handler (the worker keeps going), no
-  `onerror` set (printed to stderr).
+- `worker_errors`: a throw from `body`, a throw from a handler (the worker keeps going), a thrown
+  string. (No `onerror` set, printed to stderr, is not in the test: the runner fails on stderr.)
 - `worker_terminate`: terminate a waiting worker; terminate while messages are queued (they are
   dropped); `postMessage` after terminate is ignored; terminate twice.
 - `worker_many`: `Thread.hardwareConcurrency()` workers each summing a slice, results gathered with
@@ -271,15 +285,12 @@ model; the README example should do the same and name the limit.
 ## Where the code goes
 
 `Worker`, `WorkerScope`, `MessageEvent` and the queue are generic and go in
-`src/generics/lib.generics.ts` next to `Thread`. `ErrorEvent` is not generic, so it goes in
-`src/lib.ts` with the other non-generic classes (`JsonValue`, `Response`), or in `src/core/core.ts`
-next to `Error` (every class and namespace function in `lib.generics.ts` carries a type parameter;
-see the comment on `Atomics.isLockFree`).
+`src/generics/lib.generics.ts` next to `Thread`. `ErrorEvent` is not generic, so it is in
+`src/core/core.ts` next to `Error`, declared in `core.d.ts` (every class and namespace function in
+`lib.generics.ts` carries a type parameter; see the comment on `Atomics.isLockFree`).
 
 ## Left to the builder
 
-- `onerror` should be a no-op-default field like `onmessage` (see step 2 above); note the known
-  crash with `cond ? <T>x : undefined` in a generic class, use `if`/`else`.
 - `MessageQueue.take` takes items out with `shift()`, which is O(n) in what is queued. Fine at
   10 000 items; a ring buffer is the change if a worker ever falls far behind.
 - (Settled: `receive` returns `MessageEvent<Out> | undefined` as written; `MessageQueue.take`

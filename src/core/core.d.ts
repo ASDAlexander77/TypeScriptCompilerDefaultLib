@@ -17,6 +17,11 @@ declare class SyntaxError extends Error {
     constructor(message?: string, filename?: string, line?: int);
 }
 
+declare class ErrorEvent {
+    public message: string;
+    constructor(message: string);
+}
+
 declare namespace PrimeHelpers
 {
     declare const hashPrime: int;

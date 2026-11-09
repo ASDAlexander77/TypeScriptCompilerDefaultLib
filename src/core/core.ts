@@ -23,6 +23,13 @@ export class SyntaxError extends Error {
     }
 }
 
+// What a worker threw, as the thread that made it is told (MDN's ErrorEvent; `filename`, `lineno`
+// and `colno` are not here). Made from the message alone: the thrown object was the worker's.
+export class ErrorEvent {
+    public constructor(public message: string) {
+    }
+}
+
 export namespace PrimeHelpers
 {
     export const hashPrime = 101;
