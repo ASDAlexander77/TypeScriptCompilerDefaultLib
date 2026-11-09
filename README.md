@@ -241,9 +241,9 @@ Generics (`src/generics/lib.generics.ts`):
   fields. An object literal or a tuple is a `TypeError`, a `BigInt` too. `space` is a number or a
   string; a replacer is not supported, only `null`.
   It takes all of these under every memory model; under `-mm=own` it writes out a copy of a `JsonValue`
-  it is given (`clone()`), since the value is only lent to it. Under `-mm=own` a `JsonValue` is built
-  one step at a time (`const o = JsonValue.newObject(); o.set("a", ...);`), not with chained `set`s or
-  `push`es: their result borrows the value they were called on.
+  it is given (`clone()`), since the value is only lent to it. `set` and `push` return `this`, so a
+  chain from a new value (`JsonValue.newObject().set("a", ...)`) can be returned or kept under every
+  model.
 - `WeakMap<K, V>`: `get`, `set`, `has`, `delete`. `WeakSet<K>`: `add`, `has`, `delete`. Keys are
   objects, compared by identity. `-mm=gc` only, as `WeakRef` is. A value is held strongly, so a value
   that refers to its own key keeps that key alive.

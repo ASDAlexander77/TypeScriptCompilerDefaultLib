@@ -1,7 +1,6 @@
 // JSON.parse gives a JsonValue, read through its accessors; JSON.stringify takes numbers, strings,
 // booleans, null, arrays of those, JsonValues and classes with toJSON(). Values are built one step at
-// a time, which works under every memory model; chained set() and push() are tested where they
-// compile, every model but -mm=own (see chained()).
+// a time, which works under every memory model; chained set() and push() too (see chained()).
 class Point {
     constructor(public x: number) {
     }
@@ -138,22 +137,22 @@ function writing() {
     assert(JSON.stringify([1], null, 0) == "[1]", "indented by nothing");
 }
 
-// Under -mm=own the result of set() and push() borrows the value they were called on, so a chain that
-// starts from a new value (JsonValue.newObject().set(...)) can't be kept: the compiler has no way yet
-// to say that a method gives its receiver back. Only the branch for the model built is compiled.
-function chained() {
-    if (__MEMORY_MODEL__ != "own") {
-        const person = JsonValue.newObject().set("name", JsonValue.ofString("Ann")).set("age", JsonValue.ofNumber(30));
-        assert(JSON.stringify(person) == `{"name":"Ann","age":30}`, "a chain of set()");
+// set() and push() return `this`, the object itself: a chain from a new value is the caller's under
+// every model, returned or given to a parameter that keeps it.
+function person(): JsonValue {
+    return JsonValue.newObject().set("name", JsonValue.ofString("Ann")).set("age", JsonValue.ofNumber(30));
+}
 
-        const built = JsonValue.newObject()
-            .set("n", JsonValue.ofNumber(1))
-            .set("list", JsonValue.newArray().push(JsonValue.ofString("x")).push(new JsonValue()))
-            .set("empty", JsonValue.newObject());
-        assert(JSON.stringify(built) == `{"n":1,"list":["x",null],"empty":{}}`, "a chained build");
-        built.set("n", JsonValue.ofBoolean(true)).set("added", JsonValue.ofString("y"));
-        assert(JSON.stringify(built) == `{"n":true,"list":["x",null],"empty":{},"added":"y"}`, "set again, chained");
-    }
+function chained() {
+    assert(JSON.stringify(person()) == `{"name":"Ann","age":30}`, "a chain of set() returned");
+
+    const built = JsonValue.newObject()
+        .set("n", JsonValue.ofNumber(1))
+        .set("list", JsonValue.newArray().push(JsonValue.ofString("x")).push(new JsonValue()))
+        .set("empty", JsonValue.newObject());
+    assert(JSON.stringify(built) == `{"n":1,"list":["x",null],"empty":{}}`, "a chained build");
+    built.set("n", JsonValue.ofBoolean(true)).set("added", JsonValue.ofString("y"));
+    assert(JSON.stringify(built) == `{"n":true,"list":["x",null],"empty":{},"added":"y"}`, "set again, chained");
 }
 
 function roundTrip() {
