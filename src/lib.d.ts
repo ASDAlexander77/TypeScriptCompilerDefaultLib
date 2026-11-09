@@ -723,11 +723,12 @@ declare class JsonValue {
     at(position: int): JsonValue;
     @keeps("value")
     push(value: JsonValue): this;
+    [key: number | string]: JsonValue;
     has(key: string): boolean;
     @lends("this")
-    get(key: string): JsonValue;
+    get(key: number | string): JsonValue;
     @keeps("value")
-    set(key: string, value: JsonValue): this;
+    set(key: number | string, value: JsonValue): this;
     clone(): JsonValue;
     keys(): string[];
     stringify(space?: string): string;
