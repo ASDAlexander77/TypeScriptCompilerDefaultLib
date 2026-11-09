@@ -1,6 +1,7 @@
-// not own: chained set() and JSON.stringify of an array or a JsonValue do not compile there; see json_read.ts.
 // JSON.parse gives a JsonValue, read through its accessors; JSON.stringify takes numbers, strings,
-// booleans, null, arrays of those, JsonValues and classes with toJSON().
+// booleans, null, arrays of those, JsonValues and classes with toJSON(). Values are built one step at
+// a time, which works under every memory model; chained set() and push() are tested where they
+// compile, every model but -mm=own (see chained()).
 class Point {
     constructor(public x: number) {
     }
@@ -16,7 +17,10 @@ class Person {
     }
 
     toJSON(): JsonValue {
-        return JsonValue.newObject().set("name", JsonValue.ofString(this.name)).set("age", JsonValue.ofNumber(this.age));
+        const result = JsonValue.newObject();
+        result.set("name", JsonValue.ofString(this.name));
+        result.set("age", JsonValue.ofNumber(this.age));
+        return result;
     }
 }
 
@@ -115,11 +119,14 @@ function writing() {
     assert(JSON.stringify([new Person("B", 1)]) == `[{"name":"B","age":1}]`, "in an array");
     assert(JSON.stringify(new Date(0)) == `"1970-01-01T00:00:00.000Z"`, "a Date");
 
-    const built = JsonValue.newObject()
-        .set("n", JsonValue.ofNumber(1))
-        .set("list", JsonValue.newArray().push(JsonValue.ofString("x")).push(new JsonValue()))
-        .set("empty", JsonValue.newObject())
-        .set("none", JsonValue.newArray());
+    const list = JsonValue.newArray();
+    list.push(JsonValue.ofString("x"));
+    list.push(new JsonValue());
+    const built = JsonValue.newObject();
+    built.set("n", JsonValue.ofNumber(1));
+    built.set("list", list);
+    built.set("empty", JsonValue.newObject());
+    built.set("none", JsonValue.newArray());
     assert(JSON.stringify(built) == `{"n":1,"list":["x",null],"empty":{},"none":[]}`, "a built value");
     assert(built.toString() == JSON.stringify(built), "toString");
     built.set("n", JsonValue.ofBoolean(true));
@@ -129,6 +136,24 @@ function writing() {
     assert(indented == `{\n  "a": [\n    1,\n    {}\n  ],\n  "b": "c"\n}`, "indented by a number");
     assert(JSON.stringify([1], null, "--") == "[\n--1\n]", "indented by a string");
     assert(JSON.stringify([1], null, 0) == "[1]", "indented by nothing");
+}
+
+// Under -mm=own the result of set() and push() borrows the value they were called on, so a chain that
+// starts from a new value (JsonValue.newObject().set(...)) can't be kept: the compiler has no way yet
+// to say that a method gives its receiver back. Only the branch for the model built is compiled.
+function chained() {
+    if (__MEMORY_MODEL__ != "own") {
+        const person = JsonValue.newObject().set("name", JsonValue.ofString("Ann")).set("age", JsonValue.ofNumber(30));
+        assert(JSON.stringify(person) == `{"name":"Ann","age":30}`, "a chain of set()");
+
+        const built = JsonValue.newObject()
+            .set("n", JsonValue.ofNumber(1))
+            .set("list", JsonValue.newArray().push(JsonValue.ofString("x")).push(new JsonValue()))
+            .set("empty", JsonValue.newObject());
+        assert(JSON.stringify(built) == `{"n":1,"list":["x",null],"empty":{}}`, "a chained build");
+        built.set("n", JsonValue.ofBoolean(true)).set("added", JsonValue.ofString("y"));
+        assert(JSON.stringify(built) == `{"n":true,"list":["x",null],"empty":{},"added":"y"}`, "set again, chained");
+    }
 }
 
 function roundTrip() {
@@ -143,6 +168,7 @@ function main() {
     strings();
     rejected();
     writing();
+    chained();
     roundTrip();
     console.log("ALL DONE");
 }

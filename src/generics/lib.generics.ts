@@ -1558,7 +1558,8 @@ namespace JSON {
     // compiled for that type, and a null cannot be cast to a number.
     function toValue<T, R = JsonValue>(value: T): R {
         if (typeof value == "string") {
-            return JsonValue.ofString(<string>value);
+            // a copy: the JsonValue keeps its string, and an array's element is only lent here
+            return JsonValue.ofString(<string>value + "");
         } else if (typeof value == "boolean") {
             return JsonValue.ofBoolean(<boolean>value);
         } else if (typeof value == "null") {
@@ -1574,7 +1575,13 @@ namespace JSON {
             return result;
         } else if (typeof value == "class") {
             if (value instanceof JsonValue) {
-                return <JsonValue>value;
+                // -mm=own: the value is only lent to JSON.stringify, and the result owns what it holds,
+                // so it holds a copy (elsewhere the result shares it)
+                if (__MEMORY_MODEL__ == "own") {
+                    return (<JsonValue>value).clone();
+                } else {
+                    return <JsonValue>value;
+                }
             }
 
             return toValue(value.toJSON());
@@ -1603,11 +1610,13 @@ namespace JSON {
 
     // `replacer` is there for `JSON.stringify(value, null, 2)`: only null is taken
     function stringify<T, S = string>(value: T, replacer?: null, space?: S): string {
-        if (space == undefined) {
-            return toValue(value).stringify();
+        // one call of toValue: under -mm=own a value used on two paths counts as moved on the first
+        let spacing = "";
+        if (space != undefined) {
+            spacing = indent(<S>space);
         }
 
-        return toValue(value).stringify(indent(<S>space));
+        return toValue(value).stringify(spacing);
     }
 }
 
