@@ -421,7 +421,7 @@ export class Date {
 
     toJSON() {
         const ms = convertInteger(50, ".%03dZ", this.timestamp % 1000);
-        return time_format(100, "%FT%T", this.timestamp, false) + ms;
+        return time_format(100, "%FT%T", this.timestamp, true) + ms;
     }
 
     toLocaleDateString(locale = "") {
