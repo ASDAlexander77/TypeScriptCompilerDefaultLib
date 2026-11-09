@@ -1021,6 +1021,11 @@ class MessageEvent<T> {
     constructor(public data: T) {}
 }
 
+// What a worker posts toward the thread that made it: a message, or an error for something it threw.
+// One queue carries both, as the events themselves, so errors arrive in order with the messages and
+// each is taken out whole (under -mm=own nothing has to move out of a field).
+type WorkerPost<Out> = MessageEvent<Out> | ErrorEvent;
+
 // The worker's side of a Worker (MDN's DedicatedWorkerGlobalScope). The worker's function gets it as
 // its parameter, `self` by convention, since a program has one global scope here; a handler that
 // captures `self` posts and closes through it, as worker code in a browser does.
@@ -1030,14 +1035,14 @@ class WorkerScope<In, Out> {
     onmessage: (e: MessageEvent<In>) => void;
     private closing: boolean;
 
-    constructor(private toCreator: Shared<MessageQueue<Out>>, public name: string) {
+    constructor(private toCreator: Shared<MessageQueue<WorkerPost<Out>>>, public name: string) {
         this.onmessage = (e: MessageEvent<In>) => {};
         this.closing = false;
     }
 
     // queues the message for the thread that made the worker
     postMessage(message: Out) {
-        this.toCreator.value.push(message);
+        this.toCreator.value.push(new MessageEvent<Out>(message));
     }
 
     // ends the worker once the handler running now returns; messages still queued for it are dropped
@@ -1048,40 +1053,51 @@ class WorkerScope<In, Out> {
     get closed() {
         return this.closing;
     }
+
+    // queues an error event for the thread that made the worker. A copy of the text: under -mm=own the
+    // caller's text is borrowed from what was thrown.
+    postError(text: string) {
+        this.toCreator.value.push(new ErrorEvent(text + ""));
+    }
 }
 
 // What a worker's thread runs: the function, then each message to onmessage until the worker closes.
 // The thread reaches it only through the Opaque handed to the native side, so the Worker keeps it
 // until join, as ThreadHandle keeps its ThreadStart. (A closure given to Thread.spawn can't do this
 // under -mm=own: it can't take `body`, a parameter of the Worker's constructor, with it.)
+//
+// What the worker throws becomes an error event, as in a browser: a throw from a handler, and the
+// worker goes on to the next message; a throw from `body`, and the worker ends. The event carries
+// the text alone: under -mm=own the thrown object is the worker's.
 class WorkerStart<In, Out> {
-    failed: boolean;
-    message: string;
-
     constructor(public body: (self: WorkerScope<In, Out>) => void, public toWorker: Shared<MessageQueue<In>>,
-                public toCreator: Shared<MessageQueue<Out>>, public name: string) {
-        this.failed = false;
-        this.message = "";
-    }
+                public toCreator: Shared<MessageQueue<WorkerPost<Out>>>, public name: string) {}
 
     run() {
         // the scope keeps a second handle to the queue, and a string of its own: under -mm=own a
         // string kept by a callee is copied by hand (this object keeps its `name` until join)
         const scope = new WorkerScope<In, Out>(this.toCreator, this.name + "");
         try {
-            this.body(scope);
-            while (!scope.closed) {
+            let started = true;
+            try {
+                this.body(scope);
+            } catch (e) {
+                scope.postError(e instanceof Error ? `${(<Error>e).message}` : `${e}`);
+                started = false;
+            }
+
+            while (started && !scope.closed) {
                 const message = this.toWorker.value.take();
                 if (message == undefined) {
                     break;
                 }
 
-                scope.onmessage(new MessageEvent<In>(message));
+                try {
+                    scope.onmessage(new MessageEvent<In>(message));
+                } catch (e) {
+                    scope.postError(e instanceof Error ? `${(<Error>e).message}` : `${e}`);
+                }
             }
-        } catch (e) {
-            // what the worker threw, for join; reported as an error event once onerror is here
-            this.failed = true;
-            this.message = e instanceof Error ? (<Error>e).message : `${e}`;
         } finally {
             // nothing more reaches the worker, and the creator sees it end
             this.toWorker.value.close();
@@ -1102,13 +1118,16 @@ function __worker_entry<In, Out>(arg: Opaque): u32 {
 // and returns; the worker then handles each message posted to it until it calls close(). There is no
 // event loop to deliver what the worker posts back, so the creating thread asks: receive() takes the
 // next message, join() hands each to onmessage until the worker has closed and then ends its thread.
-// Join every worker. A message is handed over, not copied: under -mm=own it moves; elsewhere the
-// sender should leave it alone. See docs/worker-design.md.
+// What the worker throws goes to onerror, from either. Join every worker. A message is handed over,
+// not copied: under -mm=own it moves; elsewhere the sender should leave it alone. See
+// docs/worker-design.md.
 class Worker<In, Out> {
     // none set: join() drops what the worker posts. Always a function: see WorkerScope.onmessage.
     onmessage: (e: MessageEvent<Out>) => void;
+    // none set: the error is printed to stderr, as a browser logs it to the console
+    onerror: (e: ErrorEvent) => void;
     private toWorker: Shared<MessageQueue<In>>;
-    private toCreator: Shared<MessageQueue<Out>>;
+    private toCreator: Shared<MessageQueue<WorkerPost<Out>>>;
     private start: WorkerStart<In, Out>;
     private handle: Opaque;
     private joined: boolean;
@@ -1119,11 +1138,14 @@ class Worker<In, Out> {
         // each side holds its own handle to both queues: the fields keep one pair, the WorkerStart
         // the other
         const toWorker = new Shared(new MessageQueue<In>());
-        const toCreator = new Shared(new MessageQueue<Out>());
+        const toCreator = new Shared(new MessageQueue<WorkerPost<Out>>());
         this.toWorker = toWorker;
         this.toCreator = toCreator;
         this.start = new WorkerStart<In, Out>(body, toWorker, toCreator, name);
         this.onmessage = (e: MessageEvent<Out>) => {};
+        this.onerror = (e: ErrorEvent) => {
+            console.error(`Worker error: ${e.message}`);
+        };
         this.joined = false;
         // -mm=rc: both threads take and drop references to what the worker reaches, so their counts
         // change atomically from here on (erased under the other models)
@@ -1136,39 +1158,45 @@ class Worker<In, Out> {
         this.toWorker.value.push(message);
     }
 
-    // The next message from the worker, without calling onmessage. Waits up to `timeout` milliseconds
-    // (none: as long as it takes); undefined when the time is up, or once the worker has ended and
-    // everything it posted has been taken.
+    // The next message from the worker, without calling onmessage; an error the worker reported on
+    // the way is handed to onerror. Waits up to `timeout` milliseconds for each (none: as long as it
+    // takes); undefined when the time is up, or once the worker has ended and everything it posted has
+    // been taken.
     receive(timeout?: number): MessageEvent<Out> | undefined {
-        const message = this.toCreator.value.take(timeout);
-        if (message == undefined) {
-            return undefined;
-        }
+        while (true) {
+            const post = this.toCreator.value.take(timeout);
+            if (post == undefined) {
+                return undefined;
+            }
 
-        return new MessageEvent<Out>(message);
+            if (post instanceof ErrorEvent) {
+                this.onerror(<ErrorEvent>post);
+                continue;
+            }
+
+            return <MessageEvent<Out>>post;
+        }
     }
 
-    // Hands each message from the worker to onmessage until the worker has closed, then ends its
-    // thread. Throws an Error with the message of what the worker threw, if it threw (onerror is not
-    // here yet).
+    // hands each message from the worker to onmessage, and each error to onerror, until the worker has
+    // closed; then ends its thread
     join() {
         while (true) {
-            const message = this.toCreator.value.take();
-            if (message == undefined) {
+            const post = this.toCreator.value.take();
+            if (post == undefined) {
                 break;
             }
 
-            this.onmessage(new MessageEvent<Out>(message));
+            if (post instanceof ErrorEvent) {
+                this.onerror(<ErrorEvent>post);
+            } else {
+                this.onmessage(<MessageEvent<Out>>post);
+            }
         }
 
         if (!this.joined) {
             this.joined = true;
             tslang_thread_join(this.handle);
-        }
-
-        // a new Error, as ThreadHandle.join throws: under -mm=own what the worker threw was its own
-        if (this.start.failed) {
-            throw new Error(this.start.message);
         }
     }
 
