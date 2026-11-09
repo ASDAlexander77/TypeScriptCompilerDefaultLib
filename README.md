@@ -1,5 +1,17 @@
 # TypeScriptCompilerDefaultLib
+
+[![Tests](https://github.com/ASDAlexander77/TypeScriptCompilerDefaultLib/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/ASDAlexander77/TypeScriptCompilerDefaultLib/actions/workflows/tests.yml)
+
 Implementation of Default Core Library for TypeScript Compiler
+
+Tests of the latest push to `main`, by memory model:
+
+| | `gc` | `rc` | `none` | `own` |
+|---|---|---|---|---|
+| Windows | ![Windows gc](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FASDAlexander77%2FTypeScriptCompilerDefaultLib%2Fbadges%2Fwindows-gc.json) | ![Windows rc](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FASDAlexander77%2FTypeScriptCompilerDefaultLib%2Fbadges%2Fwindows-rc.json) | ![Windows none](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FASDAlexander77%2FTypeScriptCompilerDefaultLib%2Fbadges%2Fwindows-none.json) | ![Windows own](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FASDAlexander77%2FTypeScriptCompilerDefaultLib%2Fbadges%2Fwindows-own.json) |
+| Ubuntu 24.04 | ![Ubuntu gc](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FASDAlexander77%2FTypeScriptCompilerDefaultLib%2Fbadges%2Flinux-gc.json) | ![Ubuntu rc](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FASDAlexander77%2FTypeScriptCompilerDefaultLib%2Fbadges%2Flinux-rc.json) | ![Ubuntu none](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FASDAlexander77%2FTypeScriptCompilerDefaultLib%2Fbadges%2Flinux-none.json) | ![Ubuntu own](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FASDAlexander77%2FTypeScriptCompilerDefaultLib%2Fbadges%2Flinux-own.json) |
+
+Each badge covers release and debug builds, compiled and under the JIT.
 
 ## Building
 
