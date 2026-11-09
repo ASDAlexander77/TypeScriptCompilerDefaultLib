@@ -2383,6 +2383,7 @@ export class JsonValue {
     // An object's member (a string key) or an array's element (a number). A key already there keeps
     // its place and takes the new value, and an element past an array's end leaves JSON nulls before
     // it, as in JavaScript.
+    // `this`: the object itself, so a chain from a new value is the caller's (own spec 78)
     @keeps("value")
     public set(key: number | string, value: JsonValue): this {
         let position = -1;
