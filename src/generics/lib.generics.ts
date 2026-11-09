@@ -914,6 +914,108 @@ namespace Thread {
     }
 }
 
+// A one-way queue between threads: one side pushes, the other takes, in the order pushed. Both
+// threads reach it through a Shared each function captures (see Thread.spawn). What is pushed is
+// handed over, not copied: under -mm=own it moves in and out; elsewhere the pusher should leave it
+// alone. The items stay in a TypeScript array, so the collector sees them under -mm=gc and they keep
+// their counts under -mm=rc. Worker is built on it (docs/worker-design.md).
+class MessageQueue<T> {
+    private items: T[] = [];
+    // [0] the lock (1 taken); [1] bumped on each push and on close, which a taker waits on;
+    // [2] closed (1)
+    private sync = new Int32Array(3);
+
+    // queues the item and wakes a taker; false, and the item is dropped, once the queue is closed
+    push(item: T): boolean {
+        // -mm=rc: the taker drops what the pusher made, so its count changes atomically from here
+        // (erased under the other models)
+        Shared.share(item);
+
+        this.lock();
+        if (this.sync[2] != 0) {
+            this.unlock();
+            return false;
+        }
+
+        this.items.push(item);
+        Atomics.add(this.sync, 1, 1);
+        this.unlock();
+        Atomics.notify(this.sync, 1);
+        return true;
+    }
+
+    // The next item. Waits for one up to `timeout` milliseconds (none: as long as it takes); undefined
+    // when the time is up, or once the queue is closed and nothing is left in it.
+    take(timeout?: number): T | undefined {
+        const forever = timeout == undefined;
+        const deadline = forever ? 0 : Date.now() + timeout;
+        while (true) {
+            this.lock();
+            if (this.items.length > 0) {
+                const item = this.items.shift();
+                this.unlock();
+                return item;
+            }
+
+            const closed = this.sync[2] != 0;
+            const seen = Atomics.load(this.sync, 1);
+            this.unlock();
+            if (closed) {
+                return undefined;
+            }
+
+            if (forever) {
+                Atomics.wait(this.sync, 1, seen);
+            } else {
+                const left = deadline - Date.now();
+                if (left <= 0) {
+                    return undefined;
+                }
+
+                Atomics.wait(this.sync, 1, seen, left);
+            }
+        }
+    }
+
+    // no more pushes; a taker gets what is left, then undefined
+    close() {
+        this.lock();
+        this.sync[2] = 1;
+        Atomics.add(this.sync, 1, 1);
+        this.unlock();
+        Atomics.notify(this.sync, 1);
+    }
+
+    // drops every item still queued
+    clear() {
+        this.lock();
+        this.items.length = 0;
+        this.unlock();
+    }
+
+    get closed() {
+        return Atomics.load(this.sync, 2) != 0;
+    }
+
+    get length() {
+        this.lock();
+        const length = this.items.length;
+        this.unlock();
+        return length;
+    }
+
+    private lock() {
+        while (Atomics.compareExchange(this.sync, 0, 0, 1) != 0) {
+            Atomics.wait(this.sync, 0, 1);
+        }
+    }
+
+    private unlock() {
+        Atomics.store(this.sync, 0, 0);
+        Atomics.notify(this.sync, 0, 1);
+    }
+}
+
 // Bytes to and from the standard streams, as they are: on Windows each call puts its stream in
 // binary mode and back, so a "\n" stays one byte and a 0x1A does not end the input (console.log
 // and console.readLine keep text mode). A Uint8Array is not a view over a buffer here, so `read`

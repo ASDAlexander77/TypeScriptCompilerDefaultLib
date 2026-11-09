@@ -153,22 +153,21 @@ anti-goal above: events kept in TS memory stay visible to the collector under `g
 counts under `rc` (`Shared.share`), and move under `own`, with no new runtime code. A C++ queue
 (mutex and condition variable in `thread.cpp`) would be simpler to make correct, but every pointer
 it holds would need extra handling per memory model (an uncollectable allocation under `gc`, an
-explicit retain/release under `rc`). If the TS queue can't be made to hold objects under `-mm=own`,
-the builder should fall back to the C++ queue for the locking and waiting only, still keeping the
-events themselves in a TS array.
+explicit retain/release under `rc`). Step 1 built it this way and it holds objects under every
+model, `own` included (see "Memory models"), so the C++ fallback is not needed.
 
 The queue is its own class (`MessageQueue<T>` or similar, not exported in the README at first) so
 `MessageChannel` / `MessagePort` can be built on it later.
 
 ### Messages: handed over, not copied
 
-`postMessage(m)` puts `m` itself in the queue. Under `-mm=own` that is expected to be a move, so the
-sender can't use `m` afterwards. Not yet checked: whether a method parameter stored into a field
-(the queue's array) moves or is only lent (the README says `ThreadHandle.join()` *lends* its result);
-this is on the `own` find-out list below. Under `gc`, `rc` and `none` the sender *can* still reach
+`postMessage(m)` puts `m` itself in the queue. Under `-mm=own` that is a move, so the sender can't
+use `m` afterwards: `MessageQueue.push` keeps its argument, and using it after the push is a compile
+error ("used here after its value was moved"; checked in step 1). Under `gc`, `rc` and `none` the sender *can* still reach
 `m`, and the README says not to change a message after posting it (the same as passing an object
 in a browser's transfer list). Under `-mm=rc` the message is `Shared.share`d before it is queued, so
-its count changes atomically.
+its count changes atomically. `Shared.share` marks every counted block the value reaches (the
+compiler's `mlirGenSharedShare`), so a message's fields are covered too, not just the object itself.
 
 Numbers, booleans and strings behave the same as in a browser, since they are values or immutable.
 For a real copy the program can post `JSON.stringify(x)` and `JSON.parse` it on the other side; the
@@ -195,19 +194,36 @@ running.
 |---|---|---|---|---|
 | Thread registration | as `Thread` (registered with the collector) | as `Thread` | as `Thread` | as `Thread` |
 | Messages | shared object, collector sees it in the TS queue | `Shared.share`d before queuing | shared object, never freed | moved into the queue, moved out to the event |
-| Handlers capturing creator-side objects | allowed | allowed (shared) | allowed | captured values move into the worker; sharing goes through a `Shared<T>`, as with `Thread` |
+| Handlers capturing creator-side objects | allowed | allowed (shared) | allowed | captured values move with the handler; a local used again after the handler is set is a compile error, so shared state goes through a `Shared<T>` |
 
-What the `own` column can actually do is the main thing to find out first: an object as `In`/`Out`
-(the README says `own` array elements are "values, strings, `any` or `Shared<T>` handles", so an
-object may have to go in as a `Shared<T>`), whether `postMessage` moves its argument into the queue
-or only lends it, and a handler stored in a field and called later; anything that does not work goes in the README
-as a limit, as the `Thread` notes do today.
+What step 1 (`MessageQueue<T>`, `tests/message_queue.ts`) settled, in release builds, compiled and
+under the JIT:
+
+- **Objects as messages work under `own`**, without `Shared<T>`: class instances go through a plain
+  `T[]` inside the queue and come out whole, both ways between two threads.
+- **A push moves** under `own` (above).
+- **Both threads reach the queue through a `const` `Shared<MessageQueue<T>>`** each function
+  captures, under every model, as threads sharing an `Int32Array` do.
+
+Still open for step 2: **a handler that captures a local of the creating thread.** Under `-mm=own` a
+closure stored in an object takes what it captures with it, so this is a compile error:
+
+```ts
+let total = 0;
+worker.onmessage = (e) => { total += e.data; };   // the closure escapes into the Worker
+print(total);   // error: 'total' is captured by a closure that escapes, and is still used here
+```
+
+The creator's handler has to keep its state somewhere both can reach: a `Shared<T>` it captures, or
+a field of an object the handler alone owns, or it can use `receive()` instead of `onmessage`. The
+builder should pick the shape the `own` tests and README example use; anything that does not work
+goes in the README as a limit, as the `Thread` notes do today.
 
 ## Order of work
 
-1. The queue, with a test that two threads pass 10 000 numbers, strings and class instances
-   through it in order, under all four models. The class instances are there to settle the `own`
-   questions above before anything is built on the queue.
+1. **Done:** `MessageQueue<T>` (`push`, `take(timeout?)`, `close`, `clear`, `closed`, `length`) in
+   `lib.generics.ts`, and `tests/message_queue.ts`, where two threads pass 10 000 numbers, strings
+   and class instances through it in order, under all four models.
 2. `Worker` / `WorkerScope` with `postMessage`, `onmessage`, `receive`, `join`, `close`.
 3. Errors: `onerror`, throws from `body` and from handlers.
 4. `terminate()` and `dispatch(timeout)`.
@@ -235,11 +251,13 @@ see the comment on `Atomics.isLockFree`).
 
 ## Left to the builder
 
-- Exact names of the queue class and its internals; whether the worker's entry reuses
-  `ThreadHandle` or calls `tslang_thread_spawn` directly.
+- Whether the worker's entry reuses `ThreadHandle` or calls `tslang_thread_spawn` directly.
 - Whether `onmessage` / `onerror` are optional fields or fields with no-op defaults (whichever the
   compiler handles in a generic class; note the known crash with `cond ? <T>x : undefined` in a
   generic class, use `if`/`else`).
-- How `receive` returns "nothing" if `MessageEvent<Out> | undefined` doesn't compile in a generic
-  class under some model (a `tryReceive` returning a boolean plus an out field is fine).
+- `MessageQueue.take` takes items out with `shift()`, which is O(n) in what is queued. Fine at
+  10 000 items; a ring buffer is the change if a worker ever falls far behind.
+
+(`receive` can return `MessageEvent<Out> | undefined` as written: `MessageQueue.take` returns
+`T | undefined` and compiles under every model.)
 - The `{ name }` option can be dropped if it costs anything.
