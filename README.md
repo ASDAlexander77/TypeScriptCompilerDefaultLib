@@ -104,8 +104,19 @@ so with the zip and an NDK, nothing needs building.
 
 ```
 tests.ps1                          # x64, all four passes: release/debug x compile/jit
+tests.ps1 -Model own               # under -mm=own (also rc, none; or $Env:TSLANG_MM)
 $Env:TSLANG_ARCH="x86"; .\tests.ps1 # x86, release/compile and debug/compile only
+./tests.sh rc                      # Linux, under -mm=rc (or TSLANG_MM=rc)
 ```
+
+The default memory model is `gc`. A test whose first line starts with `// gc only` is
+skipped under any other model, one starting `// not own` under `-mm=own`, and one starting
+`// linux only` by `tests.ps1` (it runs in `tests.sh`). A test that should run under every
+model but has a part that can't, branches on `__MEMORY_MODEL__` instead.
+
+A test's functions are global symbols, so on Linux one named like a libc function (`read`,
+`write`, ...) takes that function's place, for the collector too: a test with its own `read()`
+segfaulted under `-mm=gc` as the collector started. Give test functions names libc doesn't use.
 
 The JIT is host-only (`--emit=jit` refuses an x86 target by design), so under
 `TSLANG_ARCH=x86` `tests.ps1` prints "jit is host-only; skipped for x86" and runs only
