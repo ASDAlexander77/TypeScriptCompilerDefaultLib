@@ -2341,9 +2341,9 @@ export class JsonValue {
         return this.items[position];
     }
 
-    @lends("this")
+    // `this`: the object itself, so a chain from a new value is the caller's (own spec 78)
     @keeps("value")
-    public push(value: JsonValue): JsonValue {
+    public push(value: JsonValue): this {
         this.expect(JSON_ARRAY, "array");
         this.items.push(value);
         return this;
@@ -2383,9 +2383,8 @@ export class JsonValue {
     // An object's member (a string key) or an array's element (a number). A key already there keeps
     // its place and takes the new value, and an element past an array's end leaves JSON nulls before
     // it, as in JavaScript.
-    @lends("this")
     @keeps("value")
-    public set(key: number | string, value: JsonValue): JsonValue {
+    public set(key: number | string, value: JsonValue): this {
         let position = -1;
         if (typeof key == "number") {
             this.expect(JSON_ARRAY, "array");
