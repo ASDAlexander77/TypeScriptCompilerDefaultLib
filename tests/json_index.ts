@@ -1,7 +1,9 @@
 // JsonValue by key: value["name"] and value[0] read through get(), value["name"] = member and
 // value[0] = element write through set(). A key that names a JsonValue member (length, kind, ...) is
 // that member.
-function read(value: JsonValue) {
+// Not read() and write(): a program's functions are global symbols, and on Linux a function named
+// read takes the place of libc's, which the collector calls when it starts (-mm=gc segfaults).
+function readByKey(value: JsonValue) {
     assert(value["name"].asString() == "tslang", "a literal key");
     assert(value["sizes"][1].asNumber() == 2.5, "an element of a member");
     assert(value["sizes"][7].isNull(), "an element past the end");
@@ -24,7 +26,7 @@ function read(value: JsonValue) {
     assert(value.get("sizes").get(1).asNumber() == 2.5, "get with an index");
 }
 
-function write() {
+function writeByKey() {
     const value = JsonValue.newObject();
     value["n"] = JsonValue.ofNumber(1);
     value["s"] = JsonValue.ofString("a");
@@ -41,12 +43,12 @@ function write() {
 }
 
 function main() {
-    read(JSON.parse(`{"name":"tslang","sizes":[1,2.5],"ok":true}`));
+    readByKey(JSON.parse(`{"name":"tslang","sizes":[1,2.5],"ok":true}`));
 
     // Under -mm=own, two writes by key to a JsonValue crash the compiler (TypeScriptCompiler,
     // a known issue); value.set(key, member) works there.
     if (__MEMORY_MODEL__ != "own") {
-        write();
+        writeByKey();
     }
 
     // an index that is not there in an array to write
