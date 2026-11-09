@@ -2,7 +2,8 @@
 #   .\tests.ps1              the compiler's default memory model (gc)
 #   .\tests.ps1 -Model rc    -mm=rc, against the default library built for it; also $Env:TSLANG_MM
 # A test whose first line starts with "// gc only" is skipped under any other model, and one whose
-# first line starts with "// not own" under -mm=own.
+# first line starts with "// not own" under -mm=own. One whose first line starts with "// linux only"
+# is skipped here, under every model, and runs in tests.sh.
 param([string]$Model = $Env:TSLANG_MM)
 
 # The library paths the environment gives when the script starts. One it does not give is worked
@@ -154,6 +155,11 @@ function Test-NotOwn([string]$path) {
     return (Get-Content $path -TotalCount 1) -match '^// not own'
 }
 
+# A test that calls what only Linux provides says so on its first line ("// linux only: ...").
+function Test-LinuxOnly([string]$path) {
+    return (Get-Content $path -TotalCount 1) -match '^// linux only'
+}
+
 function Tests([string]$config, [string]$mode) {
     Write-Host "Testing..."
 
@@ -178,6 +184,12 @@ function Tests([string]$config, [string]$mode) {
         if ($Model -eq "own" -and (Test-NotOwn $_.FullName)) {
             $skipped++
             Write-Host "Skipped   (not own)" -ForegroundColor Yellow
+            return
+        }
+
+        if (Test-LinuxOnly $_.FullName) {
+            $skipped++
+            Write-Host "Skipped   (linux only)" -ForegroundColor Yellow
             return
         }
 
