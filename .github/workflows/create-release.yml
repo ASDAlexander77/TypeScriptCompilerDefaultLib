@@ -1,201 +1,159 @@
 name: Create Release/Upload Asset
 
+# Builds the default library with a released compiler and publishes it as a draft release. A pushed
+# tag releases; a manual run only builds, and leaves the archives as artifacts of the run.
+
 on:
   workflow_dispatch:
+    inputs:
+      compiler_tag:
+        description: TypeScriptCompiler release to build with (empty - the newest one)
+        required: false
+        default: ''
   push:
     # Sequence of patterns matched against refs/tags
     tags:
     - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
 
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  BUILD_TYPE: Release
-  CACHE_VERSION: v1
+  # release archives carry the version (the pushed tag) and the OS they were built on, as the
+  # compiler's do: defaultlib-v1.0-windows-x64.zip, defaultlib-v1.0-ubuntu-24.04-x64.tar.gz
+  ASSET_NAME: defaultlib-${{ github.ref_name }}
+  COMPILER_REPO: ASDAlexander77/TypeScriptCompiler
+  GH_TOKEN: ${{ github.token }}
 
 jobs:
+  compiler:
+    name: Pick the compiler release
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      # Every release so far is a prerelease, which /releases/latest does not return. One tag for
+      # every build, so the archives of a release cannot come from different compilers.
+      - name: Resolve the tag
+        id: tag
+        shell: bash
+        env:
+          REQUESTED_TAG: ${{ inputs.compiler_tag }}
+        run: |
+          tag="$REQUESTED_TAG"
+          if [ -z "$tag" ]; then
+            tag=$(gh api "repos/$COMPILER_REPO/releases?per_page=10" --jq '[.[] | select(.draft | not)][0].tag_name')
+          fi
+          if [ -z "$tag" ]; then echo "no release found in $COMPILER_REPO"; exit 1; fi
+          echo "Compiler release: $tag" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
   build_on_windows:
     name: Create/Upload Release Asset (Windows)
-    runs-on: windows-2022
+    needs: compiler
+    runs-on: windows-2025-vs2026
+    env:
+      # A release package is flat, with the compiler and its libraries side by side.
+      TOOL_PATH: ${{ github.workspace }}\__tslang
+      GC_LIB_PATH: ${{ github.workspace }}\__tslang
+      LLVM_LIB_PATH: ${{ github.workspace }}\__tslang
+      TSLANG_LIB_PATH: ${{ github.workspace }}\__tslang
+      # the DLL build links Boehm from gc.dll (one collector per process)
+      GC_SHARED_LIB_PATH: ${{ github.workspace }}\__tslang\gcdll
+      # a release package ships only release-CRT libraries; see scripts\build_core.bat
+      TSLANG_DEBUG_CRT: /MT
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build project # This would actually build your project, using zip for an example artifact
-        run: echo 'SELECTED_COLOR=green Build project (Windows)' >> "$GITHUB_OUTPUT"
-
-      - name: Retrieve version
-        run: echo "TAG_NAME=$(git describe --abbrev=0 --tags)" >> "$GITHUB_OUTPUT"
-        id: version
-        #shell: pwsh
-        shell: bash
-
-      - name: Delete __Build folders
-        continue-on-error: false
-        run: if (Test-Path -Path ".\__build") { Remove-Item -Recurse -Force ".\__build" }
-        shell: pwsh
-
-      - name: Create __Build Folders
-        run: if (!(Test-Path -Path ".\__build")) { New-Item -ItemType Directory -Force -Path ".\__build" }
-        shell: pwsh
-
-      - name: Download tsc
-        continue-on-error: false
-        shell: pwsh
-        run: Invoke-WebRequest -SkipCertificateCheck -Uri "https://github.com/ASDAlexander77/TypeScriptCompiler/releases/download/v0.0-pre-alpha45/tsc.zip" -OutFile "tsc.zip"
-
-      - name: UnZip tsc
-        continue-on-error: false
-        run: if (Test-Path -Path "tsc.zip") { Expand-Archive -Path "tsc.zip" -DestinationPath "compiler\tsc" -Force }
-        shell: pwsh
-
-      - name: Build
-        continue-on-error: false
-        run: "& ./build.bat"
+      # The package carries the default library of its own release. It goes, so nothing but the
+      # library built from this commit can be found.
+      - name: Download the compiler
         shell: pwsh
         env:
-          TOOL_PATH: .\compiler\tsc
-          GC_LIB_PATH: .\compiler\tsc
-          LLVM_LIB_PATH: .\compiler\tsc
-          TSC_LIB_PATH: .\compiler\tsc
-          # a release compiler package ships only release-CRT libraries; see scripts\build_core.bat
-          TSLANG_DEBUG_CRT: /MT
+          TAG: ${{ needs.compiler.outputs.tag }}
+        run: |
+          gh release download $env:TAG --repo $env:COMPILER_REPO --pattern 'tslang-*-windows-x64.zip' --output tslang.zip
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Expand-Archive -Path tslang.zip -DestinationPath $env:TOOL_PATH
+          Remove-Item tslang.zip
+          Remove-Item -Recurse -Force (Join-Path $env:TOOL_PATH 'defaultlib')
+          & (Join-Path $env:TOOL_PATH 'tslang.exe') --version
+
+      - name: Build the default library
+        shell: pwsh
+        run: |
+          $env:VSWHERE_PATH = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          .\build.bat
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Create Zip of Windows Asset
-        working-directory: ${{github.workspace}}/__build
-        run: Get-ChildItem -Path .\* | Compress-Archive -DestinationPath ..\defaultlib.zip
+        working-directory: ${{ github.workspace }}/__build
+        run: Get-ChildItem -Path .\* | Compress-Archive -DestinationPath ..\${{ env.ASSET_NAME }}-windows-x64.zip
         shell: pwsh
 
       - name: Archive Zip of Windows Asset
         uses: actions/upload-artifact@v4
         with:
-          name: tsc-windows-defaultlib-asset
-          path: defaultlib.zip
-          retention-days: 1          
+          name: defaultlib-windows-asset
+          path: ${{ env.ASSET_NAME }}-windows-x64.zip
+          retention-days: 1
 
   build_on_linux:
-    name: Create/Upload Release Asset (Ubuntu 22.04)
-    runs-on: ubuntu-22.04
+    name: Create/Upload Release Asset (${{ matrix.os }})
+    needs: compiler
+
+    # One package per Ubuntu release, as the compiler has: each is built with that release's compiler
+    # package and tools, so its binaries match that release's glibc and libstdc++.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04]
+    runs-on: ${{ matrix.os }}
+    env:
+      TOOL_PATH: ${{ github.workspace }}/__tslang
+      GC_LIB_PATH: ${{ github.workspace }}/__tslang
+      LLVM_LIB_PATH: ${{ github.workspace }}/__tslang
+      TSLANG_LIB_PATH: ${{ github.workspace }}/__tslang
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build project # This would actually build your project, using zip for an example artifact
-        run: echo 'SELECTED_COLOR=green Build project (Windows)' >> "$GITHUB_OUTPUT"
-
-      - name: Retrieve version
-        run: echo "TAG_NAME=$(git describe --abbrev=0 --tags)" >> "$GITHUB_OUTPUT"
-        id: version
+      - name: Install dependencies
         shell: bash
+        run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev
 
-      - name: Delete __Build TS folders
-        continue-on-error: true
-        run: rm -R ./__build
-        shell: sh
-
-      - name: Create __Build Folders
-        run: mkdir -p ./__build
-        shell: sh
-
-      - name: Download tsc
-        continue-on-error: true
-        shell: sh
-        run: curl --insecure -L https://github.com/ASDAlexander77/TypeScriptCompiler/releases/download/v0.0-pre-alpha45/tsc.tar.gz --output tsc.tar.gz
-
-      - name: Create folder compiler/tsc
-        continue-on-error: false
-        shell: sh
-        run: mkdir -p ./compiler/tsc        
-
-      - name: UnZip tsc
-        continue-on-error: false
-        shell: sh
-        run: tar -xvzf tsc.tar.gz -C ./compiler/tsc        
-
-      - name: Build
-        continue-on-error: false
-        run: "./build.sh"
+      # As on Windows: only the library built from this commit can be found.
+      - name: Download the compiler
         shell: bash
         env:
-          TOOL_PATH: ./compiler/tsc
-          GC_LIB_PATH: ./compiler/tsc
-          LLVM_LIB_PATH: ./compiler/tsc
-          TSC_LIB_PATH: ./compiler/tsc
+          TAG: ${{ needs.compiler.outputs.tag }}
+        run: |
+          set -e
+          gh release download "$TAG" --repo "$COMPILER_REPO" --pattern 'tslang-*-${{ matrix.os }}-x64.tar.gz' --output tslang.tar.gz
+          mkdir -p "$TOOL_PATH"
+          tar -xzf tslang.tar.gz -C "$TOOL_PATH"
+          rm tslang.tar.gz
+          rm -rf "$TOOL_PATH/defaultlib"
+          "$TOOL_PATH/tslang" --version
+
+      - name: Build the default library
+        shell: bash
+        run: ./build.sh
 
       - name: Create Tar.GZ of Linux Asset
-        working-directory: ${{github.workspace}}/__build
+        working-directory: ${{ github.workspace }}/__build
         shell: sh
-        run: tar -czvhf ../defaultlib.tar.gz ./*
-  
+        run: tar -czhf ../${{ env.ASSET_NAME }}-${{ matrix.os }}-x64.tar.gz ./*
+
       - name: Archive Tar.GZ of Linux Asset
         uses: actions/upload-artifact@v4
         with:
-          name: tsc-linux-defaultlib-asset
-          path: defaultlib.tar.gz
-          retention-days: 1   
-
-  build_on_linux_ub20:
-    name: Create/Upload Release Asset (Ubuntu 20.04)
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Build project # This would actually build your project, using zip for an example artifact
-        run: echo 'SELECTED_COLOR=green Build project (Windows)' >> "$GITHUB_OUTPUT"
-
-      - name: Retrieve version
-        run: echo "TAG_NAME=$(git describe --abbrev=0 --tags)" >> "$GITHUB_OUTPUT"
-        id: version
-        shell: bash
-
-      - name: Delete __Build TS folders
-        continue-on-error: true
-        run: rm -R ./__build
-        shell: sh
-
-      - name: Create __Build Folders
-        run: mkdir -p ./__build
-        shell: sh
-
-      - name: Download tsc
-        continue-on-error: true
-        shell: sh
-        run: curl --insecure -L https://github.com/ASDAlexander77/TypeScriptCompiler/releases/download/v0.0-pre-alpha45/tsc.tar.gz --output tsc.tar.gz
-
-      - name: Create folder compiler/tsc
-        continue-on-error: false
-        shell: sh
-        run: mkdir -p ./compiler/tsc        
-
-      - name: UnZip tsc
-        continue-on-error: false
-        shell: sh
-        run: tar -xvzf tsc.tar.gz -C ./compiler/tsc        
-
-      - name: Build
-        continue-on-error: false
-        run: "./build.sh"
-        shell: bash
-        env:
-          TOOL_PATH: ./compiler/tsc
-          GC_LIB_PATH: ./compiler/tsc
-          LLVM_LIB_PATH: ./compiler/tsc
-          TSC_LIB_PATH: ./compiler/tsc
-
-      - name: Create Tar.GZ of Linux Asset
-        working-directory: ${{github.workspace}}/__build
-        shell: sh
-        run: tar -czvhf ../defaultlib-ub20.tar.gz ./*
-  
-      - name: Archive Tar.GZ of Linux Asset
-        uses: actions/upload-artifact@v4
-        with:
-          name: tsc-linux-defaultlib-asset-ub20
-          path: defaultlib-ub20.tar.gz
-          retention-days: 1   
+          name: defaultlib-${{ matrix.os }}-asset
+          path: ${{ env.ASSET_NAME }}-${{ matrix.os }}-x64.tar.gz
+          retention-days: 1
 
   create_release:
-    needs: [build_on_windows, build_on_linux, build_on_linux_ub20]
+    needs: [build_on_windows, build_on_linux]
+    # A manual run is on a branch, whose name is no release tag.
+    if: startsWith(github.ref, 'refs/tags/')
     name: Create Release
     runs-on: ubuntu-latest
     steps:
@@ -220,57 +178,40 @@ jobs:
       - name: Download Release Asset from Store
         uses: actions/download-artifact@v4
         with:
-          name: tsc-windows-defaultlib-asset
+          name: defaultlib-windows-asset
 
       - name: Upload Release Asset (Windows)
-        id: upload-release-asset 
+        id: upload-release-asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ./defaultlib.zip
-          asset_name: defaultlib.zip
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: ./${{ env.ASSET_NAME }}-windows-x64.zip
+          asset_name: ${{ env.ASSET_NAME }}-windows-x64.zip
           asset_content_type: application/zip
 
   deploy_linux_asset:
     needs: create_release
-    name: Upload Release (Ubuntu 22.04)
+    name: Upload Release (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04]
     runs-on: ubuntu-latest
     steps:
       - name: Download Release Asset from Store
         uses: actions/download-artifact@v4
         with:
-          name: tsc-linux-defaultlib-asset
+          name: defaultlib-${{ matrix.os }}-asset
 
-      - name: Upload Release Asset (Ubuntu 22.04)
-        id: upload-release-asset 
+      - name: Upload Release Asset (${{ matrix.os }})
+        id: upload-release-asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ./defaultlib.tar.gz
-          asset_name: defaultlib.tar.gz
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: ./${{ env.ASSET_NAME }}-${{ matrix.os }}-x64.tar.gz
+          asset_name: ${{ env.ASSET_NAME }}-${{ matrix.os }}-x64.tar.gz
           asset_content_type: application/tar+gzip
-
-  deploy_linux_asset_ub20:
-    needs: create_release
-    name: Upload Release (Ubuntu 20.04)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download Release Asset from Store
-        uses: actions/download-artifact@v4
-        with:
-          name: tsc-linux-defaultlib-asset-ub20
-
-      - name: Upload Release Asset (Ubuntu 20.04)
-        id: upload-release-asset-ub20 
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ./defaultlib-ub20.tar.gz
-          asset_name: defaultlib-ub20.tar.gz
-          asset_content_type: application/tar+gzip          

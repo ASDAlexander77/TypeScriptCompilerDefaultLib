@@ -1,0 +1,140 @@
+name: Tests
+
+# Builds this commit's default library with a released compiler and runs the test suite against it,
+# on Windows and Linux, for every memory model. The steps follow the "Build Default Library" and
+# "Test Default Library" steps of TypeScriptCompiler's create-release.yml.
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      compiler_tag:
+        description: TypeScriptCompiler release to test against (empty - the newest one)
+        required: false
+        default: ''
+
+env:
+  COMPILER_REPO: ASDAlexander77/TypeScriptCompiler
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  compiler:
+    name: Pick the compiler release
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      # Every release so far is a prerelease, which /releases/latest does not return. One tag for
+      # both test jobs, so they cannot straddle a release published while this run starts.
+      - name: Resolve the tag
+        id: tag
+        shell: bash
+        env:
+          REQUESTED_TAG: ${{ inputs.compiler_tag }}
+        run: |
+          tag="$REQUESTED_TAG"
+          if [ -z "$tag" ]; then
+            tag=$(gh api "repos/$COMPILER_REPO/releases?per_page=10" --jq '[.[] | select(.draft | not)][0].tag_name')
+          fi
+          if [ -z "$tag" ]; then echo "no release found in $COMPILER_REPO"; exit 1; fi
+          echo "Compiler release: $tag" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  test_windows:
+    name: Test (Windows)
+    needs: compiler
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 180
+    env:
+      # All four together: tests.ps1 honours the library paths only alongside TOOL_PATH. A release
+      # package is flat, with the compiler and its libraries side by side.
+      TOOL_PATH: ${{ github.workspace }}\__tslang
+      GC_LIB_PATH: ${{ github.workspace }}\__tslang
+      LLVM_LIB_PATH: ${{ github.workspace }}\__tslang
+      TSLANG_LIB_PATH: ${{ github.workspace }}\__tslang
+      # the DLL build links Boehm from gc.dll (one collector per process)
+      GC_SHARED_LIB_PATH: ${{ github.workspace }}\__tslang\gcdll
+      # a release package ships only release-CRT libraries; see scripts\build_core.bat
+      TSLANG_DEBUG_CRT: /MT
+    steps:
+      - uses: actions/checkout@v4
+
+      # The package carries the default library of its own release. It goes, so nothing but the
+      # library built from this commit can be found.
+      - name: Download the compiler
+        shell: pwsh
+        env:
+          TAG: ${{ needs.compiler.outputs.tag }}
+        run: |
+          gh release download $env:TAG --repo $env:COMPILER_REPO --pattern 'tslang-*-windows-x64.zip' --output tslang.zip
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Expand-Archive -Path tslang.zip -DestinationPath $env:TOOL_PATH
+          Remove-Item tslang.zip
+          Remove-Item -Recurse -Force (Join-Path $env:TOOL_PATH 'defaultlib')
+          & (Join-Path $env:TOOL_PATH 'tslang.exe') --version
+
+      - name: Build the default library
+        shell: pwsh
+        run: |
+          $env:VSWHERE_PATH = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          .\build.bat
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # Each model in its own pwsh: tests.ps1 reads the library paths once, at its start. All of them
+      # run before a failure fails the step.
+      - name: Test the default library
+        shell: pwsh
+        run: |
+          $failed = @()
+          foreach ($model in "gc", "rc", "none", "own") {
+            Write-Host "=== -mm=$model ==="
+            pwsh -NoProfile -File .\tests.ps1 -Model $model
+            if ($LASTEXITCODE -ne 0) { $failed += $model }
+          }
+          if ($failed.Count -gt 0) { Write-Host "Failed models: $($failed -join ', ')"; exit 1 }
+
+  test_linux:
+    name: Test (Ubuntu 24.04)
+    needs: compiler
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      TOOL_PATH: ${{ github.workspace }}/__tslang
+      GC_LIB_PATH: ${{ github.workspace }}/__tslang
+      LLVM_LIB_PATH: ${{ github.workspace }}/__tslang
+      TSLANG_LIB_PATH: ${{ github.workspace }}/__tslang
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        shell: bash
+        run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev
+
+      # As on Windows: only the library built from this commit can be found.
+      - name: Download the compiler
+        shell: bash
+        env:
+          TAG: ${{ needs.compiler.outputs.tag }}
+        run: |
+          set -e
+          gh release download "$TAG" --repo "$COMPILER_REPO" --pattern 'tslang-*-ubuntu-24.04-x64.tar.gz' --output tslang.tar.gz
+          mkdir -p "$TOOL_PATH"
+          tar -xzf tslang.tar.gz -C "$TOOL_PATH"
+          rm tslang.tar.gz
+          rm -rf "$TOOL_PATH/defaultlib"
+          "$TOOL_PATH/tslang" --version
+
+      - name: Build the default library
+        shell: bash
+        run: ./build.sh
+
+      - name: Test the default library
+        shell: bash
+        run: |
+          failed=""
+          for model in gc rc none own; do
+            echo "=== -mm=$model ==="
+            ./tests.sh "$model" || failed="$failed $model"
+          done
+          if [ -n "$failed" ]; then echo "Failed models:$failed"; exit 1; fi
