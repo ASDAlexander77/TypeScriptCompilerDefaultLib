@@ -2384,6 +2384,25 @@ export class JsonValue {
         return this;
     }
 
+    // A copy of the whole value, sharing nothing with it. JSON.stringify uses it under -mm=own, where a
+    // JsonValue it is given is only lent to it.
+    public clone(): JsonValue {
+        const result = new JsonValue();
+        result.tag = this.tag;
+        result.flag = this.flag;
+        result.num = this.num;
+        result.str = this.str + "";
+        for (const item of this.items) {
+            result.items.push(item.clone());
+        }
+
+        for (const name of this.names) {
+            result.names.push(name + "");
+        }
+
+        return result;
+    }
+
     // an object's keys, in their order
     public keys(): string[] {
         this.expect(JSON_OBJECT, "object");

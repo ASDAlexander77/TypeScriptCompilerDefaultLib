@@ -730,6 +730,7 @@ declare class JsonValue {
     @lends("this")
     @keeps("value")
     set(key: string, value: JsonValue): JsonValue;
+    clone(): JsonValue;
     keys(): string[];
     stringify(space?: string): string;
     toString(): string;

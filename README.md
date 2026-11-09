@@ -149,7 +149,7 @@ Globals (`src/lib.ts`):
   key or index that is not there gives a JSON null. Text that is not JSON is a `SyntaxError`, and
   nesting past 512 levels a `RangeError`. A `\u0000` in a string is a `SyntaxError`, because a string
   ends at its first 0. A value is built with `JsonValue.ofBoolean`, `ofNumber`, `ofString`, `newArray`
-  and `newObject`, then `push` and `set`.
+  and `newObject`, then `push` and `set`; `clone()` makes a deep copy.
 
   ```ts
   const config = JSON.parse(`{"name":"tslang","sizes":[1,2]}`);
@@ -240,8 +240,10 @@ Generics (`src/generics/lib.generics.ts`):
   `JsonValue`s, and classes with a `toJSON()`, which can return a `JsonValue` to write out the class's
   fields. An object literal or a tuple is a `TypeError`, a `BigInt` too. `space` is a number or a
   string; a replacer is not supported, only `null`.
-  Under `-mm=own` it takes a number or a string only (use `value.stringify()` for a `JsonValue`), and a
-  `JsonValue` is built one step at a time, not with chained `set`s.
+  It takes all of these under every memory model; under `-mm=own` it writes out a copy of a `JsonValue`
+  it is given (`clone()`), since the value is only lent to it. Under `-mm=own` a `JsonValue` is built
+  one step at a time (`const o = JsonValue.newObject(); o.set("a", ...);`), not with chained `set`s or
+  `push`es: their result borrows the value they were called on.
 - `WeakMap<K, V>`: `get`, `set`, `has`, `delete`. `WeakSet<K>`: `add`, `has`, `delete`. Keys are
   objects, compared by identity. `-mm=gc` only, as `WeakRef` is. A value is held strongly, so a value
   that refers to its own key keeps that key alive.
