@@ -1,6 +1,6 @@
 # Worker: design
 
-Date: 2026-11-09. Status: draft for review.
+Date: 2026-11-09. Status: built, steps 1-5 (PRs #78, #80-#83, and the README).
 
 ## Intent
 
@@ -296,7 +296,10 @@ model; the README example should do the same and name the limit.
    goes on, a throw from `body` is an error event and the worker ends; `tests/worker_errors.ts`.
 4. **Done:** `terminate()`, `dispatch(timeout)`, `MessageQueue.discard()`;
    `tests/worker_terminate.ts`.
-5. README section, next to `Thread`, and the CI matrix picking up the new tests.
+5. **Done:** the README section, after `Thread`, with an example checked under all four models
+   (it prints `squared: 1`, `squared: 4`, `squared: 9`), and the `-mm=own` limits on handlers. The
+   CI matrix needed no change: `tests.ps1` and `tests.sh` run every file in `tests/`, and CI on
+   `main` ran the worker tests on Windows and Ubuntu under every model, release and debug.
 
 ## Tests (each runs under gc, rc, none and own unless it says otherwise)
 

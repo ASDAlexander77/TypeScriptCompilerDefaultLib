@@ -198,6 +198,44 @@ Generics (`src/generics/lib.generics.ts`):
   for (const w of workers) w.join();
   console.log(Atomics.load(counter.value, 0)); // 4000
   ```
+- `Worker<In, Out>`, as MDN's `Worker`: a function on its own thread that talks to the thread that
+  made it only through messages. `new Worker(body, name?)` runs `body(self)` on a new thread, where
+  `self` is a `WorkerScope<In, Out>` (MDN's `DedicatedWorkerGlobalScope`: `postMessage`, `onmessage`,
+  `close()`, `name`); `body` sets `self.onmessage` and returns, and the worker then hands each
+  message to it until it calls `self.close()`. The worker is a function, not a script URL, and `self`
+  is its parameter, not a global. On the creating side, `postMessage`, `onmessage` and `onerror`
+  are as in a browser, with `MessageEvent<T>` (`data`) and `ErrorEvent` (`message`).
+  There is no event loop to deliver what the worker posts, so the creating thread asks for it:
+  `receive(timeout?)` takes the next message; `dispatch(timeout?)` hands what has arrived to
+  `onmessage` / `onerror` and says how many, from the program's own loop; `join()` does so until the
+  worker has closed, then ends its thread. `terminate()` ends a worker that never closes: what is
+  queued for it is dropped, it stops once the handler running now returns (it is not interrupted),
+  and nothing more is delivered from it. Join or terminate every worker. `closed` says whether it
+  has ended.
+  What the worker throws reaches `onerror` (none set: it is written to stderr); a throw from a
+  handler leaves the worker running, a throw from `body` ends it. A message is handed over, not
+  copied: under `-mm=own` it moves, and elsewhere the sender should not change it afterwards (post
+  `JSON.stringify(x)` for a copy).
+  Under `-mm=own` a handler kept in an object can't change a local of the function that set it, so
+  a creating-side `onmessage` keeps its state in a `Shared<T>` it captures, or the program uses
+  `receive()`. And once `body` captures anything from the creating thread, the worker's handlers can
+  use that (through a second handle, `const counter = shared;` inside `body`) or post with `self`,
+  not both.
+
+  ```ts
+  const worker = new Worker<int, string>((self: WorkerScope<int, string>) => {
+      self.onmessage = (e: MessageEvent<int>) => {
+          self.postMessage(`squared: ${e.data * e.data}`);
+      };
+  });
+  worker.onerror = (e: ErrorEvent) => console.error(e.message);
+  for (let i = 1; i <= 3; i++) worker.postMessage(i);
+  for (let i = 1; i <= 3; i++) {
+      const reply = worker.receive();
+      if (reply != undefined) console.log(reply.data); // squared: 1, squared: 4, squared: 9
+  }
+  worker.terminate();
+  ```
 - `JSON.stringify(value, null, space)` takes numbers, strings, booleans, `null`, arrays of those,
   `JsonValue`s, and classes with a `toJSON()`, which can return a `JsonValue` to write out the class's
   fields. An object literal or a tuple is a `TypeError`, a `BigInt` too. `space` is a number or a
