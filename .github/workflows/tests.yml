@@ -7,6 +7,8 @@ name: Tests
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
     inputs:
       compiler_tag:
@@ -87,12 +89,25 @@ jobs:
         shell: pwsh
         run: |
           $failed = @()
+          New-Item -ItemType Directory -Force results | Out-Null
           foreach ($model in "gc", "rc", "none", "own") {
             Write-Host "=== -mm=$model ==="
             pwsh -NoProfile -File .\tests.ps1 -Model $model
-            if ($LASTEXITCODE -ne 0) { $failed += $model }
+            $outcome = "passing"
+            if ($LASTEXITCODE -ne 0) { $failed += $model; $outcome = "failing" }
+            New-Item -ItemType File "results\windows-$model.$outcome" | Out-Null
           }
           if ($failed.Count -gt 0) { Write-Host "Failed models: $($failed -join ', ')"; exit 1 }
+
+      # Also after a failure: the badges job reports each model from these.
+      - name: Keep the results for the badges
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-windows
+          path: results
+          if-no-files-found: ignore
+          retention-days: 1
 
   test_linux:
     name: Test (Ubuntu 24.04)
@@ -133,8 +148,64 @@ jobs:
         shell: bash
         run: |
           failed=""
+          mkdir -p results
           for model in gc rc none own; do
             echo "=== -mm=$model ==="
-            ./tests.sh "$model" || failed="$failed $model"
+            outcome=passing
+            ./tests.sh "$model" || { failed="$failed $model"; outcome=failing; }
+            touch "results/linux-$model.$outcome"
           done
           if [ -n "$failed" ]; then echo "Failed models:$failed"; exit 1; fi
+
+      - name: Keep the results for the badges
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-linux
+          path: results
+          if-no-files-found: ignore
+          retention-days: 1
+
+  # The README's table of badges, one per OS and memory model. The badge of a workflow can only say
+  # how the whole of it went, so each result goes to the branch `badges` as a shields.io endpoint
+  # file, replacing what was there. Only a push counts: a manual run may use an older compiler.
+  badges:
+    name: Publish the status badges
+    needs: [test_windows, test_linux]
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Collect the results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: results-*
+          path: results
+          merge-multiple: true
+
+      # A model with no result never got as far as its tests (the compiler download or the library
+      # build failed, or the job timed out), and that is a failure too.
+      - name: Write the badge files
+        shell: bash
+        run: |
+          mkdir -p site results
+          for os in windows linux; do
+            for model in gc rc none own; do
+              message="no result"; color=red
+              if [ -f "results/$os-$model.passing" ]; then message=passing; color=brightgreen; fi
+              if [ -f "results/$os-$model.failing" ]; then message=failing; color=red; fi
+              printf '{"schemaVersion":1,"label":"","message":"%s","color":"%s","cacheSeconds":300}\n' "$message" "$color" > "site/$os-$model.json"
+            done
+          done
+
+      - name: Publish them
+        shell: bash
+        working-directory: site
+        run: |
+          git init -q -b badges
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -q -m "Test status of $GITHUB_SHA"
+          git push --force "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" badges
