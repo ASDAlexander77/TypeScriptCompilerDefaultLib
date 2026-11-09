@@ -151,9 +151,19 @@ Globals (`src/lib.ts`):
   ends at its first 0. A value is built with `JsonValue.ofBoolean`, `ofNumber`, `ofString`, `newArray`
   and `newObject`, then `push` and `set`; `clone()` makes a deep copy.
 
+  An object's members and an array's elements can also be reached by key: `value["name"]` is
+  `value.get("name")`, `value[0]` is `value.get(0)`, and `value["name"] = member` and
+  `value[0] = element` call `set`. `get` and `set` take a number for an array and a string for an
+  object. Writing past an array's end leaves JSON nulls before the new element, as in JavaScript; a
+  negative index is a `RangeError`. A key that names a member of `JsonValue` itself (`length`, `kind`,
+  `keys`, ...) is that member, as in TypeScript, so `get` and `set` stay the way to reach a JSON member
+  with such a name. Literal string keys need a compiler with TypeScriptCompiler#799 and #800 (for a
+  `number | string` key); a key in a variable, or a number, works with any. Under `-mm=own`, writes by
+  key crash the compiler for now: use `set` there.
+
   ```ts
   const config = JSON.parse(`{"name":"tslang","sizes":[1,2]}`);
-  console.log(config.get("name").asString(), config.get("sizes").at(1).asNumber());
+  console.log(config["name"].asString(), config["sizes"][1].asNumber());
   ```
 - `console` (static): `log`, `warn`, `error`, `assert`, and `readLine`, which returns the next
   line of standard input without its line break, or `null` at the end of input:

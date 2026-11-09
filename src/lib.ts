@@ -2349,16 +2349,30 @@ export class JsonValue {
         return this;
     }
 
+    // value["name"] and value[0] read through get(), value["name"] = member and value[0] = element
+    // write through set()
+    [key: number | string]: JsonValue;
+
     public has(key: string): boolean {
         this.expect(JSON_OBJECT, "object");
         return this.indexOf(key) >= 0;
     }
 
-    // an object's member, or a JSON null when it has none
+    // An object's member (a string key) or an array's element (a number), or a JSON null when there
+    // is none.
     @lends("this")
-    public get(key: string): JsonValue {
-        this.expect(JSON_OBJECT, "object");
-        const position = this.indexOf(key);
+    public get(key: number | string): JsonValue {
+        let position = -1;
+        if (typeof key == "number") {
+            this.expect(JSON_ARRAY, "array");
+            if (key >= 0 && key < this.items.length) {
+                position = <int>key;
+            }
+        } else {
+            this.expect(JSON_OBJECT, "object");
+            position = this.indexOf(key);
+        }
+
         if (position < 0) {
             return this.nothing();
         }
@@ -2366,17 +2380,36 @@ export class JsonValue {
         return this.items[position];
     }
 
-    // A key already there keeps its place and takes the new value, as in JavaScript.
+    // An object's member (a string key) or an array's element (a number). A key already there keeps
+    // its place and takes the new value, and an element past an array's end leaves JSON nulls before
+    // it, as in JavaScript.
     @lends("this")
     @keeps("value")
-    public set(key: string, value: JsonValue): JsonValue {
-        this.expect(JSON_OBJECT, "object");
-        let position = this.indexOf(key);
-        if (position < 0) {
-            position = this.items.length;
-            // a copy: only this path takes the key, and under -mm=own a parameter is taken on every path or none
-            this.names.push(key + "");
-            this.items.length = position + 1;
+    public set(key: number | string, value: JsonValue): JsonValue {
+        let position = -1;
+        if (typeof key == "number") {
+            this.expect(JSON_ARRAY, "array");
+            if (key < 0) {
+                throw new RangeError("JSON array index is negative");
+            }
+
+            position = <int>key;
+            while (this.items.length < position) {
+                this.items.push(new JsonValue());
+            }
+
+            if (position == this.items.length) {
+                this.items.length = position + 1;
+            }
+        } else {
+            this.expect(JSON_OBJECT, "object");
+            position = this.indexOf(key);
+            if (position < 0) {
+                position = this.items.length;
+                // a copy: only this path takes the key, and under -mm=own a parameter is taken on every path or none
+                this.names.push(key + "");
+                this.items.length = position + 1;
+            }
         }
 
         // in one place, for the same reason
