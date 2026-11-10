@@ -10,13 +10,16 @@ function main() {
     assert(words.flat().join("") == "abc", "flat, strings");
 
     // flatMap: map, then flat
-    const doubled = [1, 2, 3].flatMap((v: number) => [v, v * 10]);
+    // each callback takes the index too, and the arrays are typed: a literal [1, 2, 3] is an s32[],
+    // which a callback taking a number does not match
+    const ones: number[] = [1, 2, 3];
+    const doubled = ones.flatMap((v: number, i: number) => [v, v * 10]);
     assert(doubled.join(",") == "1,10,2,20,3,30", "flatMap");
     const indexes = ["x", "y"].flatMap((v: string, i: number) => [`${v}${i}`]);
     assert(indexes.join(",") == "x0,y1", "flatMap with the index");
-    const none = [1, 2].flatMap((v: number) => { const empty: number[] = []; return empty; });
+    const none = ones.flatMap((v: number, i: number) => { const empty: number[] = []; return empty; });
     assert(none.length == 0, "flatMap to nothing");
-    const split = ["a b", "c"].flatMap((v: string) => v.split(" "));
+    const split = ["a b", "c"].flatMap((v: string, i: number) => v.split(" "));
     assert(split.join(",") == "a,b,c", "flatMap of strings made at run time");
 
     // toSpliced: splice on a copy
@@ -36,7 +39,7 @@ function main() {
     a.push("a", "b", "c");
     assert(a.toSpliced(1, 1, "x", "y").join(",") == "a,x,y,c", "Array<T>.toSpliced");
     assert(a.length == 3, "Array<T> as it was");
-    assert(a.flatMap((v: string) => [v, v]).join("") == "aabbcc", "Array<T>.flatMap");
+    assert(a.flatMap((v: string, i: number) => [v, v]).join("") == "aabbcc", "Array<T>.flatMap");
 
     console.log("ALL DONE");
 }

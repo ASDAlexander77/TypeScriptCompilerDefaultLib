@@ -1,8 +1,12 @@
 // not own: Map.groupBy gives arrays as a Map's values, which -mm=own does not take.
 function main() {
     const items = ["apple", "avocado", "banana", "blueberry", "cherry"];
-    const byLetter = Map.groupBy(items, (item: string, i: number) => item[0]);
+    // substring, not item[0]: a string key, as get("a") gives
+    const byLetter = Map.groupBy(items, (item: string, i: number) => item.substring(0, 1));
     assert(byLetter.size == 3, "three groups");
+    for (const [key, group] of byLetter) {
+        console.log(key, group.join(","));
+    }
 
     const a = byLetter.get("a");
     assert(a != undefined && a.join(",") == "apple,avocado", "the items, in their order");
