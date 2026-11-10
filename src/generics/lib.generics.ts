@@ -1386,7 +1386,9 @@ namespace process {
             const entry = __os_text(tslang_os_entry(i));
             const equals = entry.indexOf("=");
             if (equals > 0) {
-                vars.push([entry.substring(0, equals), entry.substring(equals + 1)]);
+                // typed: a bare literal is a string[], not a pair
+                const pair: [string, string] = [entry.substring(0, equals), entry.substring(equals + 1)];
+                vars.push(pair);
             }
         }
 
