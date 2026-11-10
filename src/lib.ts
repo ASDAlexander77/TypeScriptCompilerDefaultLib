@@ -1353,6 +1353,25 @@ class StringIterator implements ClassIterator<string> {
 }
 */
 
+// `code`, a code point, as its UTF-8 bytes
+function utf8Push(buffer: char[], code: int): void {
+    if (code < 0x80) {
+        buffer.push(<char>code);
+    } else if (code < 0x800) {
+        buffer.push(<char>(0xC0 | (code >> 6)));
+        buffer.push(<char>(0x80 | (code & 0x3F)));
+    } else if (code < 0x10000) {
+        buffer.push(<char>(0xE0 | (code >> 12)));
+        buffer.push(<char>(0x80 | ((code >> 6) & 0x3F)));
+        buffer.push(<char>(0x80 | (code & 0x3F)));
+    } else {
+        buffer.push(<char>(0xF0 | (code >> 18)));
+        buffer.push(<char>(0x80 | ((code >> 12) & 0x3F)));
+        buffer.push(<char>(0x80 | ((code >> 6) & 0x3F)));
+        buffer.push(<char>(0x80 | (code & 0x3F)));
+    }
+}
+
 @final
 export class String {
 
@@ -1375,21 +1394,27 @@ export class String {
                 }
             }
 
-            if (code < 0x80) {
-                buffer.push(<char>code);
-            } else if (code < 0x800) {
-                buffer.push(<char>(0xC0 | (code >> 6)));
-                buffer.push(<char>(0x80 | (code & 0x3F)));
-            } else if (code < 0x10000) {
-                buffer.push(<char>(0xE0 | (code >> 12)));
-                buffer.push(<char>(0x80 | ((code >> 6) & 0x3F)));
-                buffer.push(<char>(0x80 | (code & 0x3F)));
-            } else {
-                buffer.push(<char>(0xF0 | (code >> 18)));
-                buffer.push(<char>(0x80 | ((code >> 12) & 0x3F)));
-                buffer.push(<char>(0x80 | ((code >> 6) & 0x3F)));
-                buffer.push(<char>(0x80 | (code & 0x3F)));
+            utf8Push(buffer, code);
+        }
+
+        buffer.push(<char>0);
+        // a copy: buffer goes with this function
+        return <string><Opaque>Ref(buffer[0]) + "";
+    }
+
+    // Each code point as its UTF-8 bytes (strings are UTF-8): `String.fromCodePoint(0x1F600)` is "😀",
+    // one character of four bytes. A code point outside 0 to 0x10FFFF is a RangeError; a lone
+    // surrogate (0xD800 to 0xDFFF) is written as is, as JavaScript keeps it. A string ends at its
+    // first 0, so a 0 code point ends the result there.
+    public static fromCodePoint(...codePoints: int[]): string {
+        let buffer: char[] = [];
+        for (let i = 0; i < codePoints.length; i++) {
+            const code = codePoints[i];
+            if (code < 0 || code > 0x10FFFF) {
+                throw new RangeError(`Invalid code point ${code}`);
             }
+
+            utf8Push(buffer, code);
         }
 
         buffer.push(<char>0);

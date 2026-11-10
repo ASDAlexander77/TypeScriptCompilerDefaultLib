@@ -34,6 +34,31 @@ function __is_any<V extends never>(t: V): t is V {
     return true;
 }
 
+// What toSpliced gives, for T[] and Array<T> alike: a copy of `source` with `deleteCount` elements at
+// `start` replaced by `items`. A negative start counts from the end; both are clamped into range.
+// The items are moved in (their caller gives them up, as push's do); the rest are shared, as slice's.
+function __toSpliced<T>(source: T[], start: int, deleteCount: int, items: T[]): T[] {
+    const length = source.length;
+    if (start < 0) {
+        start = start + length < 0 ? 0 : start + length;
+    } else if (start > length) {
+        start = length;
+    }
+
+    let count = deleteCount;
+    if (count < 0) {
+        count = 0;
+    } else if (count > length - start) {
+        count = length - start;
+    }
+
+    const result: T[] = [];
+    for (let i = 0; i < start; i++) result.push(source[i]);
+    while (items.length > 0) result.push(items.shift());
+    for (let i = start + count; i < length; i++) result.push(source[i]);
+    return result;
+}
+
 namespace __Array {
     function at<T>(this: T[], index: int) {
         return this[index];
@@ -457,6 +482,38 @@ namespace __Array {
         newArray[index] = value;
         return newArray;
     }
+
+    // One level of nesting taken away: [[1, 2], [3]].flat() is [1, 2, 3]. Only one level: a depth
+    // would make the result's type depend on a number.
+    @sharesElements
+    function flat<T>(this: T[][]): T[] {
+        const result: T[] = [];
+        for (const inner of this) {
+            for (const v of inner) result.push(v);
+        }
+
+        return result;
+    }
+
+    // map, then flat: each element becomes the elements of the array `func` gives for it
+    @sharesElements
+    function flatMap<T, V>(this: T[], func: (v: T, i: number) => V[]): V[] {
+        const result: V[] = [];
+        for (let i = 0; i < this.length; i++) {
+            // moved out of the array func made, which goes when this loop turns
+            const mapped = func(this[i], i);
+            while (mapped.length > 0) result.push(mapped.shift());
+        }
+
+        return result;
+    }
+
+    // splice on a copy: the array itself stays as it is. Without deleteCount every element from
+    // `start` on goes.
+    @sharesElements
+    function toSpliced<T>(this: T[], start: int, deleteCount?: int, ...items: T[]): T[] {
+        return __toSpliced(this, start, deleteCount === undefined ? this.length : deleteCount, items);
+    }
 }
 
 // -mm=own: the array owns its elements. push, unshift and splice take what they are given (their
@@ -698,6 +755,16 @@ class Array<T> {
     @sharesElements
     public _with(index: int, value: T) {
         return this.data._with(index, value);
+    }
+
+    @sharesElements
+    public flatMap<V>(func: (v: T, i: number) => V[]): V[] {
+        return this.data.flatMap<V>(func);
+    }
+
+    @sharesElements
+    public toSpliced(start: int, deleteCount?: int, ...items: T[]): T[] {
+        return __toSpliced(this.data, start, deleteCount === undefined ? this.data.length : deleteCount, items);
     }
 }
 
@@ -1301,6 +1368,302 @@ namespace Stdio {
         }
 
         return stdio_write_bytes(2, <Opaque>bytes.__elementRef(0), bytes.length);
+    }
+}
+
+// The text an os call left (wrappers/os.cpp), `length` bytes of it, as a string of its own.
+// T is the length's type, taken from the argument: a type parameter nothing names can't be
+// worked out where one generic function calls another.
+function __os_text<T = int>(length: T): string {
+    const buffer: u8[] = [];
+    buffer.length = length + 1;
+    buffer[length] = 0;
+    if (length > 0) {
+        tslang_os_result_copy_to(<Opaque>Ref(buffer[0]), length);
+    }
+
+    // a copy: buffer goes with this function
+    return <string><Opaque>Ref(buffer[0]) + "";
+}
+
+// The same, as bytes.
+function __os_bytes<T = int>(length: T): Uint8Array {
+    const bytes: u8[] = [];
+    bytes.length = length;
+    if (length > 0) {
+        tslang_os_result_copy_to(<Opaque>Ref(bytes[0]), length);
+    }
+
+    return new Uint8Array(bytes);
+}
+
+// The error an os call ran into, in Node's words: "ENOENT: no such file or directory, open 'a.txt'".
+// `length` is tslang_os_result_length()
+function __os_error<T = int>(length: T): Error {
+    return new Error(__os_text(length));
+}
+
+// The process, as Node's `process` has it, with functions where Node has properties: process.argv()
+// rather than process.argv. See docs/process-fs.md.
+namespace process {
+    // The command line: argv()[0] is the program. Under the JIT the program is tslang, so its
+    // options come next, then the script, then the script's arguments - as with `node script.js`.
+    function argv<T = int>(): string[] {
+        const args: string[] = [];
+        const count = tslang_process_argc();
+        for (let i = 0; i < count; i++) {
+            args.push(__os_text(tslang_process_argv(i)));
+        }
+
+        return args;
+    }
+
+    // the variable's value, or undefined when it is not set
+    function getEnv<T = int>(name: string): string | undefined {
+        const length = tslang_process_getenv(name);
+        if (length < 0) {
+            return undefined;
+        }
+
+        return __os_text(length);
+    }
+
+    // sets the variable for this process and the processes it starts; an empty name, or one with
+    // an "=", is an Error
+    function setEnv<T = int>(name: string, value: string): void {
+        if (tslang_process_setenv(name, value) != 0) {
+            throw __os_error(tslang_os_result_length());
+        }
+    }
+
+    // a variable that is not set is not an error
+    function unsetEnv<T = int>(name: string): void {
+        if (tslang_process_unsetenv(name) != 0) {
+            throw __os_error(tslang_os_result_length());
+        }
+    }
+
+    // Every variable, [name, value]. Not a Map: this is above the Map class, and naming
+    // Map<string, string> here made that type before Map was declared - the program's own
+    // Map<string, string> then had no members.
+    function env<T = int>(): [string, string][] {
+        const vars: [string, string][] = [];
+        const count = tslang_process_env_count();
+        for (let i = 0; i < count; i++) {
+            const entry = __os_text(tslang_os_entry(i));
+            const equals = entry.indexOf("=");
+            if (equals > 0) {
+                // typed: a bare literal is a string[], not a pair
+                const pair: [string, string] = [entry.substring(0, equals), entry.substring(equals + 1)];
+                vars.push(pair);
+            }
+        }
+
+        return vars;
+    }
+
+    // the working directory
+    function cwd<T = int>(): string {
+        const length = tslang_process_cwd();
+        if (length < 0) {
+            throw __os_error(tslang_os_result_length());
+        }
+
+        return __os_text(length);
+    }
+
+    function chdir<T = int>(directory: string): void {
+        if (tslang_process_chdir(directory) != 0) {
+            throw __os_error(tslang_os_result_length());
+        }
+    }
+
+    function pid<T = int>(): int {
+        return tslang_process_pid();
+    }
+
+    // "win32", "linux", "android" or "darwin", as Node's process.platform
+    function platform<T = int>(): string {
+        return __os_text(tslang_process_platform());
+    }
+
+    // Ends the process with `code`, once every stream is flushed. Nothing after it runs: no
+    // finally block, no destructor.
+    function exit<T = int>(code = 0): void {
+        tslang_process_exit(code);
+    }
+}
+
+// What fs.statSync tells of a path; symbolic links are followed.
+interface FileStats {
+    isFile: boolean;
+    isDirectory: boolean;
+    // in bytes
+    size: number;
+    // the last modification, in milliseconds since 1970 as Date takes them
+    mtimeMs: number;
+}
+
+interface MkdirOptions {
+    // every missing parent too, and a directory already there is no error
+    recursive?: boolean;
+}
+
+interface RmOptions {
+    // a directory, and all it holds
+    recursive?: boolean;
+    // nothing there is no error
+    force?: boolean;
+}
+
+// The file system, synchronously, by Node's names: readFileSync gives bytes, readTextFileSync (as
+// Deno names it) a string. An error is an Error with Node's message. Paths are UTF-8.
+// See docs/process-fs.md.
+namespace fs {
+    function existsSync<T = int>(path: string): boolean {
+        let size: number = 0;
+        let mtimeMs: number = 0;
+        return tslang_fs_stat(path, Ref(size), Ref(mtimeMs)) > 0;
+    }
+
+    function statSync<T = int>(path: string): FileStats {
+        let size: number = 0;
+        let mtimeMs: number = 0;
+        const kind = tslang_fs_stat(path, Ref(size), Ref(mtimeMs));
+        if (kind < 0) {
+            throw __os_error(tslang_os_result_length());
+        }
+
+        return { isFile: kind == 1, isDirectory: kind == 2, size: size, mtimeMs: mtimeMs };
+    }
+
+    // the file's bytes
+    function readFileSync<T = u8>(path: string): Uint8Array {
+        const length = tslang_fs_read_file(path);
+        if (length < 0) {
+            throw __os_error(tslang_os_result_length());
+        }
+
+        return __os_bytes(length);
+    }
+
+    // The file as text, UTF-8. A string ends at its first 0, so a 0 byte ends the text there:
+    // readFileSync for a file that is not text.
+    function readTextFileSync<T = int>(path: string): string {
+        const length = tslang_fs_read_file(path);
+        if (length < 0) {
+            throw __os_error(tslang_os_result_length());
+        }
+
+        return __os_text(length);
+    }
+
+    // Writes the bytes to the file, which it creates or else empties first.
+    function writeFileSync<T = u8>(path: string, data: Uint8Array): void {
+        const empty = "";
+        const status = data.length > 0
+            ? tslang_fs_write_file(path, <Opaque>data.__elementRef(0), data.length, 0)
+            : tslang_fs_write_file(path, <Opaque>empty, 0, 0);
+        if (status != 0) {
+            throw __os_error(tslang_os_result_length());
+        }
+    }
+
+    function writeTextFileSync<T = int>(path: string, text: string): void {
+        if (tslang_fs_write_file(path, <Opaque>text, text.length, 0) != 0) {
+            throw __os_error(tslang_os_result_length());
+        }
+    }
+
+    // Adds the bytes at the file's end; a file that is not there is created.
+    function appendFileSync<T = u8>(path: string, data: Uint8Array): void {
+        if (data.length == 0) {
+            const empty = "";
+            if (tslang_fs_write_file(path, <Opaque>empty, 0, 1) != 0) {
+                throw __os_error(tslang_os_result_length());
+            }
+
+            return;
+        }
+
+        if (tslang_fs_write_file(path, <Opaque>data.__elementRef(0), data.length, 1) != 0) {
+            throw __os_error(tslang_os_result_length());
+        }
+    }
+
+    function appendTextFileSync<T = int>(path: string, text: string): void {
+        if (tslang_fs_write_file(path, <Opaque>text, text.length, 1) != 0) {
+            throw __os_error(tslang_os_result_length());
+        }
+    }
+
+    // the names in the directory, sorted; not "." or ".."
+    function readdirSync<T = int>(path: string): string[] {
+        const count = tslang_fs_read_dir(path);
+        if (count < 0) {
+            throw __os_error(tslang_os_result_length());
+        }
+
+        const names: string[] = [];
+        for (let i = 0; i < count; i++) {
+            names.push(__os_text(tslang_os_entry(i)));
+        }
+
+        return names;
+    }
+
+    function mkdirSync<T = int>(path: string, options?: MkdirOptions): void {
+        let recursive = false;
+        if (options != undefined) {
+            if (options.recursive != undefined) {
+                recursive = options.recursive;
+            }
+        }
+
+        if (tslang_fs_mkdir(path, recursive ? 1 : 0) != 0) {
+            throw __os_error(tslang_os_result_length());
+        }
+    }
+
+    // A file, or with `recursive` a directory and all it holds. With `force` a path that is not
+    // there is no error.
+    function rmSync<T = int>(path: string, options?: RmOptions): void {
+        let recursive = false;
+        let force = false;
+        if (options != undefined) {
+            if (options.recursive != undefined) {
+                recursive = options.recursive;
+            }
+
+            if (options.force != undefined) {
+                force = options.force;
+            }
+        }
+
+        if (tslang_fs_remove(path, recursive ? 1 : 0, force ? 1 : 0) != 0) {
+            throw __os_error(tslang_os_result_length());
+        }
+    }
+
+    // an empty directory
+    function rmdirSync<T = int>(path: string): void {
+        if (tslang_fs_rmdir(path) != 0) {
+            throw __os_error(tslang_os_result_length());
+        }
+    }
+
+    // a file already at `newPath` is replaced
+    function renameSync<T = int>(oldPath: string, newPath: string): void {
+        if (tslang_fs_rename(oldPath, newPath) != 0) {
+            throw __os_error(tslang_os_result_length());
+        }
+    }
+
+    // a file already at `dest` is replaced
+    function copyFileSync<T = int>(src: string, dest: string): void {
+        if (tslang_fs_copy_file(src, dest) != 0) {
+            throw __os_error(tslang_os_result_length());
+        }
     }
 }
 
@@ -2039,6 +2402,37 @@ class Map<K = any, V = any> {
     }
 }
 
+
+static class Map {
+    // The items in groups, by the key `keySelector` gives each: the groups in the order their keys
+    // first come, the items in each in their own order. Each group is made whole before it goes into
+    // the map, a pass over the items for each, rather than pushed to through map.get(key).
+    // Not under -mm=own, where a Map's values are values, strings, `any` or Shared<T>, not arrays.
+    public groupBy<K, T>(items: T[], keySelector: (item: T, index: number) => K): Map<K, T[]> {
+        const keys: K[] = [];
+        for (let i = 0; i < items.length; i++) {
+            keys.push(keySelector(items[i], i));
+        }
+
+        const groups = new Map<K, T[]>();
+        for (let i = 0; i < keys.length; i++) {
+            if (groups.has(keys[i])) {
+                continue;
+            }
+
+            const group: T[] = [];
+            for (let j = i; j < keys.length; j++) {
+                if (keys[j] == keys[i]) {
+                    group.push(items[j]);
+                }
+            }
+
+            groups.set(keys[i], group);
+        }
+
+        return groups;
+    }
+}
 
 type SetEntry<TValue> =
     {

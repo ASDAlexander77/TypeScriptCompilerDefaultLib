@@ -133,6 +133,7 @@ A test that reads standard input (`console.readLine`) gets it from `tests/<name>
 ## Docs
 
 - [fetch / Headers / Response](docs/fetch.md) — built-in HTTP client
+- [process / fs](docs/process-fs.md) — the command line, the environment and the file system
 
 ## Implemented classes & functions
 
@@ -145,7 +146,7 @@ Globals (`src/lib.ts`):
 - `Date`
 - `RegExp`, `MatchResults`, `MatchIndicesResults`
 - `String`: `String.fromCharCode` (each code written as UTF-8, a surrogate pair as one
-  character), plus the `string` prototype methods it wraps: `at`, `charAt`, `charCodeAt`,
+  character), `String.fromCodePoint` (each code point as UTF-8; outside 0 to 0x10FFFF a `RangeError`), plus the `string` prototype methods it wraps: `at`, `charAt`, `charCodeAt`,
   `codePointAt`, `concat`, `endsWith`, `includes`, `indexOf`, `lastIndexOf`,
   `localeCompare`, `match`, `matchAll`, `normalize`, `padEnd`, `padStart`, `repeat`,
   `replace`, `replaceAll`, `search`, `slice`, `split`, `startsWith`, `substring`,
@@ -192,7 +193,10 @@ Generics (`src/generics/lib.generics.ts`):
   `Int16Array`, `Uint16Array`, `Int32Array`, `Uint32Array`, `BigInt64Array`,
   `BigUint64Array`, `Float32Array`, `Float64Array`). A typed array is made from an array of
   its elements (`new Uint8Array([1, 2, 3])`) or a length (`new Uint8Array(4096)`, each element 0)
-- `Map<K, V>`
+- `T[]` and `Array<T>` also have `flatMap`, `toSpliced` (`splice` on a copy), and `T[][]` has
+  `flat()`, which takes away one level only: a depth would make the result's type depend on a number
+- `Map<K, V>`, and `Map.groupBy(items, keySelector)`, a `Map` of each key to its items, the keys in
+  the order they first come (not under `-mm=own`, whose Map values cannot be arrays)
 - `Set<V>`
 - `Atomics`: `add`, `sub`, `and`, `or`, `xor`, `exchange`, `compareExchange`, `load`,
   `store`, `isLockFree` over the integer typed arrays, and `wait`/`notify` over an
@@ -289,6 +293,25 @@ Generics (`src/generics/lib.generics.ts`):
   ```ts
   const text = new TextDecoder().decode(Stdio.readAll());
   Stdio.write(new TextEncoder().encode(text.toUpperCase()));
+  ```
+- `process`, as Node's, with functions where Node has properties: `argv()`, `getEnv(name)` (or
+  `undefined`), `setEnv`, `unsetEnv`, `env()` (`[name, value]` pairs), `cwd()`, `chdir`, `pid()`, `platform()`,
+  `exit(code)`. See [docs/process-fs.md](docs/process-fs.md).
+- `fs`, synchronous, by Node's names: `existsSync`, `statSync`, `readFileSync` (a `Uint8Array`),
+  `readTextFileSync` (a string), `writeFileSync`, `writeTextFileSync`, `appendFileSync`,
+  `appendTextFileSync`, `readdirSync` (sorted), `mkdirSync` (`{ recursive }`), `rmSync`
+  (`{ recursive, force }`), `rmdirSync`, `renameSync`, `copyFileSync`. An error is an `Error` with
+  Node's message, `"ENOENT: no such file or directory, open 'a.txt'"`. See
+  [docs/process-fs.md](docs/process-fs.md).
+
+  ```ts
+  const args = process.argv();
+  const name = args[args.length - 1];
+  if (!fs.existsSync(name)) {
+      console.error(`${name}: not found`);
+      process.exit(1);
+  }
+  fs.writeTextFileSync(name + ".upper", fs.readTextFileSync(name).toUpperCase());
   ```
 
 Errors (`src/core/core.d.ts`):

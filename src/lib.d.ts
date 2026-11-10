@@ -375,6 +375,8 @@ declare class String {
 
     static fromCharCode(...codes: int[]): string;
 
+    static fromCodePoint(...codePoints: int[]): string;
+
     at(index: int): string;
 
     charAt(this: string, index: int): string;

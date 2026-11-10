@@ -120,14 +120,14 @@ md "%OBJ%" "%LIB_OUT%"
 rem thread.cpp registers the threads it starts with the collector, which only the gc build links
 set WRAPPER_MM_DEF=
 if "%MM%"=="gc" set WRAPPER_MM_DEF=-DTSLANG_MM_GC
-for %%w in (io datetime regex thread http_stub memory) do (
+for %%w in (io datetime regex thread http_stub memory os) do (
     %CXX% %WRAPPER_MM_DEF% -c "%ROOT%\src\wrappers\%%w.cpp" -o "%OBJ%\%%w.o" || exit /b 1
 )
 
 %TSC% "%ROOT%\src\lib.linux.ts" -o "%OBJ%\lib.linux.o" || exit /b 1
 %TSC% "%ROOT%\src\lib.ts" -o "%OBJ%\lib.o" || exit /b 1
 
-set OBJS="%OBJ%\lib.o" "%OBJ%\lib.linux.o" "%OBJ%\io.o" "%OBJ%\datetime.o" "%OBJ%\regex.o" "%OBJ%\thread.o" "%OBJ%\http_stub.o" "%OBJ%\memory.o"
+set OBJS="%OBJ%\lib.o" "%OBJ%\lib.linux.o" "%OBJ%\io.o" "%OBJ%\datetime.o" "%OBJ%\regex.o" "%OBJ%\thread.o" "%OBJ%\http_stub.o" "%OBJ%\memory.o" "%OBJ%\os.o"
 %AR% rcs "%LIB_OUT%\libTypeScriptDefaultLib.a" %OBJS% || exit /b 1
 
 rd /s /q "%OBJ%"

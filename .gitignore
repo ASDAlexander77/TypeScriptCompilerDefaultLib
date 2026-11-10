@@ -12,3 +12,4 @@
 *.pdb
 *.log
 __jit/
+__fs_test/
