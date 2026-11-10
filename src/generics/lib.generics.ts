@@ -1304,6 +1304,295 @@ namespace Stdio {
     }
 }
 
+// The text an os call left (wrappers/os.cpp), `length` bytes of it, as a string of its own.
+function __os_text<T = int>(length: int): string {
+    let buffer: char[] = [];
+    buffer.length = length + 1;
+    buffer[length] = null;
+    if (length > 0) {
+        tslang_os_result_copy_to(<Opaque>Ref(buffer[0]), length);
+    }
+
+    // a copy: buffer goes with this function
+    return <string><Opaque>Ref(buffer[0]) + "";
+}
+
+// The same, as bytes.
+function __os_bytes<T = u8>(length: int): Uint8Array {
+    const bytes: u8[] = [];
+    bytes.length = length;
+    if (length > 0) {
+        tslang_os_result_copy_to(<Opaque>Ref(bytes[0]), length);
+    }
+
+    return new Uint8Array(bytes);
+}
+
+// The error an os call ran into, in Node's words: "ENOENT: no such file or directory, open 'a.txt'".
+function __os_error<T = int>(): Error {
+    return new Error(__os_text(tslang_os_result_length()));
+}
+
+// The process, as Node's `process` has it, with functions where Node has properties: process.argv()
+// rather than process.argv. See docs/process-fs.md.
+namespace process {
+    // The command line: argv()[0] is the program. Under the JIT the program is tslang, so its
+    // options come next, then the script, then the script's arguments - as with `node script.js`.
+    function argv<T = int>(): string[] {
+        const args: string[] = [];
+        const count = tslang_process_argc();
+        for (let i = 0; i < count; i++) {
+            args.push(__os_text(tslang_process_argv(i)));
+        }
+
+        return args;
+    }
+
+    // the variable's value, or undefined when it is not set
+    function getEnv<T = int>(name: string): string | undefined {
+        const length = tslang_process_getenv(name);
+        if (length < 0) {
+            return undefined;
+        }
+
+        return __os_text(length);
+    }
+
+    // sets the variable for this process and the processes it starts; an empty name, or one with
+    // an "=", is an Error
+    function setEnv<T = int>(name: string, value: string): void {
+        if (tslang_process_setenv(name, value) != 0) {
+            throw __os_error();
+        }
+    }
+
+    // a variable that is not set is not an error
+    function unsetEnv<T = int>(name: string): void {
+        if (tslang_process_unsetenv(name) != 0) {
+            throw __os_error();
+        }
+    }
+
+    // every variable, by name
+    function env<T = int>(): Map<string, string> {
+        const vars = new Map<string, string>();
+        const count = tslang_process_env_count();
+        for (let i = 0; i < count; i++) {
+            const entry = __os_text(tslang_os_entry(i));
+            const equals = entry.indexOf("=");
+            if (equals > 0) {
+                vars.set(entry.substring(0, equals), entry.substring(equals + 1));
+            }
+        }
+
+        return vars;
+    }
+
+    // the working directory
+    function cwd<T = int>(): string {
+        const length = tslang_process_cwd();
+        if (length < 0) {
+            throw __os_error();
+        }
+
+        return __os_text(length);
+    }
+
+    function chdir<T = int>(directory: string): void {
+        if (tslang_process_chdir(directory) != 0) {
+            throw __os_error();
+        }
+    }
+
+    function pid<T = int>(): int {
+        return tslang_process_pid();
+    }
+
+    // "win32", "linux", "android" or "darwin", as Node's process.platform
+    function platform<T = int>(): string {
+        return __os_text(tslang_process_platform());
+    }
+
+    // Ends the process with `code`, once every stream is flushed. Nothing after it runs: no
+    // finally block, no destructor.
+    function exit<T = int>(code = 0): void {
+        tslang_process_exit(code);
+    }
+}
+
+// What fs.statSync tells of a path; symbolic links are followed.
+interface FileStats {
+    isFile: boolean;
+    isDirectory: boolean;
+    // in bytes
+    size: number;
+    // the last modification, in milliseconds since 1970 as Date takes them
+    mtimeMs: number;
+}
+
+interface MkdirOptions {
+    // every missing parent too, and a directory already there is no error
+    recursive?: boolean;
+}
+
+interface RmOptions {
+    // a directory, and all it holds
+    recursive?: boolean;
+    // nothing there is no error
+    force?: boolean;
+}
+
+// The file system, synchronously, by Node's names: readFileSync gives bytes, readTextFileSync (as
+// Deno names it) a string. An error is an Error with Node's message. Paths are UTF-8.
+// See docs/process-fs.md.
+namespace fs {
+    function existsSync<T = int>(path: string): boolean {
+        let size: number = 0;
+        let mtimeMs: number = 0;
+        return tslang_fs_stat(path, Ref(size), Ref(mtimeMs)) > 0;
+    }
+
+    function statSync<T = int>(path: string): FileStats {
+        let size: number = 0;
+        let mtimeMs: number = 0;
+        const kind = tslang_fs_stat(path, Ref(size), Ref(mtimeMs));
+        if (kind < 0) {
+            throw __os_error();
+        }
+
+        return { isFile: kind == 1, isDirectory: kind == 2, size: size, mtimeMs: mtimeMs };
+    }
+
+    // the file's bytes
+    function readFileSync<T = u8>(path: string): Uint8Array {
+        const length = tslang_fs_read_file(path);
+        if (length < 0) {
+            throw __os_error();
+        }
+
+        return __os_bytes(length);
+    }
+
+    // The file as text, UTF-8. A string ends at its first 0, so a 0 byte ends the text there:
+    // readFileSync for a file that is not text.
+    function readTextFileSync<T = int>(path: string): string {
+        const length = tslang_fs_read_file(path);
+        if (length < 0) {
+            throw __os_error();
+        }
+
+        return __os_text(length);
+    }
+
+    // Writes the bytes to the file, which it creates or else empties first.
+    function writeFileSync<T = u8>(path: string, data: Uint8Array): void {
+        const empty = "";
+        const status = data.length > 0
+            ? tslang_fs_write_file(path, <Opaque>data.__elementRef(0), data.length, 0)
+            : tslang_fs_write_file(path, <Opaque>empty, 0, 0);
+        if (status != 0) {
+            throw __os_error();
+        }
+    }
+
+    function writeTextFileSync<T = int>(path: string, text: string): void {
+        if (tslang_fs_write_file(path, <Opaque>text, text.length, 0) != 0) {
+            throw __os_error();
+        }
+    }
+
+    // Adds the bytes at the file's end; a file that is not there is created.
+    function appendFileSync<T = u8>(path: string, data: Uint8Array): void {
+        if (data.length == 0) {
+            const empty = "";
+            if (tslang_fs_write_file(path, <Opaque>empty, 0, 1) != 0) {
+                throw __os_error();
+            }
+
+            return;
+        }
+
+        if (tslang_fs_write_file(path, <Opaque>data.__elementRef(0), data.length, 1) != 0) {
+            throw __os_error();
+        }
+    }
+
+    function appendTextFileSync<T = int>(path: string, text: string): void {
+        if (tslang_fs_write_file(path, <Opaque>text, text.length, 1) != 0) {
+            throw __os_error();
+        }
+    }
+
+    // the names in the directory, sorted; not "." or ".."
+    function readdirSync<T = int>(path: string): string[] {
+        const count = tslang_fs_read_dir(path);
+        if (count < 0) {
+            throw __os_error();
+        }
+
+        const names: string[] = [];
+        for (let i = 0; i < count; i++) {
+            names.push(__os_text(tslang_os_entry(i)));
+        }
+
+        return names;
+    }
+
+    function mkdirSync<T = int>(path: string, options?: MkdirOptions): void {
+        let recursive = false;
+        if (options != undefined) {
+            if (options.recursive != undefined) {
+                recursive = options.recursive;
+            }
+        }
+
+        if (tslang_fs_mkdir(path, recursive ? 1 : 0) != 0) {
+            throw __os_error();
+        }
+    }
+
+    // A file, or with `recursive` a directory and all it holds. With `force` a path that is not
+    // there is no error.
+    function rmSync<T = int>(path: string, options?: RmOptions): void {
+        let recursive = false;
+        let force = false;
+        if (options != undefined) {
+            if (options.recursive != undefined) {
+                recursive = options.recursive;
+            }
+
+            if (options.force != undefined) {
+                force = options.force;
+            }
+        }
+
+        if (tslang_fs_remove(path, recursive ? 1 : 0, force ? 1 : 0) != 0) {
+            throw __os_error();
+        }
+    }
+
+    // an empty directory
+    function rmdirSync<T = int>(path: string): void {
+        if (tslang_fs_rmdir(path) != 0) {
+            throw __os_error();
+        }
+    }
+
+    // a file already at `newPath` is replaced
+    function renameSync<T = int>(oldPath: string, newPath: string): void {
+        if (tslang_fs_rename(oldPath, newPath) != 0) {
+            throw __os_error();
+        }
+    }
+
+    // a file already at `dest` is replaced
+    function copyFileSync<T = int>(src: string, dest: string): void {
+        if (tslang_fs_copy_file(src, dest) != 0) {
+            throw __os_error();
+        }
+    }
+}
+
 // Strings are UTF-8 already, so encoding is a copy of their bytes. UTF-8 only, as in JavaScript.
 // Generic, as every class here is: a plain one would be built into the library and into every
 // program, and a debug link then finds it twice. `new TextEncoder()` takes the default.

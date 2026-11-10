@@ -149,3 +149,32 @@ declare function GC_gcollect(): void;
 @nodrops declare function http_response_body_length(r: Opaque): index;
 @nodrops declare function http_response_body_copy_to(r: Opaque, buffer: string, count: index): void;
 @nodrops declare function http_response_free(r: Opaque): void;
+
+// process and fs (wrappers/os.cpp). A call leaves its text - a file's bytes, an argument, an entry,
+// or an error's message - in a per-thread buffer and gives its length, -1 for an error (or for
+// "not there": an unset variable, an argument past the last); tslang_os_result_copy_to copies it out.
+@nodrops declare function tslang_os_result_length(): int;
+@nodrops declare function tslang_os_result_copy_to(buffer: Opaque, count: int): void;
+// entry `i` of the last tslang_process_env_count or tslang_fs_read_dir
+@nodrops declare function tslang_os_entry(i: int): int;
+@nodrops declare function tslang_process_argc(): int;
+@nodrops declare function tslang_process_argv(i: int): int;
+@nodrops declare function tslang_process_getenv(name: string): int;
+@nodrops declare function tslang_process_setenv(name: string, value: string): int;
+@nodrops declare function tslang_process_unsetenv(name: string): int;
+@nodrops declare function tslang_process_env_count(): int;
+@nodrops declare function tslang_process_cwd(): int;
+@nodrops declare function tslang_process_chdir(path: string): int;
+@nodrops declare function tslang_process_pid(): int;
+@nodrops declare function tslang_process_platform(): int;
+@nodrops declare function tslang_process_exit(code: int): void;
+@nodrops declare function tslang_fs_read_file(path: string): int;
+@nodrops declare function tslang_fs_write_file(path: string, bytes: Opaque, count: int, append: int): int;
+// 1 a file, 2 a directory, 3 something else, -1 an error
+@nodrops declare function tslang_fs_stat(path: string, size: Reference<number>, mtimeMs: Reference<number>): int;
+@nodrops declare function tslang_fs_read_dir(path: string): int;
+@nodrops declare function tslang_fs_mkdir(path: string, recursive: int): int;
+@nodrops declare function tslang_fs_remove(path: string, recursive: int, force: int): int;
+@nodrops declare function tslang_fs_rmdir(path: string): int;
+@nodrops declare function tslang_fs_rename(from: string, to: string): int;
+@nodrops declare function tslang_fs_copy_file(from: string, to: string): int;

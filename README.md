@@ -133,6 +133,7 @@ A test that reads standard input (`console.readLine`) gets it from `tests/<name>
 ## Docs
 
 - [fetch / Headers / Response](docs/fetch.md) — built-in HTTP client
+- [process / fs](docs/process-fs.md) — the command line, the environment and the file system
 
 ## Implemented classes & functions
 
@@ -289,6 +290,25 @@ Generics (`src/generics/lib.generics.ts`):
   ```ts
   const text = new TextDecoder().decode(Stdio.readAll());
   Stdio.write(new TextEncoder().encode(text.toUpperCase()));
+  ```
+- `process`, as Node's, with functions where Node has properties: `argv()`, `getEnv(name)` (or
+  `undefined`), `setEnv`, `unsetEnv`, `env()` (a `Map`), `cwd()`, `chdir`, `pid()`, `platform()`,
+  `exit(code)`. See [docs/process-fs.md](docs/process-fs.md).
+- `fs`, synchronous, by Node's names: `existsSync`, `statSync`, `readFileSync` (a `Uint8Array`),
+  `readTextFileSync` (a string), `writeFileSync`, `writeTextFileSync`, `appendFileSync`,
+  `appendTextFileSync`, `readdirSync` (sorted), `mkdirSync` (`{ recursive }`), `rmSync`
+  (`{ recursive, force }`), `rmdirSync`, `renameSync`, `copyFileSync`. An error is an `Error` with
+  Node's message, `"ENOENT: no such file or directory, open 'a.txt'"`. See
+  [docs/process-fs.md](docs/process-fs.md).
+
+  ```ts
+  const args = process.argv();
+  const name = args[args.length - 1];
+  if (!fs.existsSync(name)) {
+      console.error(`${name}: not found`);
+      process.exit(1);
+  }
+  fs.writeTextFileSync(name + ".upper", fs.readTextFileSync(name).toUpperCase());
   ```
 
 Errors (`src/core/core.d.ts`):
