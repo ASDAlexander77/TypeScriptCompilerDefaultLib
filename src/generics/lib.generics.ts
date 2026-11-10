@@ -34,6 +34,31 @@ function __is_any<V extends never>(t: V): t is V {
     return true;
 }
 
+// What toSpliced gives, for T[] and Array<T> alike: a copy of `source` with `deleteCount` elements at
+// `start` replaced by `items`. A negative start counts from the end; both are clamped into range.
+// The items are moved in (their caller gives them up, as push's do); the rest are shared, as slice's.
+function __toSpliced<T>(source: T[], start: int, deleteCount: int, items: T[]): T[] {
+    const length = source.length;
+    if (start < 0) {
+        start = start + length < 0 ? 0 : start + length;
+    } else if (start > length) {
+        start = length;
+    }
+
+    let count = deleteCount;
+    if (count < 0) {
+        count = 0;
+    } else if (count > length - start) {
+        count = length - start;
+    }
+
+    const result: T[] = [];
+    for (let i = 0; i < start; i++) result.push(source[i]);
+    while (items.length > 0) result.push(items.shift());
+    for (let i = start + count; i < length; i++) result.push(source[i]);
+    return result;
+}
+
 namespace __Array {
     function at<T>(this: T[], index: int) {
         return this[index];
@@ -457,6 +482,38 @@ namespace __Array {
         newArray[index] = value;
         return newArray;
     }
+
+    // One level of nesting taken away: [[1, 2], [3]].flat() is [1, 2, 3]. Only one level: a depth
+    // would make the result's type depend on a number.
+    @sharesElements
+    function flat<T>(this: T[][]): T[] {
+        const result: T[] = [];
+        for (const inner of this) {
+            for (const v of inner) result.push(v);
+        }
+
+        return result;
+    }
+
+    // map, then flat: each element becomes the elements of the array `func` gives for it
+    @sharesElements
+    function flatMap<T, V>(this: T[], func: (v: T, i: number) => V[]): V[] {
+        const result: V[] = [];
+        for (let i = 0; i < this.length; i++) {
+            // moved out of the array func made, which goes when this loop turns
+            const mapped = func(this[i], i);
+            while (mapped.length > 0) result.push(mapped.shift());
+        }
+
+        return result;
+    }
+
+    // splice on a copy: the array itself stays as it is. Without deleteCount every element from
+    // `start` on goes.
+    @sharesElements
+    function toSpliced<T>(this: T[], start: int, deleteCount?: int, ...items: T[]): T[] {
+        return __toSpliced(this, start, deleteCount === undefined ? this.length : deleteCount, items);
+    }
 }
 
 // -mm=own: the array owns its elements. push, unshift and splice take what they are given (their
@@ -698,6 +755,16 @@ class Array<T> {
     @sharesElements
     public _with(index: int, value: T) {
         return this.data._with(index, value);
+    }
+
+    @sharesElements
+    public flatMap<V>(func: (v: T, i: number) => V[]): V[] {
+        return this.data.flatMap<V>(func);
+    }
+
+    @sharesElements
+    public toSpliced(start: int, deleteCount?: int, ...items: T[]): T[] {
+        return __toSpliced(this.data, start, deleteCount === undefined ? this.data.length : deleteCount, items);
     }
 }
 
@@ -2335,6 +2402,37 @@ class Map<K = any, V = any> {
     }
 }
 
+
+static class Map {
+    // The items in groups, by the key `keySelector` gives each: the groups in the order their keys
+    // first come, the items in each in their own order. Each group is made whole before it goes into
+    // the map, a pass over the items for each, rather than pushed to through map.get(key).
+    // Not under -mm=own, where a Map's values are values, strings, `any` or Shared<T>, not arrays.
+    public groupBy<K, T>(items: T[], keySelector: (item: T, index: number) => K): Map<K, T[]> {
+        const keys: K[] = [];
+        for (let i = 0; i < items.length; i++) {
+            keys.push(keySelector(items[i], i));
+        }
+
+        const groups = new Map<K, T[]>();
+        for (let i = 0; i < keys.length; i++) {
+            if (groups.has(keys[i])) {
+                continue;
+            }
+
+            const group: T[] = [];
+            for (let j = i; j < keys.length; j++) {
+                if (keys[j] == keys[i]) {
+                    group.push(items[j]);
+                }
+            }
+
+            groups.set(keys[i], group);
+        }
+
+        return groups;
+    }
+}
 
 type SetEntry<TValue> =
     {

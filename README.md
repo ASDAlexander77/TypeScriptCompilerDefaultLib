@@ -146,7 +146,7 @@ Globals (`src/lib.ts`):
 - `Date`
 - `RegExp`, `MatchResults`, `MatchIndicesResults`
 - `String`: `String.fromCharCode` (each code written as UTF-8, a surrogate pair as one
-  character), plus the `string` prototype methods it wraps: `at`, `charAt`, `charCodeAt`,
+  character), `String.fromCodePoint` (each code point as UTF-8; outside 0 to 0x10FFFF a `RangeError`), plus the `string` prototype methods it wraps: `at`, `charAt`, `charCodeAt`,
   `codePointAt`, `concat`, `endsWith`, `includes`, `indexOf`, `lastIndexOf`,
   `localeCompare`, `match`, `matchAll`, `normalize`, `padEnd`, `padStart`, `repeat`,
   `replace`, `replaceAll`, `search`, `slice`, `split`, `startsWith`, `substring`,
@@ -193,7 +193,10 @@ Generics (`src/generics/lib.generics.ts`):
   `Int16Array`, `Uint16Array`, `Int32Array`, `Uint32Array`, `BigInt64Array`,
   `BigUint64Array`, `Float32Array`, `Float64Array`). A typed array is made from an array of
   its elements (`new Uint8Array([1, 2, 3])`) or a length (`new Uint8Array(4096)`, each element 0)
-- `Map<K, V>`
+- `T[]` and `Array<T>` also have `flatMap`, `toSpliced` (`splice` on a copy), and `T[][]` has
+  `flat()`, which takes away one level only: a depth would make the result's type depend on a number
+- `Map<K, V>`, and `Map.groupBy(items, keySelector)`, a `Map` of each key to its items, the keys in
+  the order they first come (not under `-mm=own`, whose Map values cannot be arrays)
 - `Set<V>`
 - `Atomics`: `add`, `sub`, `and`, `or`, `xor`, `exchange`, `compareExchange`, `load`,
   `store`, `isLockFree` over the integer typed arrays, and `wait`/`notify` over an
