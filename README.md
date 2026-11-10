@@ -292,7 +292,7 @@ Generics (`src/generics/lib.generics.ts`):
   Stdio.write(new TextEncoder().encode(text.toUpperCase()));
   ```
 - `process`, as Node's, with functions where Node has properties: `argv()`, `getEnv(name)` (or
-  `undefined`), `setEnv`, `unsetEnv`, `env()` (a `Map`), `cwd()`, `chdir`, `pid()`, `platform()`,
+  `undefined`), `setEnv`, `unsetEnv`, `env()` (`[name, value]` pairs), `cwd()`, `chdir`, `pid()`, `platform()`,
   `exit(code)`. See [docs/process-fs.md](docs/process-fs.md).
 - `fs`, synchronous, by Node's names: `existsSync`, `statSync`, `readFileSync` (a `Uint8Array`),
   `readTextFileSync` (a string), `writeFileSync`, `writeTextFileSync`, `appendFileSync`,

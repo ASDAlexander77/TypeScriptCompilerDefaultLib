@@ -14,7 +14,7 @@ namespace process {
     function getEnv(name: string): string | undefined; // Node: process.env[name]
     function setEnv(name: string, value: string): void;
     function unsetEnv(name: string): void;           // Node: delete process.env[name]
-    function env(): Map<string, string>;             // every variable, by name
+    function env(): [string, string][];              // every variable, [name, value]
     function cwd(): string;
     function chdir(directory: string): void;
     function pid(): int;

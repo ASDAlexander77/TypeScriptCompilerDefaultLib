@@ -9,6 +9,16 @@ function errorOf(f: () => void): string {
     return "";
 }
 
+function envValue(name: string): string {
+    for (const [k, v] of process.env()) {
+        if (k == name) {
+            return v;
+        }
+    }
+
+    return "(not there)";
+}
+
 function main() {
     // argv()[0] is the program: the test's executable, or tslang under the JIT, followed there by
     // the script. Either way one of them names this test.
@@ -31,14 +41,13 @@ function main() {
     process.setEnv("TSLANG_TEST_EMPTY", "");
     assert(process.getEnv("TSLANG_TEST_EMPTY") == "", "set to nothing is still set");
 
-    const vars = process.env();
-    assert(vars.get("TSLANG_TEST_VAR") == "é and €", "env() has it");
-    assert(vars.size > 1, "env() has more than this test's own");
+    assert(envValue("TSLANG_TEST_VAR") == "é and €", "env() has it");
+    assert(process.env().length > 1, "env() has more than this test's own");
 
     process.unsetEnv("TSLANG_TEST_VAR");
     assert(process.getEnv("TSLANG_TEST_VAR") == undefined, "unset");
     process.unsetEnv("TSLANG_TEST_VAR");
-    assert(!process.env().has("TSLANG_TEST_VAR"), "env() no longer has it");
+    assert(envValue("TSLANG_TEST_VAR") == "(not there)", "env() no longer has it");
 
     assert(errorOf(() => { process.setEnv("A=B", "x"); }).startsWith("EINVAL"), "a name with =");
     assert(errorOf(() => { process.setEnv("", "x"); }).startsWith("EINVAL"), "an empty name");

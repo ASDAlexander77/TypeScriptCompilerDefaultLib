@@ -1305,10 +1305,12 @@ namespace Stdio {
 }
 
 // The text an os call left (wrappers/os.cpp), `length` bytes of it, as a string of its own.
-function __os_text<T = int>(length: int): string {
-    let buffer: char[] = [];
+// T is the length's type, taken from the argument: a type parameter nothing names can't be
+// worked out where one generic function calls another.
+function __os_text<T = int>(length: T): string {
+    const buffer: u8[] = [];
     buffer.length = length + 1;
-    buffer[length] = null;
+    buffer[length] = 0;
     if (length > 0) {
         tslang_os_result_copy_to(<Opaque>Ref(buffer[0]), length);
     }
@@ -1318,7 +1320,7 @@ function __os_text<T = int>(length: int): string {
 }
 
 // The same, as bytes.
-function __os_bytes<T = u8>(length: int): Uint8Array {
+function __os_bytes<T = int>(length: T): Uint8Array {
     const bytes: u8[] = [];
     bytes.length = length;
     if (length > 0) {
@@ -1329,8 +1331,9 @@ function __os_bytes<T = u8>(length: int): Uint8Array {
 }
 
 // The error an os call ran into, in Node's words: "ENOENT: no such file or directory, open 'a.txt'".
-function __os_error<T = int>(): Error {
-    return new Error(__os_text(tslang_os_result_length()));
+// `length` is tslang_os_result_length()
+function __os_error<T = int>(length: T): Error {
+    return new Error(__os_text(length));
 }
 
 // The process, as Node's `process` has it, with functions where Node has properties: process.argv()
@@ -1362,26 +1365,28 @@ namespace process {
     // an "=", is an Error
     function setEnv<T = int>(name: string, value: string): void {
         if (tslang_process_setenv(name, value) != 0) {
-            throw __os_error();
+            throw __os_error(tslang_os_result_length());
         }
     }
 
     // a variable that is not set is not an error
     function unsetEnv<T = int>(name: string): void {
         if (tslang_process_unsetenv(name) != 0) {
-            throw __os_error();
+            throw __os_error(tslang_os_result_length());
         }
     }
 
-    // every variable, by name
-    function env<T = int>(): Map<string, string> {
-        const vars = new Map<string, string>();
+    // Every variable, [name, value]. Not a Map: this is above the Map class, and naming
+    // Map<string, string> here made that type before Map was declared - the program's own
+    // Map<string, string> then had no members.
+    function env<T = int>(): [string, string][] {
+        const vars: [string, string][] = [];
         const count = tslang_process_env_count();
         for (let i = 0; i < count; i++) {
             const entry = __os_text(tslang_os_entry(i));
             const equals = entry.indexOf("=");
             if (equals > 0) {
-                vars.set(entry.substring(0, equals), entry.substring(equals + 1));
+                vars.push([entry.substring(0, equals), entry.substring(equals + 1)]);
             }
         }
 
@@ -1392,7 +1397,7 @@ namespace process {
     function cwd<T = int>(): string {
         const length = tslang_process_cwd();
         if (length < 0) {
-            throw __os_error();
+            throw __os_error(tslang_os_result_length());
         }
 
         return __os_text(length);
@@ -1400,7 +1405,7 @@ namespace process {
 
     function chdir<T = int>(directory: string): void {
         if (tslang_process_chdir(directory) != 0) {
-            throw __os_error();
+            throw __os_error(tslang_os_result_length());
         }
     }
 
@@ -1457,7 +1462,7 @@ namespace fs {
         let mtimeMs: number = 0;
         const kind = tslang_fs_stat(path, Ref(size), Ref(mtimeMs));
         if (kind < 0) {
-            throw __os_error();
+            throw __os_error(tslang_os_result_length());
         }
 
         return { isFile: kind == 1, isDirectory: kind == 2, size: size, mtimeMs: mtimeMs };
@@ -1467,7 +1472,7 @@ namespace fs {
     function readFileSync<T = u8>(path: string): Uint8Array {
         const length = tslang_fs_read_file(path);
         if (length < 0) {
-            throw __os_error();
+            throw __os_error(tslang_os_result_length());
         }
 
         return __os_bytes(length);
@@ -1478,7 +1483,7 @@ namespace fs {
     function readTextFileSync<T = int>(path: string): string {
         const length = tslang_fs_read_file(path);
         if (length < 0) {
-            throw __os_error();
+            throw __os_error(tslang_os_result_length());
         }
 
         return __os_text(length);
@@ -1491,13 +1496,13 @@ namespace fs {
             ? tslang_fs_write_file(path, <Opaque>data.__elementRef(0), data.length, 0)
             : tslang_fs_write_file(path, <Opaque>empty, 0, 0);
         if (status != 0) {
-            throw __os_error();
+            throw __os_error(tslang_os_result_length());
         }
     }
 
     function writeTextFileSync<T = int>(path: string, text: string): void {
         if (tslang_fs_write_file(path, <Opaque>text, text.length, 0) != 0) {
-            throw __os_error();
+            throw __os_error(tslang_os_result_length());
         }
     }
 
@@ -1506,20 +1511,20 @@ namespace fs {
         if (data.length == 0) {
             const empty = "";
             if (tslang_fs_write_file(path, <Opaque>empty, 0, 1) != 0) {
-                throw __os_error();
+                throw __os_error(tslang_os_result_length());
             }
 
             return;
         }
 
         if (tslang_fs_write_file(path, <Opaque>data.__elementRef(0), data.length, 1) != 0) {
-            throw __os_error();
+            throw __os_error(tslang_os_result_length());
         }
     }
 
     function appendTextFileSync<T = int>(path: string, text: string): void {
         if (tslang_fs_write_file(path, <Opaque>text, text.length, 1) != 0) {
-            throw __os_error();
+            throw __os_error(tslang_os_result_length());
         }
     }
 
@@ -1527,7 +1532,7 @@ namespace fs {
     function readdirSync<T = int>(path: string): string[] {
         const count = tslang_fs_read_dir(path);
         if (count < 0) {
-            throw __os_error();
+            throw __os_error(tslang_os_result_length());
         }
 
         const names: string[] = [];
@@ -1547,7 +1552,7 @@ namespace fs {
         }
 
         if (tslang_fs_mkdir(path, recursive ? 1 : 0) != 0) {
-            throw __os_error();
+            throw __os_error(tslang_os_result_length());
         }
     }
 
@@ -1567,28 +1572,28 @@ namespace fs {
         }
 
         if (tslang_fs_remove(path, recursive ? 1 : 0, force ? 1 : 0) != 0) {
-            throw __os_error();
+            throw __os_error(tslang_os_result_length());
         }
     }
 
     // an empty directory
     function rmdirSync<T = int>(path: string): void {
         if (tslang_fs_rmdir(path) != 0) {
-            throw __os_error();
+            throw __os_error(tslang_os_result_length());
         }
     }
 
     // a file already at `newPath` is replaced
     function renameSync<T = int>(oldPath: string, newPath: string): void {
         if (tslang_fs_rename(oldPath, newPath) != 0) {
-            throw __os_error();
+            throw __os_error(tslang_os_result_length());
         }
     }
 
     // a file already at `dest` is replaced
     function copyFileSync<T = int>(src: string, dest: string): void {
         if (tslang_fs_copy_file(src, dest) != 0) {
-            throw __os_error();
+            throw __os_error(tslang_os_result_length());
         }
     }
 }
