@@ -632,6 +632,14 @@ extern "C" TSLANG_EXPORT int tslang_fs_read_dir(const char *path)
     fs::directory_iterator it(to_path(path), ec);
     if (ec)
     {
+        // Windows says ERROR_DIRECTORY for a file, which MSVC maps to EINVAL; Node says ENOTDIR
+        std::error_code statError;
+        auto status = fs::status(to_path(path), statError);
+        if (!statError && fs::exists(status) && !fs::is_directory(status))
+        {
+            return fail_errc(std::errc::not_a_directory, "scandir", path);
+        }
+
         return fail(ec, "scandir", path);
     }
 
