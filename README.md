@@ -56,6 +56,23 @@ repo:
   `scripts\build_tslang_runtime_<debug|release>_x86.bat` in `TypeScriptCompiler`, which
   puts it in `__build\tslang-runtime\<debug|release>\x86\`.
 
+### WebAssembly
+
+With `llvm-ar` on `PATH` (or in `LLVM_AR`):
+
+```
+scripts\build_wasm.bat                       # wasm32 and wasm64, release and debug, rc/none/own
+scripts\build_wasm.bat wasm32 release rc     # just that one
+scripts/build_wasm.sh wasm64 debug own       # the same on a Linux host
+```
+
+The output goes to `__build\defaultlib\lib\<wasm32|wasm64>\unknown\unknown\unknown\<debug|release>\<rc|none|own>\libTypeScriptDefaultLib.a`.
+It is `lib.ts` with the OS layer `src\lib.wasm.ts`, and no C++ wrappers: these targets have no C
+library. tslang links a wasm program with `--allow-undefined`, so the C functions and the wrappers'
+functions become imports, which the host that runs the program implements. The compiler repo's
+`docs\how\wasm\test\host.mjs` is that host, for Node and browsers. There is no `gc` build, because
+the collector is not built for wasm.
+
 ### Android
 
 On a Windows host, with the Android NDK (tested with r30) in `ANDROID_NDK_HOME`:
