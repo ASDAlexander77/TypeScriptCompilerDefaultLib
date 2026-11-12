@@ -22,7 +22,7 @@
 @rem   and the OS layer lib.wasm.ts only. tslang links a wasm program with --allow-undefined, so what
 @rem   the wrappers and the C library would provide (snprintf, malloc, regexp_*, stdio_write, ...)
 @rem   become imports from the `env` module, which the host that runs the program implements - see
-@rem   TypeScriptCompiler\docs\how\wasm\test\host.mjs.
+@rem   TypeScriptCompiler\tslang\test\wasm\host.mjs.
 @rem - Only the static library: a wasm program is one module.
 @echo off
 setlocal

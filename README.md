@@ -70,7 +70,7 @@ The output goes to `__build\defaultlib\lib\<wasm32|wasm64>\unknown\unknown\unkno
 It is `lib.ts` with the OS layer `src\lib.wasm.ts`, and no C++ wrappers: these targets have no C
 library. tslang links a wasm program with `--allow-undefined`, so the C functions and the wrappers'
 functions become imports, which the host that runs the program implements. The compiler repo's
-`docs\how\wasm\test\host.mjs` is that host, for Node and browsers. There is no `gc` build, because
+`tslang\test\wasm\host.mjs` is that host, for Node and browsers. There is no `gc` build, because
 the collector is not built for wasm.
 
 ### Android
