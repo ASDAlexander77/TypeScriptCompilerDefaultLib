@@ -1913,8 +1913,8 @@ namespace Promise {
 }
 
 // JSON.stringify, over JsonValue (src/lib.ts, with JSON.parse). Generic: it is told what it was given by
-// the type each call is made with. There is no walking the fields of an object or a class at run time,
-// so a class goes by its `toJSON()`, and an object literal or a tuple is a TypeError.
+// the type each call is made with. An object literal's or a tuple's fields are walked by `for...in`, which
+// the compiler makes for each field of the type; a class has no such walk and goes by its `toJSON()`.
 namespace JSON {
     // A value as a JsonValue. R: a signature is read before lib.ts declares JsonValue, a default type
     // only when the function is used. An else chain: code after an `if` the type settles is still
@@ -1949,11 +1949,45 @@ namespace JSON {
 
             return toValue(value.toJSON());
         } else if (typeof value == "tuple") {
-            throw new TypeError("JSON.stringify cannot read the fields of an object literal or a tuple: build a JsonValue");
+            return fieldsToValue(value);
+        } else if (typeof value == "object") {
+            // an object literal with methods
+            return fieldsToValue(value);
         } else if (typeof value == "bigint") {
             throw new TypeError("JSON.stringify cannot serialize a BigInt");
         } else {
             return JsonValue.ofNumber(<number>value);
+        }
+    }
+
+    // An object literal or a tuple. `for...in` is made for each of its fields, `key` a literal, so
+    // `value[key]` is that field with its own type. A tuple of unnamed fields ("0", "1", ...) is an array,
+    // as in JavaScript; a function or an undefined field is left out of an object, and is null in an array.
+    function fieldsToValue<T, R = JsonValue>(value: T): R {
+        if ("0" in value) {
+            const result = JsonValue.newArray();
+            for (const key in value) {
+                if (typeof value[key] == "function") {
+                    result.push(new JsonValue());
+                } else {
+                    result.push(toValue(value[key]));
+                }
+            }
+
+            return result;
+        } else {
+            const result = JsonValue.newObject();
+            for (const key in value) {
+                if (typeof value[key] == "function") {
+                    // left out
+                } else if (typeof value[key] == "undefined") {
+                    // left out
+                } else {
+                    result.set(key, toValue(value[key]));
+                }
+            }
+
+            return result;
         }
     }
 
