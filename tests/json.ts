@@ -166,6 +166,7 @@ function objects() {
     assert(JSON.stringify({ outer: { inner: [{ z: "q" }] } }) == `{"outer":{"inner":[{"z":"q"}]}}`, "nested");
     assert(JSON.stringify([{ a: 1 }, { a: 2 }]) == `[{"a":1},{"a":2}]`, "an array of object literals");
     assert(JSON.stringify({ k: 2, f: () => 1 }) == `{"k":2}`, "a function is left out");
+    assert(JSON.stringify({ get_started: true, set_id: 5 }) == `{"get_started":true,"set_id":5}`, "names like an accessor's");
     assert(JSON.stringify([1, "a", true]) == `[1,"a",true]`, "a tuple is an array");
     assert(JSON.stringify({ a: 1, b: [2] }, null, 2) == `{\n  "a": 1,\n  "b": [\n    2\n  ]\n}`, "indented");
 }
