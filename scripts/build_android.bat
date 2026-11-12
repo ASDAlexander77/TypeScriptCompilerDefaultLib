@@ -94,7 +94,8 @@ if not exist %TSLANG% (
 )
 
 set NDK_BIN=%ANDROID_NDK_HOME%\toolchains\llvm\prebuilt\windows-x86_64\bin
-set CXX="%NDK_BIN%\clang++.exe" --target=%TRIPLE% -fPIC -std=c++17 %DBG_CXX%
+rem sections per function and global: a program's link (--gc-sections) keeps only the wrappers it calls
+set CXX="%NDK_BIN%\clang++.exe" --target=%TRIPLE% -fPIC -std=c++17 -ffunction-sections -fdata-sections %DBG_CXX%
 set AR="%NDK_BIN%\llvm-ar.exe"
 set TSC=%TSLANG% -mtriple=%TRIPLE% -relocation-model=pic %DBG% -mm=%MM% --emit=obj --export=none --nowarn --no-default-lib
 

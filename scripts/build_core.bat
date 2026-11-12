@@ -52,7 +52,10 @@ rem (--di, no --opt) picks this debug archive and links the static debug CRT (li
 rem _ITERATOR_DEBUG_LEVEL=2); an --opt program picks the release archive and the static release CRT
 rem (see tslang/tslang/exe.cpp). Without a flag cl defaults to /MT, so the debug archive carried
 rem release-CRT wrappers and a debug `tslang --emit=exe` against it failed with LNK2038 mismatches.
-set DBG_CL=/MTd /Z7 /std:c++latest
+rem /Gy /Gw: every function and global in a COMDAT of its own, so a program's link keeps only
+rem the wrappers it calls (tslang does the same for lib.ts). Release builds add /O2 - without it
+rem cl does not optimize at all.
+set DBG_CL=/MTd /Z7 /Gy /Gw /std:c++latest
 rem TSLANG_DEBUG_CRT=/MT builds the debug archive against the release CRT instead. /MTd is right
 rem next to a debug tslang build, whose runtime and collector are /MTd too. A
 rem release package ships only /MT builds of those (TypeScriptAsyncRuntime.lib and
@@ -60,9 +63,9 @@ rem gc.lib), so there a /MTd debug archive cannot be linked with them at all: ev
 rem `tslang --di --emit=exe` failed with LNK2038. The compiler's release workflow sets it. It
 rem changes only the CRT; the archive still carries debug info (/Z7, --di).
 if /I "%TSLANG_DEBUG_CRT%"=="/MT" (
-	set DBG_CL=/MT /Z7 /std:c++latest
+	set DBG_CL=/MT /Z7 /Gy /Gw /std:c++latest
 ) else if /I "%TSLANG_DEBUG_CRT%"=="/MTd" (
-	set DBG_CL=/MTd /Z7 /std:c++latest
+	set DBG_CL=/MTd /Z7 /Gy /Gw /std:c++latest
 ) else if not "%TSLANG_DEBUG_CRT%"=="" (
 	echo TSLANG_DEBUG_CRT must be /MT or /MTd, not "%TSLANG_DEBUG_CRT%"
 	exit /b 1
@@ -75,7 +78,8 @@ if "%1"=="release" (
 	set BUILD1=release
 	set LLVM_BUILD=Release
 	set DBG=--opt --opt_level=3
-	set DBG_CL=/MT /std:c++latest
+	rem /wd4710 /wd4711: /Wall reports every inlining decision /O2 makes, thousands of lines
+	set DBG_CL=/MT /O2 /Gy /Gw /wd4710 /wd4711 /std:c++latest
 )
 
 rem Memory model (%2). The default library is not model-neutral: under gc it allocates through
@@ -218,14 +222,17 @@ md %LIB_OUT%
 
 rem echo on
 
-rem Build native wrappers for C++ code
-%TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\io.cpp
-%TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\datetime.cpp
-%TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\regex.cpp
-%TSLANG_CC% %DBG_CL% /EHsc /Wall %WRAPPER_MM_DEF% /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\thread.cpp
-%TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\http.cpp
-%TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\memory.cpp
-%TSLANG_CC% %DBG_CL% /EHsc /Wall /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\os.cpp
+rem Build native wrappers for C++ code, twice. The static archive's copies export nothing: a
+rem program links them, and an exported function is one the linker has to keep, so every program
+rem carried all of the RegExp, HTTP and stdio wrappers (and wrote a .lib/.exp beside itself). The
+rem DLL's copies (TSLANG_WRAPPERS_DLL, see src\wrappers\tslang_export.h) export each entry point,
+rem since the JIT binds them through the DLL's export table.
+set DLL_WRAPPERS_OUT=%LIB_OUT%\dll_wrappers
+md %DLL_WRAPPERS_OUT%
+for %%w in (io datetime regex thread http memory os) do (
+	%TSLANG_CC% %DBG_CL% /EHsc /Wall %WRAPPER_MM_DEF% /c /Fo%OUTPUT%\%LIB_OUT%\ %SRC%\src\wrappers\%%w.cpp
+	%TSLANG_CC% %DBG_CL% /EHsc /Wall %WRAPPER_MM_DEF% /DTSLANG_WRAPPERS_DLL /c /Fo%OUTPUT%\%DLL_WRAPPERS_OUT%\ %SRC%\src\wrappers\%%w.cpp
+)
 
 rem Build OS-specific Lib
 echo Build OS-specific Lib
@@ -233,7 +240,7 @@ echo Build OS-specific Lib
 
 rem Build DLL
 echo Build DLL
-%TOOL_PATH%\%TOOL_NAME%.exe %TRIPLE_OPT% %DBG% %MM_OPT% --emit=dll --gc-lib-path=%GC_SHARED_LIB_PATH% %TSLANG_RUNTIME_OPT% --embed-declarations=false --nowarn --no-default-lib %SRC%\src\lib.ts --obj=%OUTPUT%\%LIB_OUT%\lib.win32.obj --obj=%OUTPUT%\%LIB_OUT%\io.obj --obj=%OUTPUT%\%LIB_OUT%\datetime.obj --obj=%OUTPUT%\%LIB_OUT%\regex.obj --obj=%OUTPUT%\%LIB_OUT%\thread.obj --obj=%OUTPUT%\%LIB_OUT%\http.obj --obj=%OUTPUT%\%LIB_OUT%\memory.obj --obj=%OUTPUT%\%LIB_OUT%\os.obj -o %OUTPUT%\%DLL_OUT%\TypeScriptDefaultLib.dll
+%TOOL_PATH%\%TOOL_NAME%.exe %TRIPLE_OPT% %DBG% %MM_OPT% --emit=dll --gc-lib-path=%GC_SHARED_LIB_PATH% %TSLANG_RUNTIME_OPT% --embed-declarations=false --nowarn --no-default-lib %SRC%\src\lib.ts --obj=%OUTPUT%\%LIB_OUT%\lib.win32.obj --obj=%OUTPUT%\%DLL_WRAPPERS_OUT%\io.obj --obj=%OUTPUT%\%DLL_WRAPPERS_OUT%\datetime.obj --obj=%OUTPUT%\%DLL_WRAPPERS_OUT%\regex.obj --obj=%OUTPUT%\%DLL_WRAPPERS_OUT%\thread.obj --obj=%OUTPUT%\%DLL_WRAPPERS_OUT%\http.obj --obj=%OUTPUT%\%DLL_WRAPPERS_OUT%\memory.obj --obj=%OUTPUT%\%DLL_WRAPPERS_OUT%\os.obj -o %OUTPUT%\%DLL_OUT%\TypeScriptDefaultLib.dll
 
 rem Build Lib
 echo Build Lib
@@ -252,6 +259,7 @@ del %OUTPUT%\%LIB_OUT%\thread.obj
 del %OUTPUT%\%LIB_OUT%\http.obj
 del %OUTPUT%\%LIB_OUT%\memory.obj
 del %OUTPUT%\%LIB_OUT%\os.obj
+rd /S /Q %OUTPUT%\%DLL_WRAPPERS_OUT%
 
 rem Stage into a single shared defaultlib tree with per-target, per-build, per-model subfolders
 rem under dll\ and lib\. Only the current build's subfolders are refreshed so the other

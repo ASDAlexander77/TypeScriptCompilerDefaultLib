@@ -8,7 +8,9 @@ TOOL=gcc
 ARC=ar
 DBG_OPTS=--di\ --opt_level=0
 DBG_GCC=-g
-CPP_FLAGS=-std=c++17
+# every function and global in a section of its own, so a program's link (--gc-sections) keeps only
+# the wrappers it calls - as tslang does for lib.ts
+CPP_FLAGS=-std=c++17\ -ffunction-sections\ -fdata-sections
 TOOL_NAME=tslang
 
 if [ "$1" == "release" ] ; then
