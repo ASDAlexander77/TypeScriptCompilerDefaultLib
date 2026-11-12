@@ -155,6 +155,22 @@ function chained() {
     assert(JSON.stringify(built) == `{"n":true,"list":["x",null],"empty":{},"added":"y"}`, "set again, chained");
 }
 
+// An object literal or a tuple: its fields are known from its type. Stringified first in its program, a
+// value whose writing needs other instances of the writer (a number in an object, an array in an array)
+// once failed to compile.
+function objects() {
+    assert(JSON.stringify({ x: 1 }) == `{"x":1}`, "an object literal");
+    const record = { s: "a\"b", b: true, n: null, list: [1, 2], empty: {} };
+    assert(JSON.stringify(record) == `{"s":"a\\"b","b":true,"n":null,"list":[1,2],"empty":{}}`, "every kind of field");
+    assert(record.s == "a\"b", "the object is only read");
+    assert(JSON.stringify({ outer: { inner: [{ z: "q" }] } }) == `{"outer":{"inner":[{"z":"q"}]}}`, "nested");
+    assert(JSON.stringify([{ a: 1 }, { a: 2 }]) == `[{"a":1},{"a":2}]`, "an array of object literals");
+    assert(JSON.stringify({ k: 2, f: () => 1 }) == `{"k":2}`, "a function is left out");
+    assert(JSON.stringify({ get_started: true, set_id: 5 }) == `{"get_started":true,"set_id":5}`, "names like an accessor's");
+    assert(JSON.stringify([1, "a", true]) == `[1,"a",true]`, "a tuple is an array");
+    assert(JSON.stringify({ a: 1, b: [2] }, null, 2) == `{\n  "a": 1,\n  "b": [\n    2\n  ]\n}`, "indented");
+}
+
 function roundTrip() {
     const text = `{"s":"a\\"b\\u00e9","n":[1,-2.5,1e+21],"o":{"t":true,"f":false,"z":null}}`;
     const again = JSON.stringify(JSON.parse(text));
@@ -163,6 +179,7 @@ function roundTrip() {
 }
 
 function main() {
+    objects();
     parsing();
     strings();
     rejected();
