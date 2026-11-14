@@ -224,11 +224,11 @@ declare class Date {
 @final
 declare class MatchIndicesResults
 {
-    private match: Opaque | null;
+    private match: Opaque;
 
     private lastIndex: index;
 
-    constructor(match?: Opaque | null, lastIndex?: index);
+    constructor(match: Opaque, lastIndex?: index);
 
     [index: number]: [index, index];
 
@@ -240,15 +240,13 @@ declare class MatchIndicesResults
 @final
 declare class MatchResults
 {
-    private indices_: MatchIndicesResults;
-
-    private match: Opaque | null;
+    private match: Opaque;
 
     private hasIndices: boolean;
 
     private lastIndex: index;
 
-    constructor(match?: Opaque | null, hasIndices?: boolean, lastIndex?: index);
+    constructor(match: Opaque, hasIndices?: boolean, lastIndex?: index);
 
     [index: number]: string;
 
@@ -290,6 +288,8 @@ declare class RegExp {
     replace(s: string, replacement: string): string;
 
     replaceAll(s: string, replacement: string): string;
+
+    split(s: string, limit?: int): string[];
 
     [Symbol.dispose](): void;
 }
@@ -671,7 +671,7 @@ declare class Headers {
 
     set(name: string, value: string): void;
 
-    get(name: string): string;
+    get(name: string): string | null;
 
     has(name: string): boolean;
 

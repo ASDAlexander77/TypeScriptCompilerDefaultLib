@@ -477,8 +477,8 @@ export class Date {
 @final
 export class MatchIndicesResults
 {
-    constructor(private match: Opaque | null = null, private lastIndex: index = 0) {
-    }       
+    constructor(private match: Opaque, private lastIndex: index = 0) {
+    }
 
     [index: number]: [index, index];
 
@@ -497,10 +497,8 @@ export class MatchIndicesResults
 @final
 export class MatchResults
 {
-    private indices_: MatchIndicesResults = null;
-
-    constructor(private match: Opaque | null = null, private hasIndices = false, private lastIndex: index = 0) {
-    }    
+    constructor(private match: Opaque, private hasIndices = false, private lastIndex: index = 0) {
+    }
 
     [index: number]: string;
 
@@ -568,6 +566,14 @@ export class RegExp
     }
 
     exec(s: string): MatchResults | null {
+        // past the end there is nothing to search, and nothing to read: as in JavaScript the
+        // match fails and lastIndex goes back to 0 (at 0 there is nothing to ask the length for)
+        if (this.lastIndex > 0 && this.lastIndex > s.length)
+        {
+            this.lastIndex = 0;
+            return null;
+        }
+
         const cmatch = regexp_exec(this.source, this.flags, Ref(s[this.lastIndex]), this.match);
         if (!cmatch)
         {
@@ -588,6 +594,13 @@ export class RegExp
 
     test(s: string) {
         if (this.global) {
+            // as in exec: past the end the match fails
+            if (this.lastIndex > 0 && this.lastIndex > s.length)
+            {
+                this.lastIndex = 0;
+                return false;
+            }
+
             const result = regexp_test(this.source, this.flags, Ref(s[this.lastIndex]));
             if (result >= 0)
             {
@@ -602,9 +615,16 @@ export class RegExp
         return regexp_test(this.source, this.flags, s) >= 0;
     }
 
+    // Where the first match starts, or -1. It gave where the match ends, less one: right only for
+    // a match of one character.
     search(s: string): int {
-        const r = regexp_test(this.source, this.flags, s);
-        return r > 0 ? r - 1 : r;
+        const cmatch = regexp_exec(this.source, this.flags, s, null);
+        if (!cmatch)
+            return -1;
+
+        const start = regexp_match_results_prefix_length(cmatch);
+        regexp_free(cmatch);
+        return <int>start;
     }    
 
     replace(s: string, replacement: string): string {
@@ -638,6 +658,10 @@ export class RegExp
 
     replaceAll(s: string, replacement: string): string {
         const r = regexp_replace(this.source, this.flags, s, replacement);
+        // no text comes back for a pattern that is not a regular expression
+        if (r == null)
+            throw new SyntaxError(`Invalid regular expression: /${this.source}/`);
+
         const len = (<string>r).length;
         let result = "".clone().resize(len);
         boundedCopy(Ref(result[0]), len, r, len);
@@ -732,13 +756,15 @@ export class RegExp
 namespace __String {
 
     function dataAt(this: string, index: int) {
+        // the length once: it is a walk to the string's end each time it is asked for
+        const len: int = this.length;
         if (index < 0) {
-            if (-this.length <= index) {
-                index = index + this.length;
-            } else if (index < -this.length) {
+            if (-len <= index) {
+                index = index + len;
+            } else {
                 index = 0;
             }
-        } else if (index >= this.length) {
+        } else if (index >= len) {
             return <char>0;
         }
 
@@ -751,7 +777,7 @@ namespace __String {
 
     function resize(this: string, newSize: index): string {
         this.length = newSize + 1;
-        this[newSize] = null;
+        this[newSize] = <char>0;
         return this;
     }
 
@@ -1004,9 +1030,10 @@ namespace __String {
     function pad(addSize: index, padString: string): string {
         let newPadString = "".clone().resize(addSize);
         let padStringIndex = 0;
+        const padStringLength = padString.length;
         for (let i = 0; i < addSize; i++) {
             newPadString[i] = padString[padStringIndex++];
-            if (padStringIndex >= padString.length) {
+            if (padStringIndex >= padStringLength) {
                 padStringIndex = 0;
             }
         }
@@ -1116,24 +1143,25 @@ namespace __String {
 
     export function slice(this: string, indexStart: int, indexEnd: int = this.length): string {
 
+        const len: int = this.length;
         if (indexStart < 0) {
-            if (-this.length <= indexStart) {
-                indexStart = indexStart + this.length;
-            } else if (indexStart < -this.length) {
+            if (-len <= indexStart) {
+                indexStart = indexStart + len;
+            } else {
                 indexStart = 0;
             }
-        } else if (indexStart >= this.length) {
+        } else if (indexStart >= len) {
             return "";
         }
 
         if (indexEnd < 0) {
-            if (-this.length <= indexEnd) {
-                indexEnd = indexEnd + this.length;
-            } else if (indexEnd < -this.length) {
+            if (-len <= indexEnd) {
+                indexEnd = indexEnd + len;
+            } else {
                 indexEnd = 0;
             }
-        } else if (indexEnd >= this.length) {
-            indexEnd = this.length;
+        } else if (indexEnd >= len) {
+            indexEnd = len;
         }
 
         // an end at or before the start is empty - slice does not swap, as substring does; the
@@ -1238,17 +1266,18 @@ namespace __String {
     }
 
     export function substring(this: string, indexStart: int, indexEnd: int = this.length): string {
+        const len: int = this.length;
         if (indexStart < 0) {
             indexStart = 0;
-        } else if (indexStart >= this.length) {
-            indexStart = this.length;
+        } else if (indexStart >= len) {
+            indexStart = len;
         }
 
         if (indexEnd < 0) {
             indexEnd = 0;
-        } else if (indexEnd >= this.length) {
-            indexEnd = this.length;
-        }        
+        } else if (indexEnd >= len) {
+            indexEnd = len;
+        }
 
         if (indexStart == indexEnd) {
             return "";
@@ -1267,7 +1296,8 @@ namespace __String {
     export function toLocaleLowerCase(this: string, locale = ""): string {
         setlocale (LC_COLLATE, locale); 
         const lower = this.clone();
-        for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);
+        const len = this.length;
+        for (let i = 0; i < len; i++) lower[i] = tolower(this[i]);
         setlocale (LC_COLLATE, "");   
         return lower;
     }
@@ -1275,14 +1305,16 @@ namespace __String {
     export function toLocaleUpperCase(this: string, locale = ""): string {
         setlocale (LC_COLLATE, locale); 
         const upper = this.clone();
-        for (let i = 0; i < this.length; i++) upper[i] = toupper(this[i]);
+        const len = this.length;
+        for (let i = 0; i < len; i++) upper[i] = toupper(this[i]);
         setlocale (LC_COLLATE, "");   
         return upper;
     }
 
     export function toLowerCase(this: string): string {
         const lower = this.clone();
-        for (let i = 0; i < this.length; i++) lower[i] = tolower(this[i]);
+        const len = this.length;
+        for (let i = 0; i < len; i++) lower[i] = tolower(this[i]);
         return lower;
     }
 
@@ -1292,7 +1324,8 @@ namespace __String {
 
     export function toUpperCase(this: string): string {
         const upper = this.clone();
-        for (let i = 0; i < this.length; i++) upper[i] = toupper(this[i]);
+        const len = this.length;
+        for (let i = 0; i < len; i++) upper[i] = toupper(this[i]);
         return upper;
     }
 
@@ -1303,11 +1336,12 @@ namespace __String {
 
     // the first character that is not a space, or the length when every one is
     function trimmedStart(this: string): int {
-        for (let i: int = 0; i < this.length; i++) {
+        const len: int = this.length;
+        for (let i: int = 0; i < len; i++) {
             if (!isspace(this[i])) return i;
         }
 
-        return this.length;
+        return len;
     }
 
     // one past the last character that is not a space, or 0 when every one is: substring's end is
@@ -1843,7 +1877,13 @@ export static class Math {
 
     /** Returns a pseudorandom number between 0 and 1. */
     public random(): number {
-        return rand() / <number>2147483647;
+        // 45 bits from three calls, 15 from each: rand() gives 15 on Windows (RAND_MAX is 32767) and
+        // 31 on Linux, and its range was taken to be the larger, so on Windows nothing above
+        // 0.000016 came back. Never 1, as in JavaScript.
+        const high = rand() & 0x7FFF;
+        const middle = rand() & 0x7FFF;
+        const low = rand() & 0x7FFF;
+        return (<number>high * 1073741824.0 + <number>middle * 32768.0 + <number>low) / 35184372088832.0;
     }
 
     /**
@@ -1932,11 +1972,13 @@ export class ArrayBuffer {
             this.states |= States.HasMaxByteLength;
         }
 
+        // always an array, empty for no bytes and once detached: never null
+        let buffer : char[] = [];
         if (length > 0) {
-            let buffer : char[] = [];
-            buffer.length = length;            
-            this.arrayOfView = buffer;
+            buffer.length = length;
         }
+
+        this.arrayOfView = buffer;
     }
 
     public get resizable() {
@@ -1952,10 +1994,12 @@ export class ArrayBuffer {
     }
 
     public resize(newLength: int) {
+        this.expectAttached();
         this.arrayOfView.length = newLength;
     }
 
     public slice(start = 0, end = this.arrayOfView.length) {
+        this.expectAttached();
         if (start < 0 && -this.arrayOfView.length <= start) start += this.arrayOfView.length;
         if (start < -this.arrayOfView.length) start = 0;
         if (start >= this.arrayOfView.length) {
@@ -1977,12 +2021,11 @@ export class ArrayBuffer {
 
     // TODO: newByteLength is not used
     public transfer(newByteLength?: int) {
+        this.expectAttached();
         const newArrayBuffer = new ArrayBuffer(0);
         newArrayBuffer.states = this.states;
         newArrayBuffer.maxByteLength = this.maxByteLength;
-        if (this.arrayOfView != null) {
-            newArrayBuffer.arrayOfView = this.copyOf(0, this.arrayOfView.length);
-        }
+        newArrayBuffer.arrayOfView = this.copyOf(0, this.arrayOfView.length);
 
         this.detach();
         return newArrayBuffer;
@@ -2007,15 +2050,22 @@ export class ArrayBuffer {
         return copy;
     }
 
+    // as in JavaScript: a detached buffer has no bytes to read, resize or hand on
+    private expectAttached() {
+        if (this.detached) {
+            throw new TypeError("ArrayBuffer is detached");
+        }
+    }
+
     private detach() {
         this.states |= States.Detached;
-        this.arrayOfView = null;
+        this.arrayOfView = [];
     }
 
     // the assignment releases the bytes under rc and own, and leaves them to the collector under gc
     [Symbol.dispose]() {
-        if (this.arrayOfView != null && !this.detached) {
-            this.arrayOfView = null;
+        if (!this.detached) {
+            this.arrayOfView = [];
         }
     }
 }
@@ -2052,18 +2102,6 @@ export class Headers {
         return headers;
     }
 
-    private key(name: string): string {
-        return name.toLowerCase();
-    }
-
-    private indexOf(key: string): int {
-        for (let i = 0; i < this.names.length; i++) {
-            if (this.names[i] == key) return i;
-        }
-
-        return -1;
-    }
-
     append(name: string, value: string) {
         const key = this.key(name);
         const i = this.indexOf(key);
@@ -2086,9 +2124,14 @@ export class Headers {
         }
     }
 
-    get(name: string): string {
+    // the value, or null when there is no such header, as in JavaScript
+    get(name: string): string | null {
         const i = this.indexOf(this.key(name));
-        return i != -1 ? this.values[i] : null;
+        if (i == -1) {
+            return null;
+        }
+
+        return this.values[i];
     }
 
     has(name: string): boolean {
@@ -2118,6 +2161,21 @@ export class Headers {
         }
 
         return result;
+    }
+
+    // The private methods come last: lib.d.ts declares only the public ones, and a program finds a
+    // method by its place among them. With these two before `append`, every call from a program
+    // ran a method two places before the one it named.
+    private key(name: string): string {
+        return name.toLowerCase();
+    }
+
+    private indexOf(key: string): int {
+        for (let i = 0; i < this.names.length; i++) {
+            if (this.names[i] == key) return i;
+        }
+
+        return -1;
     }
 }
 
@@ -2170,14 +2228,14 @@ export function fetch(url: string, init?: { method?: string, headers?: [string, 
     const headersLen = http_response_headers_length(r);
     let headersBuffer: char[] = [];
     headersBuffer.length = headersLen + 1;
-    headersBuffer[headersLen] = null;
+    headersBuffer[headersLen] = <char>0;
     if (headersLen > 0) http_response_headers_copy_to(r, <string><Opaque>Ref(headersBuffer[0]), headersLen);
     const headers = Headers.parse(<string><Opaque>Ref(headersBuffer[0]));
 
     const bodyLen = http_response_body_length(r);
     let bodyBuffer: char[] = [];
     bodyBuffer.length = bodyLen + 1;
-    bodyBuffer[bodyLen] = null;
+    bodyBuffer[bodyLen] = <char>0;
     if (bodyLen > 0) http_response_body_copy_to(r, <string><Opaque>Ref(bodyBuffer[0]), bodyLen);
     // a copy: the Response keeps its body (@keeps), and bodyBuffer goes with this function
     const responseBody = <string><Opaque>Ref(bodyBuffer[0]) + "";
@@ -2197,7 +2255,9 @@ const JSON_OBJECT = 5;
 const JSON_MAX_DEPTH = 512;
 
 function jsonAppend(output: char[], text: string): void {
-    for (let i = 0; i < text.length; i++) {
+    // the length once: it is a walk to the text's end each time it is asked for
+    const length = text.length;
+    for (let i = 0; i < length; i++) {
         output.push(text[i]);
     }
 }
@@ -2223,7 +2283,8 @@ function jsonHexDigit(digit: int): char {
 
 function jsonAppendQuoted(output: char[], text: string): void {
     output.push(<char>0x22);
-    for (let i = 0; i < text.length; i++) {
+    const length = text.length;
+    for (let i = 0; i < length; i++) {
         const c = <int>text[i];
         let escape = 0;
         switch (c) {
@@ -2947,7 +3008,7 @@ export static class console {
 
         let buffer: char[] = [];
         buffer.length = length + 1;
-        buffer[length] = null;
+        buffer[length] = <char>0;
         if (length > 0) stdio_line_copy_to(<string><Opaque>Ref(buffer[0]), length);
         // a copy: buffer goes with this function
         return <string><Opaque>Ref(buffer[0]) + "";

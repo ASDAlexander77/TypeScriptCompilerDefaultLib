@@ -41,8 +41,11 @@ function main() {
     assert(a.toReversed().join() == "ccc,bb,x");
     assert(a.toSorted().join() == "bb,ccc,x");
 
-    const filled = a.fill("z", 1);
-    assert(filled.join() == "x,z,z");
+    // fill fills the array itself, as in JavaScript
+    assert(a.fill("z", 1).join() == "x,z,z");
+    assert(a.join() == "x,z,z");
+    a.set(1, "bb");
+    a.set(2, "ccc");
 
     assert(a.pop() == "ccc" && a.shift() == "x" && a.length == 1);
     a.unshift("p", "q");

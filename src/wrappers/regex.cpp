@@ -50,8 +50,8 @@ extern "C" TSLANG_EXPORT char* regexp_match_results_format(std::cmatch *cm, cons
 
     auto len = result.size();
 
-    std::allocator<char> alloc;
-    char* buffer = alloc.allocate(len + 1);
+    // new[], given back by regexp_free_string's delete[]
+    char* buffer = new char[len + 1];
 
 #ifdef _WIN32
     memcpy_s(buffer, len + 1, result.c_str(), len);
@@ -86,11 +86,15 @@ extern "C" TSLANG_EXPORT int regexp_test(const char *expr, const char *flags, co
 
 extern "C" TSLANG_EXPORT std::cmatch *regexp_exec(const char *expr, const char *flags, const char *s, std::cmatch *cm)
 {
+    // the results it makes here are the caller's only when it returns them: with no match, or a
+    // pattern that is not one, they are given back, where they used to be lost
+    std::cmatch *made = nullptr;
     try
     {
         if (cm == nullptr)
         {
-            cm = new std::cmatch();
+            made = new std::cmatch();
+            cm = made;
         }
 
         if (std::regex_search(s, *cm, std::regex(expr, get_flags(flags)), get_match_flags(flags)))
@@ -103,6 +107,7 @@ extern "C" TSLANG_EXPORT std::cmatch *regexp_exec(const char *expr, const char *
         regexp_error(e.code());
     }
 
+    delete made;
     return nullptr;
 }
 
@@ -115,8 +120,7 @@ extern "C" TSLANG_EXPORT char* regexp_replace(const char *expr, const char *flag
         
         auto len = result.size();
 
-        std::allocator<char> alloc;
-        char* buffer = alloc.allocate(len + 1);
+        char* buffer = new char[len + 1];
 
 #ifdef _WIN32
         memcpy_s(buffer, len + 1, result.c_str(), len);
@@ -147,11 +151,7 @@ extern "C" TSLANG_EXPORT void regexp_free(std::cmatch *cm)
 
 extern "C" TSLANG_EXPORT void regexp_free_string(char *c)
 {
-    if (c != nullptr)
-    {
-        std::allocator<char> alloc;
-        alloc.deallocate(c, 1);
-    }
+    delete[] c;
 }
 
 std::regex::flag_type get_flags(const char *flags) 
