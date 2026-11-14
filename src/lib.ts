@@ -4,8 +4,6 @@
 /// <reference path="core/core.ts" />
 /// <reference path="generics/lib.generics.ts" />
 
-// @strict-null false
-
 export function parseInt(val: string, radix = 10) {
     return strtol(val, null, radix);
 }
@@ -948,13 +946,15 @@ namespace __String {
         return result;
     }
 
-    export function match(this: string, expr: RegExp): string[] {
+    export function match(this: string, expr: RegExp): string[] | null {
         if (!expr.global)
         {
             const result = expr.exec(this);
             if (result != null)
             {
-                return [...result];
+                // -mm=own: into a local first, which the return then moves (as matchAll's yield does)
+                const groups: string[] = [...result];
+                return groups;
             }
 
             return null;
@@ -976,7 +976,13 @@ namespace __String {
                 break;
         }
 
-        return results;        
+        // as in JavaScript: null, not an empty array, when nothing matched
+        if (results.length == 0)
+        {
+            return null;
+        }
+
+        return results;
     }
 
     @borrows("this", "expr")
@@ -1500,7 +1506,7 @@ export class String {
         return this.value.localeCompare(compareString, locale);
     }
 
-    public match(expr: RegExp): string[] {
+    public match(expr: RegExp): string[] | null {
         return this.value.match(expr);
     }
 
