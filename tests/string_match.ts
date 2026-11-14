@@ -1,6 +1,6 @@
 const paragraph = 'The quick brown fox jumps over the lazy dog. It barked.';
 const regex = /[A-Z]/g;
-// match gives string[] | null, as in JavaScript: null when there is no match
+// match gives string[] | null: null when a pattern without the g flag does not match
 const found = paragraph.match(regex);
 
 assert(found != null);
@@ -13,6 +13,12 @@ if (found != null) {
 }
 
 assert(paragraph.match(/[0-9]/) == null, "no match is null");
-assert(paragraph.match(/[0-9]/g) == null, "and with the g flag too, not an empty array");
+
+// with the g flag no match is an empty array (JavaScript gives null there too)
+const none = paragraph.match(/[0-9]/g);
+assert(none != null, "a global match is never null");
+if (none != null) {
+    assert(none.length == 0, "and is empty when nothing matched");
+}
 
 console.log("ALL DONE");

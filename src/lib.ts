@@ -976,12 +976,8 @@ namespace __String {
                 break;
         }
 
-        // as in JavaScript: null, not an empty array, when nothing matched
-        if (results.length == 0)
-        {
-            return null;
-        }
-
+        // an empty array when nothing matched, not JavaScript's null: a global match can always be
+        // walked or counted without a check
         return results;
     }
 
