@@ -2253,6 +2253,8 @@ const JSON_ARRAY = 4;
 const JSON_OBJECT = 5;
 // A parser and a writer that recurse: past this a deep input would run off the native stack.
 const JSON_MAX_DEPTH = 512;
+// An object with this many members or more finds a member by its name through a table.
+const JSON_INDEX_FROM = 16;
 
 function jsonAppend(output: char[], text: string): void {
     // the length once: it is a walk to the text's end each time it is asked for
@@ -2327,6 +2329,10 @@ export class JsonValue {
     // holds the JSON null `at` and `get` give for what is not there: under -mm=own what they return
     // is lent by this value, so a new one could not go back the same way
     private absent: JsonValue[];
+    // For an object of JSON_INDEX_FROM members or more: an open-addressed table of the names, each
+    // slot a name's position plus one, 0 an empty one. Empty for anything smaller. Not a Map: one
+    // built into the library would be built again into a program that uses the same Map.
+    private slots: int[];
 
     // JSON's null
     public constructor() {
@@ -2337,6 +2343,7 @@ export class JsonValue {
         this.items = [];
         this.names = [];
         this.absent = [];
+        this.slots = [];
     }
 
     public static ofBoolean(value: boolean): JsonValue {
@@ -2494,6 +2501,7 @@ export class JsonValue {
                 position = this.items.length;
                 // a copy: only this path takes the key, and under -mm=own a parameter is taken on every path or none
                 this.names.push(key + "");
+                this.indexAdded(position);
                 this.items.length = position + 1;
             }
         }
@@ -2519,6 +2527,8 @@ export class JsonValue {
             result.names.push(name + "");
         }
 
+        // the copy finds its names as this one does
+        result.indexAdded(result.names.length - 1);
         return result;
     }
 
@@ -2562,12 +2572,77 @@ export class JsonValue {
         return this.absent[0];
     }
 
+    // Where the key is among the names, or -1. A few names are looked through; from JSON_INDEX_FROM
+    // on they are found through `slots`, as looking through them for every member made reading an
+    // object of n members cost n * n.
     private indexOf(key: string): int {
-        for (let i = 0; i < this.names.length; i++) {
-            if (this.names[i] == key) return i;
+        const size: int = this.slots.length;
+        if (size == 0) {
+            const count: int = this.names.length;
+            for (let i = 0; i < count; i++) {
+                if (this.names[i] == key) return i;
+            }
+
+            return -1;
         }
 
-        return -1;
+        let slot: int = <int>(<uint>HashHelpers.hashCodeString(key) % <uint>size);
+        while (true) {
+            const at = this.slots[slot];
+            if (at == 0) {
+                return -1;
+            }
+
+            if (this.names[at - 1] == key) {
+                return at - 1;
+            }
+
+            slot++;
+            if (slot == size) {
+                slot = 0;
+            }
+        }
+    }
+
+    // puts the name at `position` into the table, which has a free slot for it
+    private addSlot(position: int): void {
+        const size: int = this.slots.length;
+        let slot: int = <int>(<uint>HashHelpers.hashCodeString(this.names[position]) % <uint>size);
+        while (this.slots[slot] != 0) {
+            slot++;
+            if (slot == size) {
+                slot = 0;
+            }
+        }
+
+        this.slots[slot] = position + 1;
+    }
+
+    // Called once a name has been added at `position`. The table is made when there are
+    // JSON_INDEX_FROM names, and again, twice the size, whenever it is half full: it then holds
+    // every name, so indexOf only reads it.
+    private indexAdded(position: int): void {
+        const count: int = this.names.length;
+        if (count < JSON_INDEX_FROM) {
+            return;
+        }
+
+        if (this.slots.length >= count * 2) {
+            this.addSlot(position);
+            return;
+        }
+
+        const size: int = count * 4;
+        let slots: int[] = [];
+        slots.length = size;
+        for (let i = 0; i < size; i++) {
+            slots[i] = 0;
+        }
+
+        this.slots = slots;
+        for (let i = 0; i < count; i++) {
+            this.addSlot(i);
+        }
     }
 
     private expect(tag: int, name: string): void {
