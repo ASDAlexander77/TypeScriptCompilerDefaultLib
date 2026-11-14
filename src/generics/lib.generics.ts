@@ -2226,10 +2226,14 @@ class Map<K = any, V = any> {
         return this.count - this.freeCount;
     }
 
+    // The buckets are emptied where they are and keep their length: every lookup takes a hash
+    // modulo that length, and modulo none it is not a number (the index it then makes is whatever
+    // the processor gives for one). The next insert finds no room in the entries and resizes both.
     clear() {
         const count = this.count;
         if (count > 0) {
-            this.buckets.length = 0;
+            const buckets = this.buckets;
+            for (let i = 0; i < buckets.length; i++) buckets[i] = 0;
 
             this.count = 0;
             this.freeList = -1;
@@ -2626,10 +2630,14 @@ class Set<V = any> {
         return this.count - this.freeCount;
     }
 
+    // The buckets are emptied where they are and keep their length: every lookup takes a hash
+    // modulo that length, and modulo none it is not a number (the index it then makes is whatever
+    // the processor gives for one). The next insert finds no room in the entries and resizes both.
     clear() {
         const count = this.count;
         if (count > 0) {
-            this.buckets.length = 0;
+            const buckets = this.buckets;
+            for (let i = 0; i < buckets.length; i++) buckets[i] = 0;
 
             this.count = 0;
             this.freeList = -1;
