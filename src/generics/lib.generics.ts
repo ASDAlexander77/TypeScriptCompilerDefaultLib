@@ -577,9 +577,10 @@ namespace __Array {
     function flatMap<T, V>(this: T[], func: (v: T, i: number) => V[]): V[] {
         const result: V[] = [];
         for (let i = 0; i < this.length; i++) {
-            // moved out of the array func made, which goes when this loop turns
+            // read, as flat reads: func may give an array it holds on to (the same one for every
+            // element, a row of a table), so nothing is moved out of it
             const mapped = func(this[i], i);
-            __moveAll(mapped, result);
+            for (const v of mapped) result.push(v);
         }
 
         return result;
