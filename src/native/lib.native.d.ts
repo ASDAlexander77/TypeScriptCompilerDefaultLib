@@ -18,8 +18,8 @@
 @nodrops declare function time(destTime: Reference<long>);
 
 // String
-@nodrops declare function strtol(str: string, end: Reference<string>, base: int): int;
-@nodrops declare function strtod(str: string, end: Reference<string>): double;
+@nodrops declare function strtol(str: string, end: Reference<string> | null, base: int): int;
+@nodrops declare function strtod(str: string, end: Reference<string> | null): double;
 @nodrops declare function strncmp(str: string, other: string, count: index): int;
 // a pointer into `str`, not a string of its own: a `string` result from C is copied
 @nodrops declare function strstr(str: string, other: string): Opaque;
@@ -111,7 +111,7 @@ declare function GC_gcollect(): void;
 
 // regex
 @nodrops declare function regexp_test(expr: string, flags: string, s: string): int;
-@nodrops declare function regexp_exec(expr: string, flags: string, s: string, cm: Opaque): Opaque;
+@nodrops declare function regexp_exec(expr: string, flags: string, s: string, cm: Opaque | null): Opaque | null;
 @nodrops declare function regexp_match_results_size(cm: Opaque): index;
 @nodrops declare function regexp_match_results_prefix_length(cm: Opaque): index;
 @nodrops declare function regexp_match_results_suffix_position(cm: Opaque): index;

@@ -317,7 +317,7 @@ declare namespace __String {
 
     function localeCompare(this: string, compareString: string, locale?: string): int;
 
-    function match(this: string, expr: RegExp): string[];
+    function match(this: string, expr: RegExp): string[] | null;
 
     @borrows("this", "expr")
     function matchAll(this: string, expr: RegExp): Iterator<string[]>;
@@ -399,7 +399,7 @@ declare class String {
 
     localeCompare(this: string, compareString: string, locale?: string): int;
 
-    match(this: string, expr: RegExp): string[];
+    match(this: string, expr: RegExp): string[] | null;
 
     @borrows("this", "expr")
     matchAll(this: string, expr: RegExp): Iterator<string[]>;

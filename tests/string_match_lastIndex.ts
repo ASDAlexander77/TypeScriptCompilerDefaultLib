@@ -6,7 +6,11 @@ function main() {
     assert(re.lastIndex == 1, "test moved lastIndex");
 
     const digits = "1a2b3".match(re);
-    assert(<string>digits == "1,2,3", "match starts at the beginning");
+    assert(digits != null, "match finds the digits");
+    if (digits != null) {
+        assert(<string>digits == "1,2,3", "match starts at the beginning");
+    }
+
     assert(re.lastIndex == 0, "match leaves lastIndex at 0");
 
     assert(re.exec("1a2b3") != null, "exec finds the first digit");
@@ -19,10 +23,16 @@ function main() {
 
     // empty matches
     const empties = "abc".match(/x*/g);
-    assert(empties.length == 4, "an empty match at every position");
+    assert(empties != null, "empty matches are matches");
+    if (empties != null) {
+        assert(empties.length == 4, "an empty match at every position");
+    }
 
     const words = "ab cd".match(/\w*/g);
-    assert(<string>words == "ab,,cd,", "empty matches between the words");
+    assert(words != null, "words and the empty matches between them");
+    if (words != null) {
+        assert(<string>words == "ab,,cd,", "empty matches between the words");
+    }
 
     const emptyAll = [..."ab".matchAll(/x*/g)];
     assert(emptyAll.length == 3, "matchAll: an empty match at every position");
