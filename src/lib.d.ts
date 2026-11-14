@@ -705,6 +705,7 @@ declare class JsonValue {
     private items: JsonValue[];
     private names: string[];
     private absent: JsonValue[];
+    private slots: int[];
 
     constructor();
 
