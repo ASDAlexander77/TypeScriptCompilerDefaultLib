@@ -2139,10 +2139,14 @@ interface PromiseFulfilledResult<T> {
     value: T;
 }
 
+// thrown where a chain of entries is found to go round, which only a change made by another thread
+// while this one reads can do
+const CHAIN_LOOPS = "Map or Set changed by another thread while in use";
+
+// what an insert does with a key already there: leaves its value, or replaces it
 enum InsertionBehavior {
     None,
     OverwriteExisting,
-    ThrowOnExisting,
 }
 
 namespace HashHelpers {
@@ -2217,7 +2221,8 @@ class Map<K = any, V = any> {
         }
         else {
             this.initialize(values.length);
-            for (const [k, v] of values) this.tryInsert(k, v, InsertionBehavior.ThrowOnExisting);
+            // a key given twice keeps its last value, as in JavaScript
+            for (const [k, v] of values) this.tryInsert(k, v, InsertionBehavior.OverwriteExisting);
         }
     }
 
@@ -2364,15 +2369,13 @@ class Map<K = any, V = any> {
             i = this._entries[i].next;
             collisionCount++;
             if (collisionCount > <uint>this._entries.length) {
-                // throw exception
+                // the chain goes round: another thread changed it under this one. The loop
+                // would never end
+                throw new Error(CHAIN_LOOPS);
             }
         }
 
         if (found >= 0 && behavior != InsertionBehavior.OverwriteExisting) {
-            if (behavior == InsertionBehavior.ThrowOnExisting) {
-                // throw error
-            }
-
             return false;
         }
 
@@ -2448,8 +2451,7 @@ class Map<K = any, V = any> {
 
         // The chain of entries forms a loop; which means a concurrent update has happened.
         // Break out of the loop and throw, rather than looping forever.
-        // TODO: throw exception
-        return undefined;
+        throw new Error(CHAIN_LOOPS);
     }
 
     private hasValue(key: K): boolean {
@@ -2478,8 +2480,7 @@ class Map<K = any, V = any> {
 
         // The chain of entries forms a loop; which means a concurrent update has happened.
         // Break out of the loop and throw, rather than looping forever.
-        // TODO: throw exception
-        return false;
+        throw new Error(CHAIN_LOOPS);
     }
 
     private removeValue(key: K): boolean {
@@ -2515,8 +2516,7 @@ class Map<K = any, V = any> {
             if (collisionCount > <uint>entries.length) {
                 // The chain of entries forms a loop; which means a concurrent update has happened.
                 // Break out of the loop and throw, rather than looping forever.
-                // throw exception
-                return false;
+                throw new Error(CHAIN_LOOPS);
             }
         }
 
@@ -2621,7 +2621,7 @@ class Set<V = any> {
         }
         else {
             this.initialize(values.length);
-            for (const v of values) this.AddIfNotPresent(v, InsertionBehavior.ThrowOnExisting);
+            for (const v of values) this.AddIfNotPresent(v, InsertionBehavior.None);
         }
     }
 
@@ -2647,7 +2647,7 @@ class Set<V = any> {
     }
 
     add(v: V) {
-        this.AddIfNotPresent(v, InsertionBehavior.ThrowOnExisting);
+        this.AddIfNotPresent(v, InsertionBehavior.None);
         return this;
     }
 
@@ -2845,17 +2845,15 @@ class Set<V = any> {
             i = this._entries[i].next;
             collisionCount++;
             if (collisionCount > <uint>this._entries.length) {
-                // throw exception
+                // the chain goes round: another thread changed it under this one. The loop
+                // would never end
+                throw new Error(CHAIN_LOOPS);
             }
         }
 
         // outside the loop: under -mm=own the path that does not take the value releases it
         if (found) {
             // a value equal to one in the set is not put in again, whatever the behavior
-            if (behavior == InsertionBehavior.ThrowOnExisting) {
-                // throw error
-            }
-
             return false;
         }
 
@@ -2917,8 +2915,7 @@ class Set<V = any> {
 
         // The chain of entries forms a loop; which means a concurrent update has happened.
         // Break out of the loop and throw, rather than looping forever.
-        // TODO: throw exception
-        return false;
+        throw new Error(CHAIN_LOOPS);
     }
 
     private removeValue(value: V): boolean {
@@ -2954,8 +2951,7 @@ class Set<V = any> {
             if (collisionCount > <uint>entries.length) {
                 // The chain of entries forms a loop; which means a concurrent update has happened.
                 // Break out of the loop and throw, rather than looping forever.
-                // throw exception
-                return false;
+                throw new Error(CHAIN_LOOPS);
             }
         }
 
