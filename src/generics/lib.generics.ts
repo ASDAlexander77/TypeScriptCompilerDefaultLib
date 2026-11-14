@@ -54,9 +54,29 @@ function __toSpliced<T>(source: T[], start: int, deleteCount: int, items: T[]): 
 
     const result: T[] = [];
     for (let i = 0; i < start; i++) result.push(source[i]);
-    while (items.length > 0) result.push(items.shift());
+    __moveAll(items, result);
     for (let i = start + count; i < length; i++) result.push(source[i]);
     return result;
+}
+
+// The elements [from, to) of `a` in reverse order, by exchanges, which move nothing: through a
+// local, under -mm=own an object element would have two owners (see __Array.reverse).
+function __reverseRange<T>(a: T[], from: int, to: int): void {
+    let i = from;
+    let j = to - 1;
+    while (i < j) {
+        [a[i], a[j]] = [a[j], a[i]];
+        i++;
+        j--;
+    }
+}
+
+// Every element of `source` moved onto the end of `target`, in order; `source` is left empty.
+// Reversed once so each comes off the end: a shift for each one moved all the rest down every
+// time, which made n elements cost n * n.
+function __moveAll<T>(source: T[], target: T[]): void {
+    __reverseRange(source, 0, source.length);
+    while (source.length > 0) target.push(source.pop());
 }
 
 namespace __Array {
@@ -151,10 +171,10 @@ namespace __Array {
         return true;
     }
 
+    // Fills the array itself and gives it back, as JavaScript does: it used to fill a copy and leave
+    // the array as it was.
     @sharesElements
     function fill<T>(this: T[], value: T, start = 0, end = this.length) {
-        let newArray = this.slice();
-
         if (start < 0) {
             if (-this.length <= start) {
                 start = start + this.length;
@@ -162,7 +182,7 @@ namespace __Array {
                 start = 0;
             }
         } else if (start >= this.length) {
-            return newArray;
+            return this;
         }
 
         if (end < 0) {
@@ -176,9 +196,9 @@ namespace __Array {
         }
 
         for (let i = start; i < end; i++)
-            newArray[i] = value;
+            this[i] = value;
 
-        return newArray;
+        return this;
     }
 
     @sharesElements
@@ -203,13 +223,10 @@ namespace __Array {
         return -1;
     }
 
-    function findLast<T>(this: T[], func: (v: T, i: number) => boolean) {
-        for (let i = this.length - 1; i >= 0; i--) {
-            const v = this[i];
-            if (func(v, i)) return v;
-        }
-
-        return -1;
+    // undefined when there is none, as find gives: it gave -1, which is findLastIndex's answer
+    function findLast<T>(this: T[], func: (v: T, i: number) => boolean): T | undefined {
+        for (let i = this.length - 1; i >= 0; i--) if (func(this[i], i)) return this[i];
+        return undefined;
     }
 
     function findLastIndex<T>(this: T[], func: (v: T, i: number) => boolean) {
@@ -267,15 +284,21 @@ namespace __Array {
         return -1;
     }
 
+    // Each element's text with the separator before it, then one string of them all. Adding each to
+    // one result copied what was there for every element, and asked its length (a walk to its end)
+    // to know whether a separator was due - which also lost the separator after a leading "".
     function join<T>(this: T[], separator = ",") {
-        let result = "";
-        for (const v of this) {
-            if (result.length > 0)
-                result += separator;
-            result += v;
+        const parts: string[] = [];
+        const length = this.length;
+        for (let i = 0; i < length; i++) {
+            if (i > 0) {
+                parts.push(separator + this[i]);
+            } else {
+                parts.push("" + this[i]);
+            }
         }
 
-        return result;
+        return "".concat(...parts);
     }
 
     function* keys<T>(this: T[]) {
@@ -284,21 +307,19 @@ namespace __Array {
         }
     }
 
+    // The search goes backwards from `fromIndex`. As in JavaScript, one at or past the end starts at
+    // the last element (it gave -1), a negative one counts from the end, and one before the start
+    // finds nothing (it searched element 0).
     function lastIndexOf<T>(this: T[], searchElement: T, fromIndex = this.length - 1) {
-        if (fromIndex < 0) {
-            if (-this.length <= fromIndex) {
-                fromIndex = fromIndex + this.length;
-            } else if (fromIndex < -this.length) {
-                fromIndex = 0;
-            }
-        } else if (fromIndex >= this.length) {
-            return -1;
+        const length: int = this.length;
+        let from: int = <int>fromIndex;
+        if (from < 0) {
+            from = from + length;
+        } else if (from >= length) {
+            from = length - 1;
         }
 
-        if (fromIndex > this.length)
-            fromIndex = this.length - 1;
-
-        for (let i = fromIndex; i in this; i--) {
+        for (let i = from; i >= 0; i--) {
             if (searchElement === this[i]) return i;
         }
 
@@ -408,15 +429,71 @@ namespace __Array {
     // callback may release is known from the functions given for it, and a parameter assigned a
     // default is one nothing knows - so a call of it with two elements would be a use of them after
     // it may release them.
-    function selectionSort<T>(a: T[], compare: (value1: T, value2: T) => int) {
-        const len = a.length;
-        for (let i = 0; i < len - 1; ++i) {
-            for (let j = i + 1; j < len; ++j) {
-                if (compare(a[i], a[j]) > 0) {
-                    // an exchange, as in reverse
-                    [a[i], a[j]] = [a[j], a[i]];
+    //
+    // A merge sort of the elements' positions, then the elements exchanged into that order: about
+    // n log n comparisons where a selection sort made n * n, and stable, as JavaScript's sort is.
+    // The elements themselves only ever change places (an exchange, as in reverse).
+    function mergeSort<T>(a: T[], compare: (value1: T, value2: T) => int) {
+        const len: int = a.length;
+        let order: int[] = [];
+        order.length = len;
+        let merged: int[] = [];
+        merged.length = len;
+        for (let i = 0; i < len; i++) order[i] = i;
+
+        // runs of `width` positions, each in order, merged two by two
+        for (let width = 1; width < len; width *= 2) {
+            for (let lo = 0; lo < len; lo += 2 * width) {
+                let mid = lo + width;
+                if (mid > len) mid = len;
+                let hi = mid + width;
+                if (hi > len) hi = len;
+
+                let i = lo;
+                let j = mid;
+                let k = lo;
+                while (i < mid && j < hi) {
+                    // the right one goes first only when the left one is greater: equal elements
+                    // keep the order they came in
+                    if (compare(a[order[i]], a[order[j]]) > 0) {
+                        merged[k] = order[j];
+                        j++;
+                    } else {
+                        merged[k] = order[i];
+                        i++;
+                    }
+
+                    k++;
+                }
+
+                while (i < mid) {
+                    merged[k] = order[i];
+                    i++;
+                    k++;
+                }
+
+                while (j < hi) {
+                    merged[k] = order[j];
+                    j++;
+                    k++;
                 }
             }
+
+            for (let i = 0; i < len; i++) order[i] = merged[i];
+        }
+
+        // order[i] is where the element that belongs at i is now: each cycle of positions is
+        // walked once, an exchange putting one element in its place
+        for (let i = 0; i < len; i++) {
+            let current = i;
+            while (order[current] != i) {
+                const next = order[current];
+                [a[current], a[next]] = [a[next], a[current]];
+                order[current] = current;
+                current = next;
+            }
+
+            order[current] = current;
         }
     }
 
@@ -426,9 +503,9 @@ namespace __Array {
         }
 
         if (callbackfn) {
-            selectionSort(this, callbackfn);
+            mergeSort(this, callbackfn);
         } else {
-            selectionSort(this, (a: T, b: T) => {
+            mergeSort(this, (a: T, b: T) => {
                 const sa = <string>a;
                 const sb = <string>b;
                 if (sa == sb) return 0;
@@ -502,7 +579,7 @@ namespace __Array {
         for (let i = 0; i < this.length; i++) {
             // moved out of the array func made, which goes when this loop turns
             const mapped = func(this[i], i);
-            while (mapped.length > 0) result.push(mapped.shift());
+            __moveAll(mapped, result);
         }
 
         return result;
@@ -546,8 +623,7 @@ class Array<T> {
     // each element is moved out of `args`, not read: -mm=own then keeps them, and the callers give
     // them up
     public push(...args: T[]): int {
-        while (args.length > 0)
-            this.data.push(args.shift());
+        __moveAll(args, this.data);
         return this.data.length;
     }
 
@@ -559,10 +635,26 @@ class Array<T> {
         return this.data.shift();
     }
 
+    // A few go in one at a time, each a single move of the elements already there. Many are moved
+    // onto the end, and the two parts then change places: one pass over the elements, by exchanges,
+    // which costs about what eight of those moves do.
     public unshift(...args: T[]): int {
-        while (args.length > 0)
-            this.data.unshift(args.pop());
-        return this.data.length;
+        if (args.length < 8) {
+            while (args.length > 0)
+                this.data.unshift(args.pop());
+            return this.data.length;
+        }
+
+        const before: int = this.data.length;
+        __moveAll(args, this.data);
+        const after: int = this.data.length;
+        if (before > 0 && after > before) {
+            __reverseRange(this.data, 0, before);
+            __reverseRange(this.data, before, after);
+            __reverseRange(this.data, 0, after);
+        }
+
+        return after;
     }
 
     // Removes `deleteCount` elements at `start` (all of them to the end when it is left out),
@@ -582,21 +674,36 @@ class Array<T> {
             count = length - start;
         }
 
-        // the removed elements are moved out, not read: each is swapped to the end, the first last,
-        // and popped off in order
-        const last = this.data.length - 1;
-        for (let k = 0; k < count; k++) {
-            for (let j = start; j < last - k; j++) {
-                [this.data[j], this.data[j + 1]] = [this.data[j + 1], this.data[j]];
-            }
+        // The removed elements are moved out, not read: they go to the end, the first of them
+        // last, and are popped off in order. Two reversals take them there - of everything from
+        // `start`, then of what stays - where each used to be swapped down one place at a time.
+        const end: int = length;
+        const from: int = start;
+        const kept: int = end - count;
+        if (count > 0) {
+            __reverseRange(this.data, from, end);
+            __reverseRange(this.data, from, kept);
         }
 
         const removed: T[] = [];
         for (let k = 0; k < count; k++)
             removed.push(this.data.pop());
 
-        for (let i = 0; items.length > 0; i++)
-            this.data.splice(start + i, 0, items.shift());
+        // a few items go in one at a time, as in unshift
+        if (items.length < 8) {
+            for (let i = 0; items.length > 0; i++)
+                this.data.splice(start + i, 0, items.shift());
+            return removed;
+        }
+
+        // many go on at the end, then change places with what followed `start`
+        __moveAll(items, this.data);
+        const total: int = this.data.length;
+        if (total > kept && kept > from) {
+            __reverseRange(this.data, from, kept);
+            __reverseRange(this.data, kept, total);
+            __reverseRange(this.data, from, total);
+        }
 
         return removed;
     }
@@ -988,6 +1095,9 @@ namespace Thread {
 // their counts under -mm=rc. Worker is built on it (docs/worker-design.md).
 class MessageQueue<T> {
     private items: T[] = [];
+    // What take hands out, the oldest last: filled from `items` when it runs empty, so each item
+    // is moved once. Shifting them off `items` moved every item left down for each one taken.
+    private outbox: T[] = [];
     // [0] the lock (1 taken); [1] bumped on each push and on close, which a taker waits on;
     // [2] closed (1)
     private sync = new Int32Array(3);
@@ -1018,8 +1128,12 @@ class MessageQueue<T> {
         const deadline = forever ? 0 : Date.now() + timeout;
         while (true) {
             this.lock();
-            if (this.items.length > 0) {
-                const item = this.items.shift();
+            if (this.outbox.length == 0) {
+                while (this.items.length > 0) this.outbox.push(this.items.pop());
+            }
+
+            if (this.outbox.length > 0) {
+                const item = this.outbox.pop();
                 this.unlock();
                 return item;
             }
@@ -1057,6 +1171,7 @@ class MessageQueue<T> {
     clear() {
         this.lock();
         this.items.length = 0;
+        this.outbox.length = 0;
         this.unlock();
     }
 
@@ -1065,6 +1180,7 @@ class MessageQueue<T> {
         this.lock();
         this.sync[2] = 1;
         this.items.length = 0;
+        this.outbox.length = 0;
         Atomics.add(this.sync, 1, 1);
         this.unlock();
         Atomics.notify(this.sync, 1);
@@ -1076,7 +1192,7 @@ class MessageQueue<T> {
 
     get length() {
         this.lock();
-        const length = this.items.length;
+        const length = this.items.length + this.outbox.length;
         this.unlock();
         return length;
     }
