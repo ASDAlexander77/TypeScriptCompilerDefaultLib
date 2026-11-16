@@ -28,5 +28,5 @@ function main() {
         assert(items.length == 3 && items[0] == "p" && items[2] == "r", "items");
     }
 
-    print("done.");
+    print("ALL DONE");
 }
