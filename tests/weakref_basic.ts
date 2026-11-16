@@ -1,5 +1,5 @@
-// gc only: WeakRef is built on the collector's weak links, and this calls GC_gcollect() itself.
-// Under any other model the compiler rejects both.
+// gc only: this calls GC_gcollect() itself, which the compiler rejects under any other model.
+// Under gc a WeakRef is a link the collector clears; its own-model test is in the compiler's suite.
 class Foo {
     constructor(public value: int) {
     }

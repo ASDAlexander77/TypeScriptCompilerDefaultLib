@@ -3058,9 +3058,10 @@ namespace __Iterator
     }
 }
 
-// gc only: the collector clears the link. Under any other model the compiler rejects the
-// GC_* call below.
-class WeakRef<T extends object> {
+// WeakRef<T> is the compiler's own (own spec 84), under gc, own and none. WeakMap and WeakSet stay
+// gc only: their entries keep this collector link, whose GC_* call the compiler rejects under any
+// other model. The collector clears the link.
+class GcWeakLink<T extends object> {
     // The target's address complemented, as gc.h's GC_HIDE_POINTER does: a plain pointer here is
     // one the collector finds when it scans this object, and it then keeps the target alive, so
     // the link was never cleared. The collector sets this to 0 when the target goes.
@@ -3085,14 +3086,14 @@ class WeakRef<T extends object> {
 class WeakMapEntry<K extends object, V> {
     public values: V[];
 
-    constructor(public ref: WeakRef<K>, value: V) {
+    constructor(public ref: GcWeakLink<K>, value: V) {
         this.values = [value];
     }
 }
 
-// gc only, as WeakRef is. Keys are objects, compared by identity. The table is keyed by the key's
-// address complemented (see WeakRef), so it does not hold the key: the collector clears the entry's
-// WeakRef when the key goes, and the entry is then as if deleted. The collector does not move objects,
+// gc only, as its link is. Keys are objects, compared by identity. The table is keyed by the key's
+// address complemented (see GcWeakLink), so it does not hold the key: the collector clears the entry's
+// link when the key goes, and the entry is then as if deleted. The collector does not move objects,
 // so an address stays the key's for as long as it lives; one reused by a later object finds a dead
 // entry and replaces it. The values are held strongly: a value that refers to its own key keeps that
 // key alive, as the collector has no ephemerons.
@@ -3126,7 +3127,7 @@ class WeakMap<K extends object, V> {
             this.sweep();
         }
 
-        this.table.set(this.hide(key), new WeakMapEntry<K, V>(new WeakRef<K>(key), value));
+        this.table.set(this.hide(key), new WeakMapEntry<K, V>(new GcWeakLink<K>(key), value));
         return this;
     }
 
