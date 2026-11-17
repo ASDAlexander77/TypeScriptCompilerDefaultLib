@@ -18,5 +18,19 @@ function main() {
     assert(Math.min(Number.POSITIVE_INFINITY) == Number.POSITIVE_INFINITY, "Math.min(Infinity)");
     assert(isNaN(Math.min(Number.NaN, 1)), "Math.min(NaN, 1)");
 
+    // +0 is larger than -0, which `>` and `<` do not tell apart: the answer depended on the order.
+    // Doubles made at run time (`-0` is the integer 0); 1 / -0 is -Infinity.
+    const scale = 1.5;
+    const negativeZero: number = -0.0 * scale;
+    const positiveZero: number = 0.0 * scale;
+    assert(1 / negativeZero < 0 && 1 / positiveZero > 0, "the zeros");
+    assert(1 / Math.max(negativeZero, positiveZero) > 0, "Math.max(-0, 0) is 0");
+    assert(1 / Math.max(positiveZero, negativeZero) > 0, "Math.max(0, -0) is 0");
+    assert(1 / Math.max(negativeZero, negativeZero) < 0, "Math.max(-0, -0) is -0");
+    assert(1 / Math.min(positiveZero, negativeZero) < 0, "Math.min(0, -0) is -0");
+    assert(1 / Math.min(negativeZero, positiveZero) < 0, "Math.min(-0, 0) is -0");
+    assert(1 / Math.min(positiveZero, positiveZero) > 0, "Math.min(0, 0) is 0");
+    assert(Math.max(negativeZero, -1) == 0 && Math.min(positiveZero, 1) == 0, "zeros against others");
+
     print("ALL DONE");
 }
