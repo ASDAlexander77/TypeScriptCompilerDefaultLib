@@ -1844,10 +1844,12 @@ export static class Math {
         // -Infinity, not Number.MIN_VALUE: that is the smallest positive number, so the maximum of
         // negative numbers came out as it. With no arguments the result is -Infinity, and any NaN
         // makes it NaN.
+        // +0 is larger than -0 here, which `>` does not tell apart: Math.max(-0, 0) is 0 in either
+        // order (1 / -0 is -Infinity)
         let m = Number.NEGATIVE_INFINITY;
         for (const v of values) {
             if (isNaN(v)) return Number.NaN;
-            if (v > m) m = v;
+            if (v > m || (v == 0 && m == 0 && 1 / m < 0)) m = v;
         }
 
         return m;
@@ -1859,10 +1861,12 @@ export static class Math {
      */
     public min(...values: number[]): number {
         // +Infinity, not Number.MAX_VALUE, so that Math.min() and Math.min(Infinity) are Infinity
+        // -0 is smaller than +0 here, which `<` does not tell apart: Math.min(0, -0) is -0 in either
+        // order
         let m = Number.POSITIVE_INFINITY;
         for (const v of values) {
             if (isNaN(v)) return Number.NaN;
-            if (v < m) m = v;
+            if (v < m || (v == 0 && m == 0 && 1 / v < 0)) m = v;
         }
 
         return m;
