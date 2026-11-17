@@ -886,29 +886,412 @@ static class Array {
     }
 }
 
-class TypedArray<T> extends Array<T> {
+// A window of `count` elements, from `first` on, of an array that other TypedArrays may share, as
+// in JavaScript: subarray() gives a second window onto the same elements, so a write through one is
+// seen through the other. The elements are held through a Shared handle, so under -mm=own each window
+// holds a count of them and none owns them alone. The length is fixed, as in JavaScript: there is no
+// push, pop, shift, unshift or splice. Not here: set(array, offset), which the indexer's set(index,
+// value) takes the name of, as a class cannot overload a method; `buffer`, as there is no ArrayBuffer
+// under it; and the static from, of and BYTES_PER_ELEMENT, as Uint8Array and its kin are type names.
+class TypedArray<T> {
+    private store: Shared<T[]>;
+    private first: int;
+    private count: int;
+
     constructor(data: T[] = []) {
-        super(data);
+        this.first = 0;
+        this.count = data.length;
+        this.store = new Shared<T[]>(data);
     }
 
     // `length` elements, each 0, as in JavaScript: new Uint8Array(4096) is a buffer for Stdio.read
     constructor(length: int) {
-        super();
-        this.data.length = length;
+        const data: T[] = [];
+        data.length = length;
         for (let i = 0; i < length; i++) {
-            this.data[i] = <T>0;
+            data[i] = <T>0;
         }
+
+        this.first = 0;
+        this.count = length;
+        this.store = new Shared<T[]>(data);
     }
 
-    // The element itself, for Atomics. Only the reference is taken here, never an atomic operation:
-    // every method of a generic class is built for each T it is used with, and Float32Array and
-    // Float64Array are TypedArrays too, which LLVM's integer atomics do not take.
+    // a copy of another's elements, as new Uint8Array(other) is: the two share nothing
+    constructor(source: TypedArray<T>) {
+        const data: T[] = [];
+        data.length = source.length;
+        for (let i = 0; i < source.length; i++) {
+            data[i] = source[i];
+        }
+
+        this.first = 0;
+        this.count = source.length;
+        this.store = new Shared<T[]>(data);
+    }
+
+    public [index: int]: T;
+
+    // Outside the window a read gives 0 and a write does nothing. JavaScript reads undefined, which a
+    // T cannot hold, and drops the write. Unchecked, a subarray would reach the elements around it.
+    public get(index: int): T {
+        if (index < 0 || index >= this.count) {
+            return <T>0;
+        }
+
+        return this.store.value[this.first + index];
+    }
+
+    public set(index: int, value: T) {
+        if (index < 0 || index >= this.count) {
+            return;
+        }
+
+        this.store.value[this.first + index] = value;
+    }
+
+    public get length() {
+        return this.count;
+    }
+
+    public get BYTES_PER_ELEMENT(): int {
+        return sizeof<T>();
+    }
+
+    public get byteLength(): int {
+        return this.count * sizeof<T>();
+    }
+
+    // where the window starts in the elements it shares, in bytes: 0 unless it is a subarray
+    public get byteOffset(): int {
+        return this.first * sizeof<T>();
+    }
+
+    // The element itself, for Atomics and for the reads and writes that hand the elements to C. Only
+    // the reference is taken here, never an atomic operation: every method of a generic class is
+    // built for each T it is used with, and Float32Array and Float64Array are TypedArrays too, which
+    // LLVM's integer atomics do not take. The window's elements are one block, so a reference to the
+    // first reaches them all.
     public __elementRef(index: int): Reference<T> {
-        if (index < 0 || index >= this.data.length) {
+        if (index < 0 || index >= this.count) {
             throw new RangeError();
         }
 
-        return Ref(this.data[index]);
+        return Ref(this.store.value[this.first + index]);
+    }
+
+    // a relative index, as JavaScript takes one: a negative one counts from the end, and the result
+    // is in [0, length]
+    private __clamp(index: int): int {
+        if (index < 0) {
+            index = index + this.count;
+            return index < 0 ? 0 : index;
+        }
+
+        return index > this.count ? this.count : index;
+    }
+
+    // a new TypedArray of its own elements, a copy of those from `from` up to `to`
+    private __copy(from: int, to: int): TypedArray<T> {
+        const data: T[] = [];
+        if (to > from) {
+            data.length = to - from;
+            for (let i = from; i < to; i++) {
+                data[i - from] = this[i];
+            }
+        }
+
+        return new TypedArray<T>(data);
+    }
+
+    public at(index: int): T | undefined {
+        if (index < 0) {
+            index = index + this.count;
+        }
+
+        if (index < 0 || index >= this.count) {
+            return undefined;
+        }
+
+        return this[index];
+    }
+
+    public copyWithin(target: int, start = 0, end = this.length): TypedArray<T> {
+        const to = this.__clamp(target);
+        const from = this.__clamp(start);
+        const until = this.__clamp(end);
+        let count = until - from;
+        if (count > this.count - to) {
+            count = this.count - to;
+        }
+
+        // backwards when the ranges overlap that way, as memmove would
+        if (to > from) {
+            for (let i = count - 1; i >= 0; i--) this[to + i] = this[from + i];
+        } else {
+            for (let i = 0; i < count; i++) this[to + i] = this[from + i];
+        }
+
+        return this;
+    }
+
+    // the iterators read the window as it is when they get to each element: under -mm=own they may
+    // not outlive it
+    @borrows("this")
+    public entries() {
+        return this.__entries();
+    }
+
+    @borrows("this")
+    public keys() {
+        return this.__keys();
+    }
+
+    @borrows("this")
+    public values() {
+        return this.__values();
+    }
+
+    @borrows("this")
+    public [Symbol.iterator]() {
+        return this.__values();
+    }
+
+    // The elements are read through `this` at each step, not kept in the state: under -mm=own the
+    // state borrows the array itself, as Map's does.
+    @borrows("this")
+    private *__entries() {
+        for (let i = 0; i < this.count; i++) {
+            const v = this.store.value[this.first + i];
+            yield [i, v];
+        }
+    }
+
+    @borrows("this")
+    private *__keys() {
+        for (let i = 0; i < this.count; i++) {
+            yield i;
+        }
+    }
+
+    @borrows("this")
+    private *__values() {
+        for (let i = 0; i < this.count; i++) {
+            yield this.store.value[this.first + i];
+        }
+    }
+
+    public every(func: (v: T, i: number) => boolean) {
+        for (let i = 0; i < this.count; i++) if (!func(this[i], i)) return false;
+        return true;
+    }
+
+    public some(func: (v: T, i: number) => boolean) {
+        for (let i = 0; i < this.count; i++) if (func(this[i], i)) return true;
+        return false;
+    }
+
+    public fill(value: T, start = 0, end = this.length): TypedArray<T> {
+        const until = this.__clamp(end);
+        for (let i = this.__clamp(start); i < until; i++) this[i] = value;
+        return this;
+    }
+
+    public filter(func: (v: T, i: number) => boolean): TypedArray<T> {
+        const data: T[] = [];
+        for (let i = 0; i < this.count; i++) {
+            const v = this[i];
+            if (func(v, i)) data.push(v);
+        }
+
+        return new TypedArray<T>(data);
+    }
+
+    public find(func: (v: T, i: number) => boolean): T | undefined {
+        for (let i = 0; i < this.count; i++) if (func(this[i], i)) return this[i];
+        return undefined;
+    }
+
+    public findIndex(func: (v: T, i: number) => boolean) {
+        for (let i = 0; i < this.count; i++) if (func(this[i], i)) return i;
+        return -1;
+    }
+
+    public findLast(func: (v: T, i: number) => boolean): T | undefined {
+        for (let i = this.count - 1; i >= 0; i--) if (func(this[i], i)) return this[i];
+        return undefined;
+    }
+
+    public findLastIndex(func: (v: T, i: number) => boolean) {
+        for (let i = this.count - 1; i >= 0; i--) if (func(this[i], i)) return i;
+        return -1;
+    }
+
+    public forEach(func: (v: T, i: number) => void) {
+        for (let i = 0; i < this.count; i++) func(this[i], i);
+    }
+
+    // SameValueZero, as in JavaScript: NaN is found, where indexOf does not find it
+    public includes(searchElement: T, fromIndex = 0) {
+        for (let i = this.__clamp(fromIndex); i < this.count; i++) {
+            const v = this[i];
+            if (v == searchElement || (v != v && searchElement != searchElement)) return true;
+        }
+
+        return false;
+    }
+
+    public indexOf(searchElement: T, fromIndex = 0) {
+        for (let i = this.__clamp(fromIndex); i < this.count; i++) if (this[i] == searchElement) return i;
+        return -1;
+    }
+
+    public lastIndexOf(searchElement: T, fromIndex = this.length - 1) {
+        let i = fromIndex < 0 ? fromIndex + this.count : fromIndex;
+        if (i >= this.count) {
+            i = this.count - 1;
+        }
+
+        for (; i >= 0; i--) if (this[i] == searchElement) return i;
+        return -1;
+    }
+
+    public join(separator = ",") {
+        const parts: string[] = [];
+        for (let i = 0; i < this.count; i++) {
+            if (i > 0) {
+                parts.push(separator + this[i]);
+            } else {
+                parts.push("" + this[i]);
+            }
+        }
+
+        return "".concat(...parts);
+    }
+
+    public toString() {
+        return this.join();
+    }
+
+    public toLocaleString() {
+        return this.join();
+    }
+
+    // a TypedArray of the same kind, as in JavaScript: each result is stored as a T
+    public map(func: (v: T, i: number) => T): TypedArray<T> {
+        const data: T[] = [];
+        data.length = this.count;
+        for (let i = 0; i < this.count; i++) data[i] = func(this[i], i);
+        return new TypedArray<T>(data);
+    }
+
+    public reduce<V = T>(func: (v: V, t: T) => V, initial?: V): V {
+        if (initial == undefined) {
+            if (this.count <= 0) {
+                throw new TypeError("Reduce of empty array with no initial value");
+            }
+
+            if (__is<V, T>(this[0])) {
+                let result = <V>this[0];
+                for (let i = 1; i < this.count; i++) result = func(result, this[i]);
+                return result;
+            }
+        }
+        else {
+            let result = initial;
+            for (let i = 0; i < this.count; i++) result = func(result, this[i]);
+            return result;
+        }
+    }
+
+    public reduceRight<V = T>(func: (v: V, t: T) => V, initial?: V): V {
+        if (initial == undefined) {
+            if (this.count <= 0) {
+                throw new TypeError("Reduce of empty array with no initial value");
+            }
+
+            if (__is<V, T>(this[0])) {
+                let result = <V>this[this.count - 1];
+                for (let i = this.count - 2; i >= 0; i--) result = func(result, this[i]);
+                return result;
+            }
+        }
+        else {
+            let result = initial;
+            for (let i = this.count - 1; i >= 0; i--) result = func(result, this[i]);
+            return result;
+        }
+    }
+
+    public reverse(): TypedArray<T> {
+        for (let i = 0, j = this.count - 1; i < j; i++, j--) {
+            const v = this[i];
+            this[i] = this[j];
+            this[j] = v;
+        }
+
+        return this;
+    }
+
+    public slice(start = 0, end = this.length): TypedArray<T> {
+        return this.__copy(this.__clamp(start), this.__clamp(end));
+    }
+
+    // a window onto the same elements, from `begin` up to `end`: nothing is copied
+    public subarray(begin = 0, end = this.length): TypedArray<T> {
+        const from = this.__clamp(begin);
+        const until = this.__clamp(end);
+        const view = new TypedArray<T>(0);
+        view.store = this.store;
+        view.first = this.first + from;
+        view.count = until > from ? until - from : 0;
+        return view;
+    }
+
+    // By value with no compare function, as in JavaScript (an Array sorts by text): NaN goes last.
+    // Stable, as Array's sort is: the window's elements are sorted as an array and put back.
+    public sort(callbackfn?: (value1: T, value2: T) => int): TypedArray<T> {
+        const data: T[] = [];
+        data.length = this.count;
+        for (let i = 0; i < this.count; i++) data[i] = this[i];
+        if (callbackfn) {
+            data.sort(callbackfn);
+        } else {
+            data.sort((a: T, b: T) => {
+                if (a < b) return -1;
+                if (a > b) return 1;
+                if (a == b) return 0;
+                // one of them is NaN, which goes after every number
+                if (a != a) return b != b ? 0 : 1;
+                return -1;
+            });
+        }
+
+        for (let i = 0; i < this.count; i++) this[i] = data[i];
+        return this;
+    }
+
+    public toReversed(): TypedArray<T> {
+        return this.slice().reverse();
+    }
+
+    public toSorted(callbackfn?: (value1: T, value2: T) => int): TypedArray<T> {
+        return this.slice().sort(callbackfn);
+    }
+
+    // `with`, which is a keyword here, as Array's is
+    public _with(index: int, value: T): TypedArray<T> {
+        if (index < 0) {
+            index = index + this.count;
+        }
+
+        if (index < 0 || index >= this.count) {
+            throw new RangeError();
+        }
+
+        const copy = this.slice();
+        copy[index] = value;
+        return copy;
     }
 }
 
@@ -936,8 +1319,8 @@ type Float64Array = TypedArray<f64>;
 // JavaScript. Each is one LLVM atomic `load`, `store`, `atomicrmw` or `cmpxchg` on the element. The
 // operation codes are written out, not passed in: the builtins take them only as constants. The
 // value is a `number`, as in JavaScript, and wraps to the element's width (300 added to a Uint8Array
-// element adds 44). There is no SharedArrayBuffer and a TypedArray is not a view over a buffer, so an
-// operation acts on the array's own elements: threads share the array itself (see Thread.spawn).
+// element adds 44). There is no SharedArrayBuffer, so an operation acts on the elements the array
+// shares with its subarrays: threads share the array itself (see Thread.spawn).
 // `waitAsync` is not here: there is no event loop to resolve its promise.
 namespace Atomics {
     // atomicrmw operations: 0 xchg, 1 add, 2 sub, 3 and, 5 or, 6 xor; ordering 7: seq_cst
@@ -1440,8 +1823,8 @@ class Worker<In, Out> {
 
 // Bytes to and from the standard streams, as they are: on Windows each call puts its stream in
 // binary mode and back, so a "\n" stays one byte and a 0x1A does not end the input (console.log
-// and console.readLine keep text mode). A Uint8Array is not a view over a buffer here, so `read`
-// fills the array's own elements. Each is generic, as `sleep` is: see there. See src/wrappers/io.cpp.
+// and console.readLine keep text mode). There is no ArrayBuffer under a Uint8Array, so `read` fills
+// its elements, which a subarray of it shares. Each is generic, as `sleep` is: see there. See src/wrappers/io.cpp.
 namespace Stdio {
     // Reads stdin into `buffer` and says how many bytes it read: it fills the buffer unless the
     // input ends first, so fewer than buffer.length means the input has ended, and 0 that nothing
