@@ -1,3 +1,4 @@
+@owned
 declare class Error {
     public message?: string;
     public filename?: string;
@@ -5,18 +6,22 @@ declare class Error {
     constructor(message?: string, filename?: string, line?: int);
 }
 
+@owned
 declare class RangeError extends Error {
     constructor(message?: string, filename?: string, line?: int);
 }
 
+@owned
 declare class TypeError extends Error {
     constructor(message?: string, filename?: string, line?: int);
 }
 
+@owned
 declare class SyntaxError extends Error {
     constructor(message?: string, filename?: string, line?: int);
 }
 
+@owned
 declare class ErrorEvent {
     public message: string;
     constructor(message: string);
