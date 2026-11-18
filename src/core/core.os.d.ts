@@ -3,8 +3,12 @@
 // under -mm=own so is every Date method that calls one: a global Date lent to `d.getMonth()` was an
 // error. The scalar ones too: a scalar declaration is taken as no-drops only in a module no function
 // value can escape from, and the library, which declares non-scalar functions, is not one.
-@nodrops declare function convertNumber(bufferSize: int, format: string, value: number): string;
-@nodrops declare function convertInteger(bufferSize: int, format: string, value: long): string;
+// @owned: these return a string their caller owns under -mm=rc - each body returns `s`, a view of
+// its local char[], and a view the function returns is copied there (#481), so the caller is given
+// a string of its own at +1. Unmarked, they were C functions to their callers: the result was
+// copied again and the function's own string never given back (`toFixed` leaked one per call).
+@nodrops @owned declare function convertNumber(bufferSize: int, format: string, value: number): string;
+@nodrops @owned declare function convertInteger(bufferSize: int, format: string, value: long): string;
 
 @nodrops declare function init_time();
 
@@ -19,7 +23,7 @@ type tm = [tm_sec: i32, tm_min: i32, tm_hour: i32, tm_mday: i32, tm_mon: i32, tm
 
 @nodrops declare function gettimezone(): i32;
 
-@nodrops declare function timestamp_to_string(maxsize: index, time: long): string;
-@nodrops declare function time_to_string(maxsize: index, time: long, isUtc: boolean): string;
-@nodrops declare function time_format(maxsize: index, format: string, time: long, isUtc: boolean): string;
-@nodrops declare function time_format_locale(maxsize: index, format: string, time: long, locale: string, isUtc: boolean): string;
+@nodrops @owned declare function timestamp_to_string(maxsize: index, time: long): string;
+@nodrops @owned declare function time_to_string(maxsize: index, time: long, isUtc: boolean): string;
+@nodrops @owned declare function time_format(maxsize: index, format: string, time: long, isUtc: boolean): string;
+@nodrops @owned declare function time_format_locale(maxsize: index, format: string, time: long, locale: string, isUtc: boolean): string;
