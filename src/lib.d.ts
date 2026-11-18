@@ -3,19 +3,32 @@
 /// <reference path="core/core.d.ts" />
 /// <reference path="generics/lib.generics.ts" />
 
+// @owned: lib.ts defines what this file declares, compiled under the program's own memory model, so
+// under -mm=rc each function here returns a reference its caller owns, as an imported function does.
+// Without it the compiler can say nothing of these results: every call kept its +1 for good, and one
+// declaration with a heap result was enough to stop any call through a function value from giving
+// its result back. Never on a C function, nor on one that returns a pointer into a buffer
+// (core/core.os.d.ts's convertNumber, timestamp_to_string, ...).
+
+@owned
 declare function parseInt(val: string, radix?: int): int;
 
+@owned
 declare function parseFloat(val: string): number;
 
+@owned
 declare function isNaN(val: number): boolean;
 
+@owned
 declare function isFinite(val: number): boolean;
 
+@owned
 declare namespace __Boolean {
     function toString(this: boolean): string;
 }
 
 @final
+@owned
 declare class Boolean {
     private value: boolean;
 
@@ -26,6 +39,7 @@ declare class Boolean {
     valueOf(): boolean;
 }
 
+@owned
 declare namespace __Number {
 
     function toExponential(this: number, fractionDigits?: int): string;
@@ -38,6 +52,7 @@ declare namespace __Number {
 }
 
 @final
+@owned
 declare class Number {
     static EPSILON: number;
 
@@ -96,6 +111,7 @@ declare class Number {
     valueOf(): number;
 }
 
+@owned
 declare namespace __BigInt {
     
     function toLocaleString(this: bigint, locale?: string): string;
@@ -104,6 +120,7 @@ declare namespace __BigInt {
 }
 
 @final
+@owned
 declare class BigInt {
     private value: bigint;
 
@@ -117,6 +134,7 @@ declare class BigInt {
 }
 
 @final
+@owned
 declare class Date {
     private timestamp: time_t;
     
@@ -222,6 +240,7 @@ declare class Date {
 }
 
 @final
+@owned
 declare class MatchIndicesResults
 {
     private match: Opaque;
@@ -238,6 +257,7 @@ declare class MatchIndicesResults
 }
 
 @final
+@owned
 declare class MatchResults
 {
     private match: Opaque;
@@ -258,6 +278,7 @@ declare class MatchResults
 }
 
 @final
+@owned
 declare class RegExp {
 
     dotAll: boolean;
@@ -294,6 +315,7 @@ declare class RegExp {
     [Symbol.dispose](): void;
 }
 
+@owned
 declare namespace __String {
     function at(this: string, index: int): string;
 
@@ -368,6 +390,7 @@ declare namespace __String {
 }
 
 @final
+@owned
 declare class String {
     private value: string;
 
@@ -453,6 +476,7 @@ declare class String {
     //[Symbol.iterator](): ClassIterator<string>;
 }
 
+@owned
 declare namespace Math {
     /** The mathematical constant e. This is Euler's number, the base of natural logarithms. */
     const E = 2.718281828459045;
@@ -659,6 +683,7 @@ declare namespace Math {
 }
 
 @final
+@owned
 declare class Headers {
     private names: string[];
     private values: string[];
@@ -681,6 +706,7 @@ declare class Headers {
 }
 
 @final
+@owned
 declare class Response {
     status: int;
     headers: Headers;
@@ -697,6 +723,7 @@ declare class Response {
 }
 
 @final
+@owned
 declare class JsonValue {
     private tag: int;
     private flag: boolean;
@@ -739,12 +766,15 @@ declare class JsonValue {
     toJSON(): string;
 }
 
+@owned
 declare namespace JSON {
     function parse(text: string): JsonValue;
 }
 
+@owned
 declare function fetch(url: string, init?: { method?: string, headers?: [string, string][], body?: string }): Response;
 
+@owned
 declare namespace console {
     function readLine(): string | null;
 
