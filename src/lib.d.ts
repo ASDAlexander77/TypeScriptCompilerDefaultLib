@@ -586,6 +586,11 @@ declare namespace Math {
      */
     function fround(x: number): number;    
     /**
+     * Returns the nearest half precision float representation of a number.
+     * @param x A numeric expression.
+     */
+    function f16round(x: number): number;
+    /**
      * Returns the square root of the sum of squares of its arguments.
      * @param values Values to compute the square root for.
      *     If no arguments are passed, the result is +0.
@@ -680,6 +685,94 @@ declare namespace Math {
      * @param x A numeric expression.
      */
     function trunc(x: number): number;
+}
+
+declare enum States {
+    HasMaxByteLength = 1,
+    NonResizable = 2,
+    Detached = 4,
+    View = 8,
+}
+
+@final
+@owned
+declare class ArrayBuffer {
+    private arrayOfView: char[];
+    private states: States;
+    maxByteLength: int;
+
+    constructor(length: int, options?: { maxByteLength?: int });
+
+    get resizable(): boolean;
+    get detached(): boolean;
+    get byteLength(): int;
+    static isView(arrayBuffer: ArrayBuffer): boolean;
+    resize(newLength: int): void;
+    slice(start?: int, end?: int): ArrayBuffer;
+    transfer(newByteLength?: int): ArrayBuffer;
+    transferToFixedLength(newByteLength?: int): ArrayBuffer;
+    @lends("this")
+    __bytes(): char[];
+    [Symbol.dispose](): void;
+}
+
+@final
+@owned
+declare class SharedArrayBuffer {
+    private bytes: char[];
+    private length: int;
+    private capacity: int;
+    private canGrow: boolean;
+
+    constructor(length: int, options?: { maxByteLength?: int });
+
+    get byteLength(): int;
+    get growable(): boolean;
+    get maxByteLength(): int;
+    grow(newLength: int): void;
+    slice(start?: int, end?: int): SharedArrayBuffer;
+    @lends("this")
+    __bytes(): char[];
+}
+
+@final
+@owned
+declare class DataView {
+    private source: ArrayBuffer | SharedArrayBuffer;
+    private offset: int;
+    private fixedLength: int;
+    private tracksLength: boolean;
+
+    @keeps("buffer")
+    constructor(buffer: ArrayBuffer | SharedArrayBuffer, byteOffset?: int, byteLength?: int);
+
+    @lends("this")
+    get buffer(): ArrayBuffer | SharedArrayBuffer;
+    get byteOffset(): int;
+    get byteLength(): int;
+
+    getInt8(byteOffset: int): number;
+    getUint8(byteOffset: int): number;
+    getInt16(byteOffset: int, littleEndian?: boolean): number;
+    getUint16(byteOffset: int, littleEndian?: boolean): number;
+    getInt32(byteOffset: int, littleEndian?: boolean): number;
+    getUint32(byteOffset: int, littleEndian?: boolean): number;
+    getFloat16(byteOffset: int, littleEndian?: boolean): number;
+    getFloat32(byteOffset: int, littleEndian?: boolean): number;
+    getFloat64(byteOffset: int, littleEndian?: boolean): number;
+    getBigInt64(byteOffset: int, littleEndian?: boolean): bigint;
+    getBigUint64(byteOffset: int, littleEndian?: boolean): bigint;
+    setInt8(byteOffset: int, value: number): void;
+    setUint8(byteOffset: int, value: number): void;
+    setInt16(byteOffset: int, value: number, littleEndian?: boolean): void;
+    setUint16(byteOffset: int, value: number, littleEndian?: boolean): void;
+    setInt32(byteOffset: int, value: number, littleEndian?: boolean): void;
+    setUint32(byteOffset: int, value: number, littleEndian?: boolean): void;
+    setFloat16(byteOffset: int, value: number, littleEndian?: boolean): void;
+    setFloat32(byteOffset: int, value: number, littleEndian?: boolean): void;
+    setFloat64(byteOffset: int, value: number, littleEndian?: boolean): void;
+    setBigInt64(byteOffset: int, value: bigint, littleEndian?: boolean): void;
+    setBigUint64(byteOffset: int, value: bigint, littleEndian?: boolean): void;
 }
 
 @final

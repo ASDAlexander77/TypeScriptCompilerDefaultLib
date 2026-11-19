@@ -1781,6 +1781,14 @@ export static class Math {
     }
 
     /**
+     * Returns the nearest half precision float representation of a number.
+     * @param x A numeric expression.
+     */
+    f16round(x: number): number {
+        return __Float16.decode(__Float16.encode(x));
+    }
+
+    /**
      * Returns the square root of the sum of squares of its arguments.
      * @param values Values to compute the square root for.
      *     If no arguments are passed, the result is +0.
@@ -1967,15 +1975,26 @@ enum States {
 
 @final
 export class ArrayBuffer {
-
     private arrayOfView: char[];
     private states: States;
     public maxByteLength: int;
 
     public constructor(length: int, options?: { maxByteLength?: int }) {
+        if (length < 0) {
+            throw new RangeError("Invalid array buffer length");
+        }
+
+        // resizable only when given a maxByteLength, as in JavaScript
         if (options != undefined && options.maxByteLength != undefined) {
+            if (options.maxByteLength < length) {
+                throw new RangeError("Invalid array buffer max length");
+            }
+
             this.maxByteLength = options.maxByteLength;
             this.states |= States.HasMaxByteLength;
+        } else {
+            this.maxByteLength = length;
+            this.states |= States.NonResizable;
         }
 
         // always an array, empty for no bytes and once detached: never null
@@ -1995,16 +2014,35 @@ export class ArrayBuffer {
         return (this.states & States.Detached) == States.Detached;
     }
 
+    // 0 once detached
+    public get byteLength(): int {
+        return this.arrayOfView.length;
+    }
+
     public static isView(arrayBuffer: ArrayBuffer) {
         return (arrayBuffer.states & States.View) == States.View;
     }
 
     public resize(newLength: int) {
         this.expectAttached();
+        if (!this.resizable) {
+            throw new TypeError("ArrayBuffer is not resizable");
+        }
+
+        if (newLength < 0 || newLength > this.maxByteLength) {
+            throw new RangeError("Invalid array buffer length");
+        }
+
+        // the bytes past the old length are 0, as in JavaScript: setting the length alone keeps
+        // what a shrink left there
+        const oldLength = this.arrayOfView.length;
         this.arrayOfView.length = newLength;
+        for (let i = oldLength; i < newLength; i++) {
+            this.arrayOfView[i] = <char>0;
+        }
     }
 
-    public slice(start = 0, end = this.arrayOfView.length) {
+    public slice(start = 0, end: int = this.arrayOfView.length) {
         this.expectAttached();
         if (start < 0 && -this.arrayOfView.length <= start) start += this.arrayOfView.length;
         if (start < -this.arrayOfView.length) start = 0;
@@ -2019,19 +2057,31 @@ export class ArrayBuffer {
         if (start >= end) end = start; 
 
         const newArrayBuffer = new ArrayBuffer(0);
-        newArrayBuffer.states = this.states | States.NonResizable;
-        newArrayBuffer.maxByteLength = this.maxByteLength;
+        newArrayBuffer.states = (this.states & ~States.HasMaxByteLength) | States.NonResizable;
         newArrayBuffer.arrayOfView = this.copyOf(start, end);
+        newArrayBuffer.maxByteLength = end - start;
         return newArrayBuffer;
     }
 
-    // TODO: newByteLength is not used
+    // the bytes in a buffer of newByteLength, its own length by default: cut short, or 0 past it
     public transfer(newByteLength?: int) {
         this.expectAttached();
+        const length = newByteLength == undefined ? this.arrayOfView.length : newByteLength;
+        if (length < 0 || (this.resizable && length > this.maxByteLength)) {
+            throw new RangeError("Invalid array buffer length");
+        }
+
         const newArrayBuffer = new ArrayBuffer(0);
         newArrayBuffer.states = this.states;
-        newArrayBuffer.maxByteLength = this.maxByteLength;
-        newArrayBuffer.arrayOfView = this.copyOf(0, this.arrayOfView.length);
+        newArrayBuffer.maxByteLength = this.resizable ? this.maxByteLength : length;
+        const kept = length < this.arrayOfView.length ? length : this.arrayOfView.length;
+        const bytes = this.copyOf(0, kept);
+        bytes.length = length;
+        for (let i = kept; i < length; i++) {
+            bytes[i] = <char>0;
+        }
+
+        newArrayBuffer.arrayOfView = bytes;
 
         this.detach();
         return newArrayBuffer;
@@ -2040,7 +2090,21 @@ export class ArrayBuffer {
     public transferToFixedLength(newByteLength?: int) {
         const newArrayBuffer = this.transfer(newByteLength);
         newArrayBuffer.states |= States.NonResizable;
+        newArrayBuffer.maxByteLength = newArrayBuffer.arrayOfView.length;
         return newArrayBuffer;
+    }
+
+    // for DataView: the bytes themselves
+    @lends("this")
+    public __bytes(): char[] {
+        return this.arrayOfView;
+    }
+
+    // the assignment releases the bytes under rc and own, and leaves them to the collector under gc
+    [Symbol.dispose]() {
+        if (!this.detached) {
+            this.arrayOfView = [];
+        }
     }
 
     // The bytes [start, end) in an array of their own. A slice is a copy, as in JavaScript, and a
@@ -2067,12 +2131,357 @@ export class ArrayBuffer {
         this.states |= States.Detached;
         this.arrayOfView = [];
     }
+}
 
-    // the assignment releases the bytes under rc and own, and leaves them to the collector under gc
-    [Symbol.dispose]() {
-        if (!this.detached) {
-            this.arrayOfView = [];
+// A block of bytes that threads share, as in JavaScript. A growable one takes all maxByteLength bytes
+// up front, so grow() never moves them while another thread reads: it only says more of them are in
+// use. Nothing here is atomic: threads that write the same bytes order their writes themselves (a
+// TypedArray cannot view these bytes, so Atomics cannot reach them).
+@final
+export class SharedArrayBuffer {
+    private bytes: char[];
+    private length: int;
+    private capacity: int;
+    private canGrow: boolean;
+
+    public constructor(length: int, options?: { maxByteLength?: int }) {
+        if (length < 0) {
+            throw new RangeError("Invalid array buffer length");
         }
+
+        let capacity = length;
+        let canGrow = false;
+        if (options != undefined && options.maxByteLength != undefined) {
+            capacity = options.maxByteLength;
+            canGrow = true;
+            if (capacity < length) {
+                throw new RangeError("Invalid array buffer max length");
+            }
+        }
+
+        let bytes: char[] = [];
+        if (capacity > 0) {
+            bytes.length = capacity;
+        }
+
+        this.bytes = bytes;
+        this.length = length;
+        this.capacity = capacity;
+        this.canGrow = canGrow;
+    }
+
+    public get byteLength(): int {
+        return this.length;
+    }
+
+    public get growable(): boolean {
+        return this.canGrow;
+    }
+
+    public get maxByteLength(): int {
+        return this.capacity;
+    }
+
+    // the bytes past the old length are 0: they were never written
+    public grow(newLength: int): void {
+        if (!this.canGrow) {
+            throw new TypeError("SharedArrayBuffer is not growable");
+        }
+
+        if (newLength < this.length || newLength > this.capacity) {
+            throw new RangeError("Invalid array buffer length");
+        }
+
+        this.length = newLength;
+    }
+
+    // a copy of the bytes [start, end), in a SharedArrayBuffer of its own that does not grow
+    public slice(start = 0, end = this.length): SharedArrayBuffer {
+        const from = SharedArrayBuffer.clamp(start, this.length);
+        const until = SharedArrayBuffer.clamp(end, this.length);
+        const count = until > from ? until - from : 0;
+        const copy = new SharedArrayBuffer(count);
+        for (let i = 0; i < count; i++) {
+            copy.bytes[i] = this.bytes[from + i];
+        }
+
+        return copy;
+    }
+
+    // for DataView: the bytes themselves, of which the first byteLength are in use
+    @lends("this")
+    public __bytes(): char[] {
+        return this.bytes;
+    }
+
+    // a relative index, as JavaScript takes one: a negative one counts from the end
+    private static clamp(index: int, length: int): int {
+        if (index < 0) {
+            index = index + length;
+            return index < 0 ? 0 : index;
+        }
+
+        return index > length ? length : index;
+    }
+}
+
+// A view that reads and writes numbers of any width at any byte offset of an ArrayBuffer or a
+// SharedArrayBuffer, big-endian unless littleEndian is true, as in JavaScript. An offset past the
+// view's end is a RangeError, and a detached ArrayBuffer a TypeError. Made without a byteLength over
+// a buffer that can resize or grow, the view follows the buffer's length.
+@final
+export class DataView {
+    private source: ArrayBuffer | SharedArrayBuffer;
+    private offset: int;
+    private fixedLength: int;
+    private tracksLength: boolean;
+
+    // One constructor of a union, not two: lib.d.ts cannot declare an overloaded one. The view keeps
+    // the buffer: under -mm=own its caller gives the buffer up, and reaches it through `buffer`.
+    @keeps("buffer")
+    public constructor(buffer: ArrayBuffer | SharedArrayBuffer, byteOffset = 0, byteLength?: int) {
+        if (buffer instanceof ArrayBuffer) {
+            if (buffer.detached) {
+                throw new TypeError("ArrayBuffer is detached");
+            }
+
+            this.init(buffer.byteLength, buffer.resizable, byteOffset, byteLength);
+        } else {
+            this.init(buffer.byteLength, buffer.growable, byteOffset, byteLength);
+        }
+
+        // stored once, after it is measured: under -mm=own the store moves it
+        this.source = buffer;
+    }
+
+    @lends("this")
+    public get buffer(): ArrayBuffer | SharedArrayBuffer {
+        return this.source;
+    }
+
+    public get byteOffset(): int {
+        this.bufferLength();
+        return this.offset;
+    }
+
+    public get byteLength(): int {
+        const bufferLength = this.bufferLength();
+        if (this.tracksLength) {
+            return bufferLength - this.offset;
+        }
+
+        if (this.offset + this.fixedLength > bufferLength) {
+            throw new TypeError("DataView is out of bounds");
+        }
+
+        return this.fixedLength;
+    }
+
+    public getInt8(byteOffset: int): number {
+        return <s8><u8>this.read(byteOffset, 1, false);
+    }
+
+    public getUint8(byteOffset: int): number {
+        return <u8>this.read(byteOffset, 1, false);
+    }
+
+    public getInt16(byteOffset: int, littleEndian = false): number {
+        return <s16><u16>this.read(byteOffset, 2, littleEndian);
+    }
+
+    public getUint16(byteOffset: int, littleEndian = false): number {
+        return <u16>this.read(byteOffset, 2, littleEndian);
+    }
+
+    public getInt32(byteOffset: int, littleEndian = false): number {
+        return <s32><u32>this.read(byteOffset, 4, littleEndian);
+    }
+
+    public getUint32(byteOffset: int, littleEndian = false): number {
+        return <u32>this.read(byteOffset, 4, littleEndian);
+    }
+
+    public getFloat16(byteOffset: int, littleEndian = false): number {
+        return __Float16.decode(<u16>this.read(byteOffset, 2, littleEndian));
+    }
+
+    public getFloat32(byteOffset: int, littleEndian = false): number {
+        return DataView.f32Of(this.read(byteOffset, 4, littleEndian));
+    }
+
+    public getFloat64(byteOffset: int, littleEndian = false): number {
+        return DataView.f64Of(this.read(byteOffset, 8, littleEndian));
+    }
+
+    public getBigInt64(byteOffset: int, littleEndian = false): bigint {
+        return <s64>this.read(byteOffset, 8, littleEndian);
+    }
+
+    // a bigint here is 64 bits and signed: a value of 2^63 or more comes out negative
+    public getBigUint64(byteOffset: int, littleEndian = false): bigint {
+        return <s64>this.read(byteOffset, 8, littleEndian);
+    }
+
+    public setInt8(byteOffset: int, value: number): void {
+        this.write(byteOffset, 1, DataView.wrap(value), false);
+    }
+
+    public setUint8(byteOffset: int, value: number): void {
+        this.write(byteOffset, 1, DataView.wrap(value), false);
+    }
+
+    public setInt16(byteOffset: int, value: number, littleEndian = false): void {
+        this.write(byteOffset, 2, DataView.wrap(value), littleEndian);
+    }
+
+    public setUint16(byteOffset: int, value: number, littleEndian = false): void {
+        this.write(byteOffset, 2, DataView.wrap(value), littleEndian);
+    }
+
+    public setInt32(byteOffset: int, value: number, littleEndian = false): void {
+        this.write(byteOffset, 4, DataView.wrap(value), littleEndian);
+    }
+
+    public setUint32(byteOffset: int, value: number, littleEndian = false): void {
+        this.write(byteOffset, 4, DataView.wrap(value), littleEndian);
+    }
+
+    public setFloat16(byteOffset: int, value: number, littleEndian = false): void {
+        this.write(byteOffset, 2, __Float16.encode(value), littleEndian);
+    }
+
+    public setFloat32(byteOffset: int, value: number, littleEndian = false): void {
+        this.write(byteOffset, 4, DataView.f32Bits(value), littleEndian);
+    }
+
+    public setFloat64(byteOffset: int, value: number, littleEndian = false): void {
+        this.write(byteOffset, 8, DataView.f64Bits(value), littleEndian);
+    }
+
+    public setBigInt64(byteOffset: int, value: bigint, littleEndian = false): void {
+        this.write(byteOffset, 8, <u64><s64>value, littleEndian);
+    }
+
+    public setBigUint64(byteOffset: int, value: bigint, littleEndian = false): void {
+        this.write(byteOffset, 8, <u64><s64>value, littleEndian);
+    }
+
+    private init(bufferLength: int, followsBuffer: boolean, byteOffset: int, byteLength?: int) {
+        if (byteOffset < 0 || byteOffset > bufferLength) {
+            throw new RangeError("Start offset is outside the bounds of the buffer");
+        }
+
+        this.offset = byteOffset;
+        if (byteLength == undefined) {
+            this.fixedLength = bufferLength - byteOffset;
+            this.tracksLength = followsBuffer;
+        } else {
+            if (byteLength < 0 || byteOffset + byteLength > bufferLength) {
+                throw new RangeError("Invalid DataView length");
+            }
+
+            this.fixedLength = byteLength;
+            this.tracksLength = false;
+        }
+    }
+
+    // the buffer's length now: a resizable ArrayBuffer may have shrunk under the view
+    private bufferLength(): int {
+        const source = this.source;
+        if (source instanceof ArrayBuffer) {
+            if (source.detached) {
+                throw new TypeError("ArrayBuffer is detached");
+            }
+
+            return source.byteLength;
+        }
+
+        return source.byteLength;
+    }
+
+    @lends("this")
+    private bytes(): char[] {
+        const source = this.source;
+        if (source instanceof ArrayBuffer) {
+            return source.__bytes();
+        }
+
+        return source.__bytes();
+    }
+
+    private check(byteOffset: int, size: int): void {
+        const length = this.byteLength;
+        if (byteOffset < 0 || byteOffset + size > length) {
+            throw new RangeError("Offset is outside the bounds of the DataView");
+        }
+    }
+
+    // `size` bytes at `byteOffset`, as one unsigned integer
+    private read(byteOffset: int, size: int, littleEndian: boolean): u64 {
+        this.check(byteOffset, size);
+        const bytes = this.bytes();
+        const at = this.offset + byteOffset;
+        let value: u64 = 0;
+        for (let i = 0; i < size; i++) {
+            const b = <u64><u8>bytes[littleEndian ? at + size - 1 - i : at + i];
+            value = (value << 8) | b;
+        }
+
+        return value;
+    }
+
+    private write(byteOffset: int, size: int, value: u64, littleEndian: boolean): void {
+        this.check(byteOffset, size);
+        const bytes = this.bytes();
+        const at = this.offset + byteOffset;
+        for (let i = 0; i < size; i++) {
+            const b = <char><u8>(value & 0xFF);
+            bytes[littleEndian ? at + i : at + size - 1 - i] = b;
+            value = value >> 8;
+        }
+    }
+
+    // a number as an integer of the element's width, as JavaScript's ToInt32 and its kin wrap it:
+    // NaN and the infinities are 0
+    private static wrap(value: number): u64 {
+        if (!isFinite(value)) {
+            return 0;
+        }
+
+        const whole = Math.trunc(value);
+        if (whole < 0) {
+            return <u64><s64>whole;
+        }
+
+        return <u64>whole;
+    }
+
+    private static f32Of(bits: u64): number {
+        let b: u32 = <u32>bits;
+        let value: f32 = 0;
+        memcpy(<Opaque>Ref(value), <Opaque>Ref(b), 4);
+        return value;
+    }
+
+    private static f32Bits(x: number): u64 {
+        let value: f32 = x;
+        let b: u32 = 0;
+        memcpy(<Opaque>Ref(b), <Opaque>Ref(value), 4);
+        return b;
+    }
+
+    private static f64Of(bits: u64): number {
+        let b: u64 = bits;
+        let value: f64 = 0;
+        memcpy(<Opaque>Ref(value), <Opaque>Ref(b), 8);
+        return value;
+    }
+
+    private static f64Bits(x: number): u64 {
+        let value: f64 = x;
+        let b: u64 = 0;
+        memcpy(<Opaque>Ref(b), <Opaque>Ref(value), 8);
+        return b;
     }
 }
 

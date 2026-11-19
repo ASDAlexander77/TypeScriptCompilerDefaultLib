@@ -891,8 +891,8 @@ static class Array {
 // seen through the other. The elements are held through a Shared handle, so under -mm=own each window
 // holds a count of them and none owns them alone. The length is fixed, as in JavaScript: there is no
 // push, pop, shift, unshift or splice. Not here: set(array, offset), which the indexer's set(index,
-// value) takes the name of, as a class cannot overload a method; `buffer`, as there is no ArrayBuffer
-// under it; and the static from, of and BYTES_PER_ELEMENT, as Uint8Array and its kin are type names.
+// value) takes the name of, as a class cannot overload a method; `buffer`, as its elements are not
+// an ArrayBuffer's bytes (a DataView reads those); and the static from, of and BYTES_PER_ELEMENT, as Uint8Array and its kin are type names.
 class TypedArray<T> {
     private store: Shared<T[]>;
     private first: int;
@@ -1740,8 +1740,8 @@ type Float16Array = ConvertingTypedArray<u16>;
 // JavaScript. Each is one LLVM atomic `load`, `store`, `atomicrmw` or `cmpxchg` on the element. The
 // operation codes are written out, not passed in: the builtins take them only as constants. The
 // value is a `number`, as in JavaScript, and wraps to the element's width (300 added to a Uint8Array
-// element adds 44). There is no SharedArrayBuffer, so an operation acts on the elements the array
-// shares with its subarrays: threads share the array itself (see Thread.spawn).
+// element adds 44). A TypedArray cannot view a SharedArrayBuffer, so an operation acts on the elements
+// the array shares with its subarrays: threads share the array itself (see Thread.spawn).
 // `waitAsync` is not here: there is no event loop to resolve its promise.
 namespace Atomics {
     // atomicrmw operations: 0 xchg, 1 add, 2 sub, 3 and, 5 or, 6 xor; ordering 7: seq_cst
