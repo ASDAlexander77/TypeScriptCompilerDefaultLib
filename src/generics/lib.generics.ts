@@ -4005,3 +4005,86 @@ class WeakSet<K extends object> {
         return this.keys.delete(value);
     }
 }
+
+// Resources disposed together, last added first, as in JavaScript: by `using stack = new
+// DisposableStack()` at the end of the block, or by dispose(). A resource that throws does not stop
+// the rest; when more than one throws, dispose() throws a SuppressedError that holds the newest
+// error and the one it hid. Once disposed, use, adopt, defer and move throw a ReferenceError.
+// X only keeps the class out of a program that does not use it (see sleep). Under -mm=own use() of
+// an object is refused, as it both keeps the object and gives it back; defer(), and adopt() of a
+// value that is copied, are there.
+class DisposableStack<X = int> {
+    // what disposing each resource calls, in the order they were added: under -mm=own defer() keeps
+    // its callback here as it is
+    private resources: (() => void)[] = [];
+    private isDisposed = false;
+
+    public get disposed(): boolean {
+        return this.isDisposed;
+    }
+
+    // `value`, to be disposed with the stack
+    public use<T>(value: T): T {
+        this.expectNotDisposed();
+        this.resources.push(() => value[Symbol.dispose]());
+        return value;
+    }
+
+    // `value`, given to onDispose when the stack is disposed: for what has no [Symbol.dispose]()
+    public adopt<T>(value: T, onDispose: (value: T) => void): T {
+        this.expectNotDisposed();
+        this.resources.push(() => onDispose(value));
+        return value;
+    }
+
+    // onDispose, called when the stack is disposed; the stack keeps it
+    @keeps("onDispose")
+    public defer(onDispose: () => void): void {
+        this.expectNotDisposed();
+        this.resources.push(onDispose);
+    }
+
+    // a new stack with all of this one's resources; this one is left disposed, with none
+    public move(): DisposableStack<X> {
+        this.expectNotDisposed();
+        const moved = new DisposableStack<X>();
+        moved.resources = this.resources;
+        this.resources = [];
+        this.isDisposed = true;
+        return moved;
+    }
+
+    // also [Symbol.dispose](), which is the method named `dispose` here: `using` calls this
+    public dispose(): void {
+        if (this.isDisposed) {
+            return;
+        }
+
+        this.isDisposed = true;
+        let failed = false;
+        let failure: any;
+        while (this.resources.length > 0) {
+            const dispose = this.resources.pop();
+            try {
+                dispose();
+            } catch (e) {
+                if (failed) {
+                    failure = new SuppressedError(e, failure, "An error was suppressed during disposal");
+                } else {
+                    failure = e;
+                    failed = true;
+                }
+            }
+        }
+
+        if (failed) {
+            throw failure;
+        }
+    }
+
+    private expectNotDisposed(): void {
+        if (this.isDisposed) {
+            throw new ReferenceError("DisposableStack already disposed");
+        }
+    }
+}

@@ -22,6 +22,18 @@ declare class SyntaxError extends Error {
 }
 
 @owned
+declare class ReferenceError extends Error {
+    constructor(message?: string, filename?: string, line?: int);
+}
+
+@owned
+declare class SuppressedError extends Error {
+    public error: any;
+    public suppressed: any;
+    constructor(error: any, suppressed: any, message?: string);
+}
+
+@owned
 declare class ErrorEvent {
     public message: string;
     constructor(message: string);
