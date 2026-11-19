@@ -127,8 +127,8 @@ $Env:TSLANG_ARCH="x86"; .\tests.ps1 # x86, release/compile and debug/compile onl
 ```
 
 The default memory model is `gc`. A test whose first line starts with `// gc only` is
-skipped under any other model, one starting `// not own` under `-mm=own`, and one starting
-`// linux only` by `tests.ps1` (it runs in `tests.sh`). A test that should run under every
+skipped under any other model, one starting `// not own` under `-mm=own`, one starting `// not rc`
+under `-mm=rc`, and one starting `// linux only` by `tests.ps1` (it runs in `tests.sh`). A test that should run under every
 model but has a part that can't, branches on `__MEMORY_MODEL__` instead.
 
 A test's functions are global symbols, so on Linux one named like a libc function (`read`,
@@ -169,8 +169,30 @@ Globals (`src/lib.ts`):
   `replace`, `replaceAll`, `search`, `slice`, `split`, `startsWith`, `substring`,
   `toLocaleLowerCase`, `toLocaleUpperCase`, `toLowerCase`, `toUpperCase`,
   `toWellFormed`, `trim`, `trimStart`, `trimEnd`
-- `Math` (static)
-- `ArrayBuffer`
+- `Math` (static), with `f16round`
+- `ArrayBuffer`: resizable only when made with `{ maxByteLength }`; `byteLength`, `resize`, `slice`,
+  `transfer(newByteLength?)`, `transferToFixedLength`, `detached`
+- `SharedArrayBuffer`: `byteLength`, `growable`, `maxByteLength`, `grow`, `slice`. A growable one
+  takes all `maxByteLength` bytes up front, so `grow` never moves them under another thread. A
+  typed array cannot view one, so `Atomics` cannot reach its bytes.
+- `DataView` over an `ArrayBuffer` or a `SharedArrayBuffer`: `get`/`set` of `Int8`, `Uint8`,
+  `Int16`, `Uint16`, `Int32`, `Uint32`, `Float16`, `Float32`, `Float64`, `BigInt64`, `BigUint64`,
+  big-endian unless `littleEndian` is `true`. Made without a length over a resizable buffer, it
+  follows the buffer's length. A `bigint` is 64 bits and signed here, so `getBigUint64` of 2^63 or
+  more comes out negative. Under `-mm=own` the view keeps the buffer it is given (reach it through
+  `buffer`).
+- `Error`, `RangeError`, `TypeError`, `SyntaxError`, `ReferenceError`, and `SuppressedError`
+  (`error`, `suppressed`)
+- `Temporal`, the ISO 8601 calendar's part: `Duration`, `Instant`, `PlainDate`, `PlainTime`,
+  `PlainDateTime` and `Now` (`instant`, `plainDateTimeISO`, `plainDateISO`, `plainTimeISO`), with
+  `from` (ISO 8601 text), `compare`, `add`, `subtract`, `until`, `since`, `equals`, `toString` and
+  `toJSON`, and `_with` for `with`, a keyword here. Not here: `ZonedDateTime`, `PlainYearMonth`,
+  `PlainMonthDay`, time zones other than UTC and the system's present offset, other calendars, and
+  the options bags: `until` and `since` give their default largest unit, and an overflowing day is
+  constrained to the month's last. Without a date to count from, a `Duration` with years, months or
+  weeks cannot be added, compared or totalled (a `RangeError`), and a day is 24 hours.
+  `Instant.epochNanoseconds` is a 64-bit `bigint`, so it holds the years 1677 to 2262. `Now` reads
+  the clock to the millisecond.
 - `Headers`, `Response`, `fetch` — see [docs/fetch.md](docs/fetch.md)
 - `JSON.parse`, and the `JsonValue` it gives. There are no objects whose fields are found at run
   time, so a value is read through accessors: `kind`, `isNull`, `asBoolean`, `asNumber`, `asString`,
@@ -210,6 +232,9 @@ Generics (`src/generics/lib.generics.ts`):
   `Int16Array`, `Uint16Array`, `Int32Array`, `Uint32Array`, `BigInt64Array`,
   `BigUint64Array`, `Float32Array`, `Float64Array`). A typed array is made from an array of
   its elements (`new Uint8Array([1, 2, 3])`) or a length (`new Uint8Array(4096)`, each element 0)
+- `Uint8ClampedArray`, which clamps a number written to it into 0..255 and rounds half to even, and
+  `Float16Array`, of IEEE 754 binary16 elements. Both have `TypedArray`'s methods, with a `number`
+  element.
 - `T[]` and `Array<T>` also have `flatMap`, `toSpliced` (`splice` on a copy), and `T[][]` has
   `flat()`, which takes away one level only: a depth would make the result's type depend on a number
 - `Map<K, V>`, and `Map.groupBy(items, keySelector)`, a `Map` of each key to its items, the keys in
@@ -289,6 +314,16 @@ Generics (`src/generics/lib.generics.ts`):
 - `WeakMap<K, V>`: `get`, `set`, `has`, `delete`. `WeakSet<K>`: `add`, `has`, `delete`. Keys are
   objects, compared by identity. `-mm=gc` only, as `WeakRef` is. A value is held strongly, so a value
   that refers to its own key keeps that key alive.
+- `FinalizationRegistry<H, T>`: `register(target, heldValue, unregisterToken?)`, `unregister`, and
+  `cleanupSome(callback?)` from the TC39 proposal. `H` is the held value's type, `T` the targets'
+  class (an unregister token is a `T` too). Built on `WeakRef`, so under `-mm=gc`, `own` and `none`,
+  not `rc`. There is no event loop, so the callback runs at the registry's next use (`register`,
+  `unregister`, `cleanupSome`), for each target freed by then: under `gc` once the collector has run,
+  under `own` once its owner has given it up, under `none` never.
+- `DisposableStack`: `use`, `adopt`, `defer`, `move`, `dispose`, `disposed`; disposed by `using`
+  too. Resources go last added first, and one that throws does not stop the rest; two failures make
+  a `SuppressedError`. Under `-mm=own`, `use` of an object is refused (it keeps the object and gives
+  it back); `defer` and `adopt` of a copied value work.
 - `Promise`: `resolve`, `reject`, `all`, `allSettled`, `race`, `any`. The compiler takes
   `Promise<T>` as `T` (an async function returns its value and `await` gives it back), so
   these work on values that have already settled and a rejection is a thrown exception.

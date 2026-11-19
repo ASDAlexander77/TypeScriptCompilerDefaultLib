@@ -3541,3 +3541,1009 @@ export static class console {
         stdio_write(fileNo, data, data.length);
     }
 }
+
+// Temporal, the ISO 8601 calendar's part of it: Duration, Instant, PlainDate, PlainTime,
+// PlainDateTime and Now. Not here: ZonedDateTime, PlainYearMonth, PlainMonthDay, time zones other
+// than UTC and the system's present offset, other calendars, and the options bags (largestUnit,
+// smallestUnit, rounding, overflow). Where JavaScript takes options the default is used, and an
+// overflowing day is constrained to the month's last. Instant.epochNanoseconds is a 64-bit bigint, so
+// an Instant is between the years 1677 and 2262 when it is read that way.
+// In each class the members lib.d.ts declares come first, in its order: a program calls them by
+// their place in the class's table.
+export namespace Temporal {
+    const NS_PER_SECOND = 1000000000;
+    const SECONDS_PER_DAY = 86400;
+
+    // the units, largest first, as Duration's fields are
+    const YEARS = 0;
+    const MONTHS = 1;
+    const WEEKS = 2;
+    const DAYS = 3;
+    const HOURS = 4;
+    const MINUTES = 5;
+    const SECONDS = 6;
+
+    function isLeapYear(year: int): boolean {
+        return (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
+    }
+
+    function daysInMonthOf(year: int, month: int): int {
+        if (month == 2) return isLeapYear(year) ? 29 : 28;
+        if (month == 4 || month == 6 || month == 9 || month == 11) return 30;
+        return 31;
+    }
+
+    // the days from 1970-01-01 to the date (H. Hinnant's days_from_civil)
+    function epochDays(year: int, month: int, day: int): int {
+        const y = month <= 2 ? year - 1 : year;
+        const era = Math.floor(y / 400);
+        const yoe = y - era * 400;
+        const mp = (month + 9) % 12;
+        const doy = Math.floor((153 * mp + 2) / 5) + day - 1;
+        const doe = yoe * 365 + Math.floor(yoe / 4) - Math.floor(yoe / 100) + doy;
+        return <int>(era * 146097 + doe - 719468);
+    }
+
+    // the date that many days from 1970-01-01 (civil_from_days)
+    function dateOfEpochDays(days: int): PlainDate {
+        const z = days + 719468;
+        const era = Math.floor(z / 146097);
+        const doe = z - era * 146097;
+        const yoe = Math.floor((doe - Math.floor(doe / 1460) + Math.floor(doe / 36524) - Math.floor(doe / 146096)) / 365);
+        const doy = doe - (365 * yoe + Math.floor(yoe / 4) - Math.floor(yoe / 100));
+        const mp = Math.floor((5 * doy + 2) / 153);
+        const day = doy - Math.floor((153 * mp + 2) / 5) + 1;
+        const month = mp < 10 ? mp + 3 : mp - 9;
+        const year = yoe + era * 400 + (month <= 2 ? 1 : 0);
+        return new PlainDate(<int>year, <int>month, <int>day);
+    }
+
+    function pad(value: number, width: int): string {
+        let text = "" + value;
+        while (text.length < width) text = "0" + text;
+        return text;
+    }
+
+    function yearText(year: int): string {
+        if (year >= 0 && year <= 9999) return pad(year, 4);
+        return (year < 0 ? "-" : "+") + pad(Math.abs(year), 6);
+    }
+
+    // the nine digits of a fraction of a second, its trailing zeros gone; "" for none
+    function fractionText(nanoseconds: number): string {
+        if (nanoseconds == 0) return "";
+        let text = pad(nanoseconds, 9);
+        while (text.endsWith("0")) text = text.substring(0, text.length - 1);
+        return "." + text;
+    }
+
+    function timeText(hour: int, minute: int, second: int, nanoseconds: number): string {
+        return pad(hour, 2) + ":" + pad(minute, 2) + ":" + pad(second, 2) + fractionText(nanoseconds);
+    }
+
+    function invalid(what: string): RangeError {
+        return new RangeError("Invalid " + what);
+    }
+
+    // An ISO 8601 text, read one part at a time: each read throws a RangeError for what it cannot
+    // read. `at` is where the next part starts.
+    class IsoReader {
+        public at = 0;
+
+        constructor(public text: string) {
+        }
+
+        public get done(): boolean {
+            return this.at >= this.text.length;
+        }
+
+        public peek(): int {
+            return this.at < this.text.length ? this.text.charCodeAt(this.at) : -1;
+        }
+
+        public take(code: int): boolean {
+            if (this.peek() == code) {
+                this.at++;
+                return true;
+            }
+
+            return false;
+        }
+
+        public digits(count: int): int {
+            let value = 0;
+            for (let i = 0; i < count; i++) {
+                const c = this.peek();
+                if (c < 48 || c > 57) throw invalid("ISO 8601 string: " + this.text);
+                value = value * 10 + (c - 48);
+                this.at++;
+            }
+
+            return value;
+        }
+
+        // YYYY-MM-DD, or ±YYYYYY-MM-DD
+        public date(): int[] {
+            let year: int;
+            if (this.peek() == 43 || this.peek() == 45) {
+                const negative = this.peek() == 45;
+                this.at++;
+                year = this.digits(6);
+                if (negative) year = -year;
+            } else {
+                year = this.digits(4);
+            }
+
+            if (!this.take(45)) throw invalid("ISO 8601 date: " + this.text);
+            const month = this.digits(2);
+            if (!this.take(45)) throw invalid("ISO 8601 date: " + this.text);
+            const day = this.digits(2);
+            return [year, month, day];
+        }
+
+        // HH:MM[:SS[.fffffffff]]: hour, minute, second and the fraction in nanoseconds
+        public time(): int[] {
+            const hour = this.digits(2);
+            if (!this.take(58)) throw invalid("ISO 8601 time: " + this.text);
+            const minute = this.digits(2);
+            let second = 0;
+            let fraction = 0;
+            if (this.take(58)) {
+                second = this.digits(2);
+                if (this.take(46) || this.take(44)) {
+                    let count = 0;
+                    while (count < 9 && this.peek() >= 48 && this.peek() <= 57) {
+                        fraction = fraction * 10 + (this.peek() - 48);
+                        this.at++;
+                        count++;
+                    }
+
+                    if (count == 0) throw invalid("ISO 8601 time: " + this.text);
+                    for (; count < 9; count++) fraction = fraction * 10;
+                }
+            }
+
+            return [hour, minute, second, fraction];
+        }
+
+        // the date, then "T" or a space and the time when there is one
+        public dateTime(): int[] {
+            const date = this.date();
+            let time = [0, 0, 0, 0];
+            if (this.take(84) || this.take(116) || this.take(32)) {
+                time = this.time();
+            }
+
+            return [date[0], date[1], date[2], time[0], time[1], time[2], time[3]];
+        }
+
+        // Z, or ±HH:MM: the offset from UTC in seconds
+        public offset(): int {
+            if (this.take(90) || this.take(122)) return 0;
+            const c = this.peek();
+            if (c != 43 && c != 45) throw invalid("ISO 8601 offset: " + this.text);
+            this.at++;
+            const hours = this.digits(2);
+            this.take(58);
+            const minutes = this.digits(2);
+            const seconds = hours * 3600 + minutes * 60;
+            return c == 45 ? -seconds : seconds;
+        }
+
+        public end(): void {
+            // an annotation, as [u-ca=iso8601], is allowed and ignored
+            if (this.peek() == 91) {
+                const close = this.text.indexOf("]", this.at);
+                if (close >= 0) this.at = close + 1;
+            }
+
+            if (!this.done) throw invalid("ISO 8601 string: " + this.text);
+        }
+    }
+
+    function checkDate(year: int, month: int, day: int): void {
+        if (month < 1 || month > 12 || day < 1 || day > daysInMonthOf(year, month)) {
+            throw invalid("date: " + year + "-" + month + "-" + day);
+        }
+    }
+
+    function checkTime(hour: int, minute: int, second: int, millisecond: int, microsecond: int, nanosecond: int): void {
+        if (hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 59
+            || millisecond < 0 || millisecond > 999 || microsecond < 0 || microsecond > 999
+            || nanosecond < 0 || nanosecond > 999) {
+            throw invalid("time");
+        }
+    }
+
+    // A span of seconds and the nanoseconds past them, the nanoseconds in [0, 1e9): exact over any
+    // span a Duration can hold, where nanoseconds alone in a number lose digits past 104 days.
+    class Span {
+        constructor(public seconds: number, public nanoseconds: number) {
+            const carry = Math.floor(this.nanoseconds / NS_PER_SECOND);
+            this.seconds = this.seconds + carry;
+            this.nanoseconds = this.nanoseconds - carry * NS_PER_SECOND;
+        }
+
+        public plus(other: Span): Span {
+            return new Span(this.seconds + other.seconds, this.nanoseconds + other.nanoseconds);
+        }
+
+        public minus(other: Span): Span {
+            return new Span(this.seconds - other.seconds, this.nanoseconds - other.nanoseconds);
+        }
+
+        public get sign(): int {
+            if (this.seconds < 0) return -1;
+            if (this.seconds > 0 || this.nanoseconds > 0) return 1;
+            return 0;
+        }
+
+        public compare(other: Span): int {
+            return this.minus(other).sign;
+        }
+
+        // as a Duration whose largest unit is `largest` (DAYS to SECONDS), each field with its sign
+        public toDuration(largest: int): Duration {
+            const sign = this.sign;
+            let seconds = this.seconds;
+            let nanoseconds = this.nanoseconds;
+            if (sign < 0) {
+                // the magnitude: -(seconds + nanoseconds / 1e9)
+                seconds = -seconds;
+                if (nanoseconds > 0) {
+                    seconds = seconds - 1;
+                    nanoseconds = NS_PER_SECOND - nanoseconds;
+                }
+            }
+
+            let days = 0;
+            let hours = 0;
+            let minutes = 0;
+            if (largest <= DAYS) {
+                days = Math.floor(seconds / SECONDS_PER_DAY);
+                seconds = seconds - days * SECONDS_PER_DAY;
+            }
+
+            if (largest <= HOURS) {
+                hours = Math.floor(seconds / 3600);
+                seconds = seconds - hours * 3600;
+            }
+
+            if (largest <= MINUTES) {
+                minutes = Math.floor(seconds / 60);
+                seconds = seconds - minutes * 60;
+            }
+
+            const milliseconds = Math.floor(nanoseconds / 1000000);
+            const microseconds = Math.floor(nanoseconds / 1000) % 1000;
+            const rest = nanoseconds % 1000;
+            return new Duration(0, 0, 0, days * sign, hours * sign, minutes * sign, seconds * sign,
+                milliseconds * sign, microseconds * sign, rest * sign);
+        }
+    }
+
+    function unitOf(name: string): int {
+        if (name == "year" || name == "years") return YEARS;
+        if (name == "month" || name == "months") return MONTHS;
+        if (name == "week" || name == "weeks") return WEEKS;
+        if (name == "day" || name == "days") return DAYS;
+        if (name == "hour" || name == "hours") return HOURS;
+        if (name == "minute" || name == "minutes") return MINUTES;
+        if (name == "second" || name == "seconds") return SECONDS;
+        if (name == "millisecond" || name == "milliseconds") return 7;
+        if (name == "microsecond" || name == "microseconds") return 8;
+        if (name == "nanosecond" || name == "nanoseconds") return 9;
+        throw invalid("unit: " + name);
+    }
+
+    // A length of time in years, months, weeks, days, hours, minutes, seconds, milliseconds,
+    // microseconds and nanoseconds. Every field is a whole number, and none has a sign the others
+    // do not. Without a date to count from (JavaScript's relativeTo, not here) a year, a month and a
+    // week have no length, so add, subtract, compare and total refuse a Duration that has them, and a
+    // day is 24 hours.
+    @final
+    export class Duration {
+        private fields: number[];
+
+        public constructor(years: number = 0, months: number = 0, weeks: number = 0, days: number = 0,
+            hours: number = 0, minutes: number = 0, seconds: number = 0, milliseconds: number = 0,
+            microseconds: number = 0, nanoseconds: number = 0) {
+            const fields = [years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds];
+            let sign = 0;
+            for (let i = 0; i < 10; i++) {
+                const v = fields[i];
+                if (!isFinite(v) || Math.trunc(v) != v) {
+                    throw invalid("duration: a field is not a whole number");
+                }
+
+                // -0 is 0
+                if (v == 0) {
+                    fields[i] = 0;
+                    continue;
+                }
+
+                const s = v < 0 ? -1 : 1;
+                if (sign != 0 && s != sign) {
+                    throw invalid("duration: mixed signs");
+                }
+
+                sign = s;
+            }
+
+            this.fields = fields;
+        }
+
+        // P[nY][nM][nW][nD][T[nH][nM][n[.fffffffff]S]], with a sign before the P for a negative one
+        public static from(text: string): Duration {
+            const reader = new IsoReader(text);
+            let sign = 1;
+            if (reader.take(45)) {
+                sign = -1;
+            } else {
+                reader.take(43);
+            }
+
+            if (!reader.take(80) && !reader.take(112)) throw invalid("ISO 8601 duration: " + text);
+            const fields = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+            let inTime = false;
+            let any = false;
+            let last = -1;
+            while (!reader.done) {
+                if (reader.take(84) || reader.take(116)) {
+                    if (inTime) throw invalid("ISO 8601 duration: " + text);
+                    inTime = true;
+                    continue;
+                }
+
+                let whole = 0;
+                let digits = 0;
+                while (reader.peek() >= 48 && reader.peek() <= 57) {
+                    whole = whole * 10 + (reader.peek() - 48);
+                    reader.at++;
+                    digits++;
+                }
+
+                let fraction = 0;
+                let fractionDigits = 0;
+                if (reader.take(46) || reader.take(44)) {
+                    while (reader.peek() >= 48 && reader.peek() <= 57) {
+                        if (fractionDigits < 9) {
+                            fraction = fraction * 10 + (reader.peek() - 48);
+                            fractionDigits++;
+                        }
+
+                        reader.at++;
+                    }
+                }
+
+                if (digits == 0) throw invalid("ISO 8601 duration: " + text);
+                const designator = reader.peek() | 32;
+                reader.at++;
+                let unit = -1;
+                if (!inTime && designator == 121) unit = YEARS;
+                else if (!inTime && designator == 109) unit = MONTHS;
+                else if (!inTime && designator == 119) unit = WEEKS;
+                else if (!inTime && designator == 100) unit = DAYS;
+                else if (inTime && designator == 104) unit = HOURS;
+                else if (inTime && designator == 109) unit = MINUTES;
+                else if (inTime && designator == 115) unit = SECONDS;
+                if (unit < 0 || unit <= last) throw invalid("ISO 8601 duration: " + text);
+                // only seconds take a fraction here
+                if (fractionDigits > 0 && unit != SECONDS) throw invalid("ISO 8601 duration: " + text);
+                fields[unit] = whole;
+                if (unit == SECONDS) {
+                    for (let i = fractionDigits; i < 9; i++) fraction = fraction * 10;
+                    fields[7] = Math.floor(fraction / 1000000);
+                    fields[8] = Math.floor(fraction / 1000) % 1000;
+                    fields[9] = fraction % 1000;
+                }
+
+                last = unit;
+                any = true;
+            }
+
+            if (!any) throw invalid("ISO 8601 duration: " + text);
+            return new Duration(fields[0] * sign, fields[1] * sign, fields[2] * sign, fields[3] * sign,
+                fields[4] * sign, fields[5] * sign, fields[6] * sign, fields[7] * sign, fields[8] * sign,
+                fields[9] * sign);
+        }
+
+        // by length: a Duration with years, months or weeks has none, and is a RangeError
+        public static compare(one: Duration, two: Duration): int {
+            return one.span().compare(two.span());
+        }
+
+        public get years(): number { return this.fields[0]; }
+        public get months(): number { return this.fields[1]; }
+        public get weeks(): number { return this.fields[2]; }
+        public get days(): number { return this.fields[3]; }
+        public get hours(): number { return this.fields[4]; }
+        public get minutes(): number { return this.fields[5]; }
+        public get seconds(): number { return this.fields[6]; }
+        public get milliseconds(): number { return this.fields[7]; }
+        public get microseconds(): number { return this.fields[8]; }
+        public get nanoseconds(): number { return this.fields[9]; }
+
+        public get sign(): int {
+            for (let i = 0; i < 10; i++) {
+                if (this.fields[i] < 0) return -1;
+                if (this.fields[i] > 0) return 1;
+            }
+
+            return 0;
+        }
+
+        public get blank(): boolean {
+            return this.sign == 0;
+        }
+
+        public negated(): Duration {
+            const f = this.fields;
+            return new Duration(-f[0], -f[1], -f[2], -f[3], -f[4], -f[5], -f[6], -f[7], -f[8], -f[9]);
+        }
+
+        // a new Duration either way: under -mm=own one call cannot give back `this` or a new one
+        public abs(): Duration {
+            if (this.sign < 0) return this.negated();
+            const f = this.fields;
+            return new Duration(f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8], f[9]);
+        }
+
+        // the sum, in the larger of the two largest units
+        public add(other: Duration): Duration {
+            const largest = this.largestUnit() < other.largestUnit() ? this.largestUnit() : other.largestUnit();
+            return this.span().plus(other.span()).toDuration(largest < DAYS ? DAYS : largest);
+        }
+
+        public subtract(other: Duration): Duration {
+            return this.add(other.negated());
+        }
+
+        // the length in `unit`, from "day" to "nanosecond", fraction and all
+        public total(unit: string): number {
+            const u = unitOf(unit);
+            if (u < DAYS) throw new RangeError("A year, month or week has no length without a date to count from");
+            const span = this.span();
+            const perUnit = [SECONDS_PER_DAY, 3600, 60, 1, 0.001, 0.000001, 0.000000001];
+            return (span.seconds + span.nanoseconds / NS_PER_SECOND) / perUnit[u - DAYS];
+        }
+
+        public toString(): string {
+            const sign = this.sign;
+            if (sign == 0) return "PT0S";
+            const f = this.abs().fields;
+            let text: string = sign < 0 ? "-P" : "P";
+            if (f[0] != 0) text += f[0] + "Y";
+            if (f[1] != 0) text += f[1] + "M";
+            if (f[2] != 0) text += f[2] + "W";
+            if (f[3] != 0) text += f[3] + "D";
+            // the parts of a second go into the seconds, as JavaScript writes them
+            const subsecond = new Span(f[6], f[7] * 1000000 + f[8] * 1000 + f[9]);
+            const hasSeconds = subsecond.seconds != 0 || subsecond.nanoseconds != 0;
+            if (f[4] != 0 || f[5] != 0 || hasSeconds) {
+                text += "T";
+                if (f[4] != 0) text += f[4] + "H";
+                if (f[5] != 0) text += f[5] + "M";
+                if (hasSeconds) text += subsecond.seconds + fractionText(subsecond.nanoseconds) + "S";
+            }
+
+            return text;
+        }
+
+        public toJSON(): string {
+            return this.toString();
+        }
+
+        // for the classes here: the fields as they are
+        public __field(index: int): number {
+            return this.fields[index];
+        }
+
+        // years, months and weeks refused; a day is 24 hours
+        private span(): Span {
+            const f = this.fields;
+            if (f[0] != 0 || f[1] != 0 || f[2] != 0) {
+                throw new RangeError("A year, month or week has no length without a date to count from");
+            }
+
+            return new Span(f[3] * SECONDS_PER_DAY + f[4] * 3600 + f[5] * 60 + f[6], f[7] * 1000000 + f[8] * 1000 + f[9]);
+        }
+
+        // the index of the first field that is not 0; SECONDS when only parts of a second are
+        private largestUnit(): int {
+            for (let i = 0; i < 10; i++) {
+                if (this.fields[i] != 0) return i < SECONDS ? i : SECONDS;
+            }
+
+            return SECONDS;
+        }
+
+    }
+
+    // A point in time, to the nanosecond, with no calendar and no time zone: kept as the seconds
+    // from 1970-01-01T00:00:00Z and the nanoseconds past them.
+    @final
+    export class Instant {
+        private epochSeconds: number;
+        private nanos: number;
+
+        // nanoseconds from 1970-01-01T00:00:00Z
+        public constructor(epochNanoseconds: bigint) {
+            // in 64 bits throughout: a bigint times an int is an int here
+            const billion: bigint = NS_PER_SECOND;
+            const rest: bigint = epochNanoseconds % billion;
+            const whole: bigint = (epochNanoseconds - rest) / billion;
+            const span = new Span(0, rest);
+            this.epochSeconds = whole + span.seconds;
+            this.nanos = span.nanoseconds;
+        }
+
+        public static fromEpochMilliseconds(epochMilliseconds: number): Instant {
+            if (!isFinite(epochMilliseconds) || Math.trunc(epochMilliseconds) != epochMilliseconds) {
+                throw invalid("epoch milliseconds");
+            }
+
+            return Instant.ofSpan(new Span(0, (epochMilliseconds % 1000) * 1000000).plus(new Span(Math.trunc(epochMilliseconds / 1000), 0)));
+        }
+
+        public static fromEpochNanoseconds(epochNanoseconds: bigint): Instant {
+            return new Instant(epochNanoseconds);
+        }
+
+        // a date and time with Z or an offset, as 2024-03-15T12:30:00Z or 2024-03-15T14:30+02:00
+        public static from(text: string): Instant {
+            const reader = new IsoReader(text);
+            const p = reader.dateTime();
+            const offset = reader.offset();
+            reader.end();
+            checkDate(p[0], p[1], p[2]);
+            checkTime(p[3], p[4], p[5], 0, 0, 0);
+            const seconds = epochDays(p[0], p[1], p[2]) * SECONDS_PER_DAY + p[3] * 3600 + p[4] * 60 + p[5] - offset;
+            return Instant.ofSpan(new Span(seconds, p[6]));
+        }
+
+        public static compare(one: Instant, two: Instant): int {
+            return one.span().compare(two.span());
+        }
+
+        public get epochMilliseconds(): number {
+            return this.epochSeconds * 1000 + Math.floor(this.nanos / 1000000);
+        }
+
+        public get epochNanoseconds(): bigint {
+            const billion: bigint = NS_PER_SECOND;
+            const seconds: bigint = this.epochSeconds;
+            const nanos: bigint = this.nanos;
+            return seconds * billion + nanos;
+        }
+
+        // hours and smaller only: a day is not always 24 hours, so days and larger are a RangeError
+        public add(duration: Duration): Instant {
+            if (duration.__field(YEARS) != 0 || duration.__field(MONTHS) != 0 || duration.__field(WEEKS) != 0
+                || duration.__field(DAYS) != 0) {
+                throw new RangeError("An Instant takes hours and smaller units only");
+            }
+
+            return Instant.ofSpan(this.span().plus(Instant.spanOf(duration)));
+        }
+
+        public subtract(duration: Duration): Instant {
+            return this.add(duration.negated());
+        }
+
+        // from this one to `other`, in seconds and smaller
+        public until(other: Instant): Duration {
+            return other.span().minus(this.span()).toDuration(SECONDS);
+        }
+
+        public since(other: Instant): Duration {
+            return this.span().minus(other.span()).toDuration(SECONDS);
+        }
+
+        public equals(other: Instant): boolean {
+            return this.epochSeconds == other.epochSeconds && this.nanos == other.nanos;
+        }
+
+        // in UTC, as 2024-03-15T12:30:00.5Z
+        public toString(): string {
+            const days = Math.floor(this.epochSeconds / SECONDS_PER_DAY);
+            const rest = this.epochSeconds - days * SECONDS_PER_DAY;
+            const date = dateOfEpochDays(<int>days);
+            return date.toString() + "T" + timeText(<int>Math.floor(rest / 3600), <int>(Math.floor(rest / 60) % 60), <int>(rest % 60), this.nanos) + "Z";
+        }
+
+        public toJSON(): string {
+            return this.toString();
+        }
+
+        private span(): Span {
+            return new Span(this.epochSeconds, this.nanos);
+        }
+
+        private static ofSpan(span: Span): Instant {
+            const instant = new Instant(0);
+            instant.epochSeconds = span.seconds;
+            instant.nanos = span.nanoseconds;
+            return instant;
+        }
+
+        private static spanOf(duration: Duration): Span {
+            return new Span(duration.__field(HOURS) * 3600 + duration.__field(MINUTES) * 60 + duration.__field(SECONDS),
+                duration.__field(7) * 1000000 + duration.__field(8) * 1000 + duration.__field(9));
+        }
+    }
+
+    // A date in the ISO 8601 calendar, with no time and no time zone.
+    @final
+    export class PlainDate {
+        private isoYear: int;
+        private isoMonth: int;
+        private isoDay: int;
+
+        public constructor(year: int, month: int, day: int) {
+            checkDate(year, month, day);
+            this.isoYear = year;
+            this.isoMonth = month;
+            this.isoDay = day;
+        }
+
+        // YYYY-MM-DD; the time of a date and time is ignored
+        public static from(text: string): PlainDate {
+            const reader = new IsoReader(text);
+            const p = reader.dateTime();
+            if (reader.peek() == 90 || reader.peek() == 122) throw invalid("PlainDate string: " + text);
+            reader.end();
+            return new PlainDate(p[0], p[1], p[2]);
+        }
+
+        public static compare(one: PlainDate, two: PlainDate): int {
+            const d = one.__epochDays() - two.__epochDays();
+            return d < 0 ? -1 : d > 0 ? 1 : 0;
+        }
+
+        public get year(): int { return this.isoYear; }
+        public get month(): int { return this.isoMonth; }
+        public get day(): int { return this.isoDay; }
+
+        public get monthCode(): string {
+            return "M" + pad(this.isoMonth, 2);
+        }
+
+        public get calendarId(): string {
+            return "iso8601";
+        }
+
+        // 1 for Monday to 7 for Sunday
+        public get dayOfWeek(): int {
+            const d = (this.__epochDays() + 3) % 7;
+            return <int>(d < 0 ? d + 8 : d + 1);
+        }
+
+        public get dayOfYear(): int {
+            return this.__epochDays() - epochDays(this.isoYear, 1, 1) + 1;
+        }
+
+        public get daysInMonth(): int {
+            return daysInMonthOf(this.isoYear, this.isoMonth);
+        }
+
+        public get daysInYear(): int {
+            return isLeapYear(this.isoYear) ? 366 : 365;
+        }
+
+        public get daysInWeek(): int {
+            return 7;
+        }
+
+        public get monthsInYear(): int {
+            return 12;
+        }
+
+        public get inLeapYear(): boolean {
+            return isLeapYear(this.isoYear);
+        }
+
+        // Years and months first, a day past the month's end moved back to its last, then weeks and
+        // days; whole days of the time units count too, and the rest of them is dropped.
+        public add(duration: Duration): PlainDate {
+            let year = this.isoYear + duration.__field(YEARS);
+            let month = this.isoMonth + duration.__field(MONTHS);
+            year = year + Math.floor((month - 1) / 12);
+            month = ((month - 1) % 12 + 12) % 12 + 1;
+            let day = this.isoDay;
+            const last = daysInMonthOf(<int>year, <int>month);
+            if (day > last) day = last;
+            const timeSeconds = duration.__field(HOURS) * 3600 + duration.__field(MINUTES) * 60 + duration.__field(SECONDS)
+                + Math.trunc((duration.__field(7) * 1000000 + duration.__field(8) * 1000 + duration.__field(9)) / NS_PER_SECOND);
+            const days = duration.__field(WEEKS) * 7 + duration.__field(DAYS) + Math.trunc(timeSeconds / SECONDS_PER_DAY);
+            return dateOfEpochDays(<int>(epochDays(<int>year, <int>month, day) + days));
+        }
+
+        public subtract(duration: Duration): PlainDate {
+            return this.add(duration.negated());
+        }
+
+        // from this date to `other`, in days
+        public until(other: PlainDate): Duration {
+            return new Duration(0, 0, 0, other.__epochDays() - this.__epochDays());
+        }
+
+        public since(other: PlainDate): Duration {
+            return new Duration(0, 0, 0, this.__epochDays() - other.__epochDays());
+        }
+
+        // `with`, which is a keyword here, as Array's is: a copy with the fields given replaced
+        public _with(fields: { year?: int, month?: int, day?: int }): PlainDate {
+            const year = fields.year != undefined ? fields.year : this.isoYear;
+            const month = fields.month != undefined ? fields.month : this.isoMonth;
+            let day = fields.day != undefined ? fields.day : this.isoDay;
+            if (month >= 1 && month <= 12 && day > daysInMonthOf(year, month)) day = daysInMonthOf(year, month);
+            return new PlainDate(year, month, day);
+        }
+
+        public equals(other: PlainDate): boolean {
+            return this.isoYear == other.isoYear && this.isoMonth == other.isoMonth && this.isoDay == other.isoDay;
+        }
+
+        public toPlainDateTime(time?: PlainTime): PlainDateTime {
+            if (time == undefined) {
+                return new PlainDateTime(this.isoYear, this.isoMonth, this.isoDay);
+            }
+
+            return new PlainDateTime(this.isoYear, this.isoMonth, this.isoDay, time.hour, time.minute, time.second,
+                time.millisecond, time.microsecond, time.nanosecond);
+        }
+
+        public toString(): string {
+            return yearText(this.isoYear) + "-" + pad(this.isoMonth, 2) + "-" + pad(this.isoDay, 2);
+        }
+
+        public toJSON(): string {
+            return this.toString();
+        }
+
+        // for the classes here: the days from 1970-01-01
+        public __epochDays(): int {
+            return epochDays(this.isoYear, this.isoMonth, this.isoDay);
+        }
+    }
+
+    // A time of day, to the nanosecond, with no date and no time zone.
+    @final
+    export class PlainTime {
+        private parts: int[];
+
+        public constructor(hour = 0, minute = 0, second = 0, millisecond = 0, microsecond = 0, nanosecond = 0) {
+            checkTime(hour, minute, second, millisecond, microsecond, nanosecond);
+            this.parts = [hour, minute, second, millisecond, microsecond, nanosecond];
+        }
+
+        // HH:MM[:SS[.fffffffff]], alone or after a date and "T"
+        public static from(text: string): PlainTime {
+            const reader = new IsoReader(text);
+            let p: int[];
+            if (text.length > 2 && text.charCodeAt(2) == 58) {
+                p = reader.time();
+            } else {
+                const all = reader.dateTime();
+                p = [all[3], all[4], all[5], all[6]];
+            }
+
+            reader.end();
+            return new PlainTime(p[0], p[1], p[2], <int>Math.floor(p[3] / 1000000), <int>(Math.floor(p[3] / 1000) % 1000), p[3] % 1000);
+        }
+
+        public static compare(one: PlainTime, two: PlainTime): int {
+            return spanOfTime(one).compare(spanOfTime(two));
+        }
+
+        public get hour(): int { return this.parts[0]; }
+        public get minute(): int { return this.parts[1]; }
+        public get second(): int { return this.parts[2]; }
+        public get millisecond(): int { return this.parts[3]; }
+        public get microsecond(): int { return this.parts[4]; }
+        public get nanosecond(): int { return this.parts[5]; }
+
+        // around the clock: what passes midnight starts the day again
+        public add(duration: Duration): PlainTime {
+            const span = spanOfTime(this).plus(new Span(duration.__field(DAYS) * SECONDS_PER_DAY + duration.__field(HOURS) * 3600
+                + duration.__field(MINUTES) * 60 + duration.__field(SECONDS),
+                duration.__field(7) * 1000000 + duration.__field(8) * 1000 + duration.__field(9)));
+            const seconds = span.seconds - Math.floor(span.seconds / SECONDS_PER_DAY) * SECONDS_PER_DAY;
+            return PlainTime.ofSpan(new Span(seconds, span.nanoseconds));
+        }
+
+        public subtract(duration: Duration): PlainTime {
+            return this.add(duration.negated());
+        }
+
+        // from this time to `other`, in hours and smaller
+        public until(other: PlainTime): Duration {
+            return spanOfTime(other).minus(spanOfTime(this)).toDuration(HOURS);
+        }
+
+        public since(other: PlainTime): Duration {
+            return spanOfTime(this).minus(spanOfTime(other)).toDuration(HOURS);
+        }
+
+        // `with`, a copy with the fields given replaced
+        public _with(fields: { hour?: int, minute?: int, second?: int, millisecond?: int, microsecond?: int, nanosecond?: int }): PlainTime {
+            return new PlainTime(
+                fields.hour != undefined ? fields.hour : this.parts[0],
+                fields.minute != undefined ? fields.minute : this.parts[1],
+                fields.second != undefined ? fields.second : this.parts[2],
+                fields.millisecond != undefined ? fields.millisecond : this.parts[3],
+                fields.microsecond != undefined ? fields.microsecond : this.parts[4],
+                fields.nanosecond != undefined ? fields.nanosecond : this.parts[5]);
+        }
+
+        public equals(other: PlainTime): boolean {
+            return PlainTime.compare(this, other) == 0;
+        }
+
+        public toString(): string {
+            const p = this.parts;
+            return timeText(p[0], p[1], p[2], p[3] * 1000000 + p[4] * 1000 + p[5]);
+        }
+
+        public toJSON(): string {
+            return this.toString();
+        }
+
+        private static ofSpan(span: Span): PlainTime {
+            const s = span.seconds;
+            const n = span.nanoseconds;
+            return new PlainTime(<int>Math.floor(s / 3600), <int>(Math.floor(s / 60) % 60), <int>(s % 60),
+                <int>Math.floor(n / 1000000), <int>(Math.floor(n / 1000) % 1000), <int>(n % 1000));
+        }
+    }
+
+    // the seconds since midnight and the nanoseconds past them
+    function spanOfTime(time: PlainTime): Span {
+        return new Span(time.hour * 3600 + time.minute * 60 + time.second,
+            time.millisecond * 1000000 + time.microsecond * 1000 + time.nanosecond);
+    }
+
+    // A date and a time of day in the ISO 8601 calendar, with no time zone.
+    @final
+    export class PlainDateTime {
+        private date: PlainDate;
+        private time: PlainTime;
+
+        public constructor(year: int, month: int, day: int, hour = 0, minute = 0, second = 0, millisecond = 0,
+            microsecond = 0, nanosecond = 0) {
+            this.date = new PlainDate(year, month, day);
+            this.time = new PlainTime(hour, minute, second, millisecond, microsecond, nanosecond);
+        }
+
+        // YYYY-MM-DD[THH:MM[:SS[.fffffffff]]]
+        public static from(text: string): PlainDateTime {
+            const reader = new IsoReader(text);
+            const p = reader.dateTime();
+            if (reader.peek() == 90 || reader.peek() == 122) throw invalid("PlainDateTime string: " + text);
+            reader.end();
+            return new PlainDateTime(p[0], p[1], p[2], p[3], p[4], p[5], <int>Math.floor(p[6] / 1000000),
+                <int>(Math.floor(p[6] / 1000) % 1000), p[6] % 1000);
+        }
+
+        public static compare(one: PlainDateTime, two: PlainDateTime): int {
+            return one.span().compare(two.span());
+        }
+
+        public get year(): int { return this.date.year; }
+        public get month(): int { return this.date.month; }
+        public get day(): int { return this.date.day; }
+        public get hour(): int { return this.time.hour; }
+        public get minute(): int { return this.time.minute; }
+        public get second(): int { return this.time.second; }
+        public get millisecond(): int { return this.time.millisecond; }
+        public get microsecond(): int { return this.time.microsecond; }
+        public get nanosecond(): int { return this.time.nanosecond; }
+        public get monthCode(): string { return this.date.monthCode; }
+        public get calendarId(): string { return "iso8601"; }
+        public get dayOfWeek(): int { return this.date.dayOfWeek; }
+        public get dayOfYear(): int { return this.date.dayOfYear; }
+        public get daysInMonth(): int { return this.date.daysInMonth; }
+        public get daysInYear(): int { return this.date.daysInYear; }
+        public get inLeapYear(): boolean { return this.date.inLeapYear; }
+
+        // the time units first, whole days of them carried into the date, then the date's
+        public add(duration: Duration): PlainDateTime {
+            const time = spanOfTime(this.time).plus(new Span(duration.__field(HOURS) * 3600 + duration.__field(MINUTES) * 60
+                + duration.__field(SECONDS), duration.__field(7) * 1000000 + duration.__field(8) * 1000 + duration.__field(9)));
+            const carry = Math.floor(time.seconds / SECONDS_PER_DAY);
+            const date = this.date.add(new Duration(duration.__field(YEARS), duration.__field(MONTHS), duration.__field(WEEKS),
+                duration.__field(DAYS) + carry));
+            return PlainDateTime.of(date, new Span(time.seconds - carry * SECONDS_PER_DAY, time.nanoseconds));
+        }
+
+        public subtract(duration: Duration): PlainDateTime {
+            return this.add(duration.negated());
+        }
+
+        // from this one to `other`, in days and smaller
+        public until(other: PlainDateTime): Duration {
+            return other.span().minus(this.span()).toDuration(DAYS);
+        }
+
+        public since(other: PlainDateTime): Duration {
+            return this.span().minus(other.span()).toDuration(DAYS);
+        }
+
+        // `with`, a copy with the fields given replaced
+        public _with(fields: { year?: int, month?: int, day?: int, hour?: int, minute?: int, second?: int,
+            millisecond?: int, microsecond?: int, nanosecond?: int }): PlainDateTime {
+            const year = fields.year != undefined ? fields.year : this.date.year;
+            const month = fields.month != undefined ? fields.month : this.date.month;
+            let day = fields.day != undefined ? fields.day : this.date.day;
+            if (month >= 1 && month <= 12 && day > daysInMonthOf(year, month)) day = daysInMonthOf(year, month);
+            return new PlainDateTime(year, month, day,
+                fields.hour != undefined ? fields.hour : this.time.hour,
+                fields.minute != undefined ? fields.minute : this.time.minute,
+                fields.second != undefined ? fields.second : this.time.second,
+                fields.millisecond != undefined ? fields.millisecond : this.time.millisecond,
+                fields.microsecond != undefined ? fields.microsecond : this.time.microsecond,
+                fields.nanosecond != undefined ? fields.nanosecond : this.time.nanosecond);
+        }
+
+        public equals(other: PlainDateTime): boolean {
+            return this.date.equals(other.date) && this.time.equals(other.time);
+        }
+
+        public toPlainDate(): PlainDate {
+            return new PlainDate(this.date.year, this.date.month, this.date.day);
+        }
+
+        public toPlainTime(): PlainTime {
+            return new PlainTime(this.time.hour, this.time.minute, this.time.second, this.time.millisecond,
+                this.time.microsecond, this.time.nanosecond);
+        }
+
+        public toString(): string {
+            return this.date.toString() + "T" + this.time.toString();
+        }
+
+        public toJSON(): string {
+            return this.toString();
+        }
+
+        // the seconds from 1970-01-01T00:00 and the nanoseconds past them
+        private span(): Span {
+            const time = spanOfTime(this.time);
+            return new Span(this.date.__epochDays() * SECONDS_PER_DAY + time.seconds, time.nanoseconds);
+        }
+
+        private static of(date: PlainDate, time: Span): PlainDateTime {
+            const s = time.seconds;
+            const n = time.nanoseconds;
+            return new PlainDateTime(date.year, date.month, date.day, <int>Math.floor(s / 3600), <int>(Math.floor(s / 60) % 60),
+                <int>(s % 60), <int>Math.floor(n / 1000000), <int>(Math.floor(n / 1000) % 1000), <int>(n % 1000));
+        }
+    }
+
+    // the present, to the millisecond, as the system's clock gives it; the plain ones at the system's
+    // present offset from UTC
+    export namespace Now {
+        export function instant(): Temporal.Instant {
+            return Temporal.Instant.fromEpochMilliseconds(Date.now());
+        }
+
+        export function plainDateTimeISO(): Temporal.PlainDateTime {
+            const now = Date.now();
+            const local = now - new Date(now).getTimezoneOffset() * 60000;
+            const days = Math.floor(local / 86400000);
+            const ms = local - days * 86400000;
+            const date = new Temporal.PlainDate(1970, 1, 1).add(new Temporal.Duration(0, 0, 0, days));
+            return date.toPlainDateTime(new Temporal.PlainTime(<int>Math.floor(ms / 3600000),
+                <int>(Math.floor(ms / 60000) % 60), <int>(Math.floor(ms / 1000) % 60), <int>(ms % 1000)));
+        }
+
+        export function plainDateISO(): Temporal.PlainDate {
+            return plainDateTimeISO().toPlainDate();
+        }
+
+        export function plainTimeISO(): Temporal.PlainTime {
+            return plainDateTimeISO().toPlainTime();
+        }
+    }
+}

@@ -879,3 +879,169 @@ declare namespace console {
 
     function error(...data: string[]): void;
 }
+
+// Temporal's ISO 8601 part: see lib.ts. Each class lists its members in lib.ts's order: a program
+// calls them by their place in the class's table.
+declare namespace Temporal {
+    @final
+    @owned
+    class Duration {
+        private fields: number[];
+
+        constructor(years?: number, months?: number, weeks?: number, days?: number, hours?: number, minutes?: number,
+            seconds?: number, milliseconds?: number, microseconds?: number, nanoseconds?: number);
+
+        static from(text: string): Duration;
+        static compare(one: Duration, two: Duration): int;
+        get years(): number;
+        get months(): number;
+        get weeks(): number;
+        get days(): number;
+        get hours(): number;
+        get minutes(): number;
+        get seconds(): number;
+        get milliseconds(): number;
+        get microseconds(): number;
+        get nanoseconds(): number;
+        get sign(): int;
+        get blank(): boolean;
+        negated(): Duration;
+        abs(): Duration;
+        add(other: Duration): Duration;
+        subtract(other: Duration): Duration;
+        total(unit: string): number;
+        toString(): string;
+        toJSON(): string;
+        __field(index: int): number;
+    }
+
+    @final
+    @owned
+    class Instant {
+        private epochSeconds: number;
+        private nanos: number;
+
+        constructor(epochNanoseconds: bigint);
+
+        static fromEpochMilliseconds(epochMilliseconds: number): Instant;
+        static fromEpochNanoseconds(epochNanoseconds: bigint): Instant;
+        static from(text: string): Instant;
+        static compare(one: Instant, two: Instant): int;
+        get epochMilliseconds(): number;
+        get epochNanoseconds(): bigint;
+        add(duration: Duration): Instant;
+        subtract(duration: Duration): Instant;
+        until(other: Instant): Duration;
+        since(other: Instant): Duration;
+        equals(other: Instant): boolean;
+        toString(): string;
+        toJSON(): string;
+    }
+
+    @final
+    @owned
+    class PlainDate {
+        private isoYear: int;
+        private isoMonth: int;
+        private isoDay: int;
+
+        constructor(year: int, month: int, day: int);
+
+        static from(text: string): PlainDate;
+        static compare(one: PlainDate, two: PlainDate): int;
+        get year(): int;
+        get month(): int;
+        get day(): int;
+        get monthCode(): string;
+        get calendarId(): string;
+        get dayOfWeek(): int;
+        get dayOfYear(): int;
+        get daysInMonth(): int;
+        get daysInYear(): int;
+        get daysInWeek(): int;
+        get monthsInYear(): int;
+        get inLeapYear(): boolean;
+        add(duration: Duration): PlainDate;
+        subtract(duration: Duration): PlainDate;
+        until(other: PlainDate): Duration;
+        since(other: PlainDate): Duration;
+        _with(fields: { year?: int, month?: int, day?: int }): PlainDate;
+        equals(other: PlainDate): boolean;
+        toPlainDateTime(time?: PlainTime): PlainDateTime;
+        toString(): string;
+        toJSON(): string;
+        __epochDays(): int;
+    }
+
+    @final
+    @owned
+    class PlainTime {
+        private parts: int[];
+
+        constructor(hour?: int, minute?: int, second?: int, millisecond?: int, microsecond?: int, nanosecond?: int);
+
+        static from(text: string): PlainTime;
+        static compare(one: PlainTime, two: PlainTime): int;
+        get hour(): int;
+        get minute(): int;
+        get second(): int;
+        get millisecond(): int;
+        get microsecond(): int;
+        get nanosecond(): int;
+        add(duration: Duration): PlainTime;
+        subtract(duration: Duration): PlainTime;
+        until(other: PlainTime): Duration;
+        since(other: PlainTime): Duration;
+        _with(fields: { hour?: int, minute?: int, second?: int, millisecond?: int, microsecond?: int, nanosecond?: int }): PlainTime;
+        equals(other: PlainTime): boolean;
+        toString(): string;
+        toJSON(): string;
+    }
+
+    @final
+    @owned
+    class PlainDateTime {
+        private date: PlainDate;
+        private time: PlainTime;
+
+        constructor(year: int, month: int, day: int, hour?: int, minute?: int, second?: int, millisecond?: int,
+            microsecond?: int, nanosecond?: int);
+
+        static from(text: string): PlainDateTime;
+        static compare(one: PlainDateTime, two: PlainDateTime): int;
+        get year(): int;
+        get month(): int;
+        get day(): int;
+        get hour(): int;
+        get minute(): int;
+        get second(): int;
+        get millisecond(): int;
+        get microsecond(): int;
+        get nanosecond(): int;
+        get monthCode(): string;
+        get calendarId(): string;
+        get dayOfWeek(): int;
+        get dayOfYear(): int;
+        get daysInMonth(): int;
+        get daysInYear(): int;
+        get inLeapYear(): boolean;
+        add(duration: Duration): PlainDateTime;
+        subtract(duration: Duration): PlainDateTime;
+        until(other: PlainDateTime): Duration;
+        since(other: PlainDateTime): Duration;
+        _with(fields: { year?: int, month?: int, day?: int, hour?: int, minute?: int, second?: int,
+            millisecond?: int, microsecond?: int, nanosecond?: int }): PlainDateTime;
+        equals(other: PlainDateTime): boolean;
+        toPlainDate(): PlainDate;
+        toPlainTime(): PlainTime;
+        toString(): string;
+        toJSON(): string;
+    }
+
+    namespace Now {
+        function instant(): Temporal.Instant;
+        function plainDateTimeISO(): Temporal.PlainDateTime;
+        function plainDateISO(): Temporal.PlainDate;
+        function plainTimeISO(): Temporal.PlainTime;
+    }
+}
