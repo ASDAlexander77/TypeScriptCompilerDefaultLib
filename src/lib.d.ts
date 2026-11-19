@@ -586,6 +586,11 @@ declare namespace Math {
      */
     function fround(x: number): number;    
     /**
+     * Returns the nearest half precision float representation of a number.
+     * @param x A numeric expression.
+     */
+    function f16round(x: number): number;
+    /**
      * Returns the square root of the sum of squares of its arguments.
      * @param values Values to compute the square root for.
      *     If no arguments are passed, the result is +0.
@@ -680,6 +685,94 @@ declare namespace Math {
      * @param x A numeric expression.
      */
     function trunc(x: number): number;
+}
+
+declare enum States {
+    HasMaxByteLength = 1,
+    NonResizable = 2,
+    Detached = 4,
+    View = 8,
+}
+
+@final
+@owned
+declare class ArrayBuffer {
+    private arrayOfView: char[];
+    private states: States;
+    maxByteLength: int;
+
+    constructor(length: int, options?: { maxByteLength?: int });
+
+    get resizable(): boolean;
+    get detached(): boolean;
+    get byteLength(): int;
+    static isView(arrayBuffer: ArrayBuffer): boolean;
+    resize(newLength: int): void;
+    slice(start?: int, end?: int): ArrayBuffer;
+    transfer(newByteLength?: int): ArrayBuffer;
+    transferToFixedLength(newByteLength?: int): ArrayBuffer;
+    @lends("this")
+    __bytes(): char[];
+    [Symbol.dispose](): void;
+}
+
+@final
+@owned
+declare class SharedArrayBuffer {
+    private bytes: char[];
+    private length: int;
+    private capacity: int;
+    private canGrow: boolean;
+
+    constructor(length: int, options?: { maxByteLength?: int });
+
+    get byteLength(): int;
+    get growable(): boolean;
+    get maxByteLength(): int;
+    grow(newLength: int): void;
+    slice(start?: int, end?: int): SharedArrayBuffer;
+    @lends("this")
+    __bytes(): char[];
+}
+
+@final
+@owned
+declare class DataView {
+    private source: ArrayBuffer | SharedArrayBuffer;
+    private offset: int;
+    private fixedLength: int;
+    private tracksLength: boolean;
+
+    @keeps("buffer")
+    constructor(buffer: ArrayBuffer | SharedArrayBuffer, byteOffset?: int, byteLength?: int);
+
+    @lends("this")
+    get buffer(): ArrayBuffer | SharedArrayBuffer;
+    get byteOffset(): int;
+    get byteLength(): int;
+
+    getInt8(byteOffset: int): number;
+    getUint8(byteOffset: int): number;
+    getInt16(byteOffset: int, littleEndian?: boolean): number;
+    getUint16(byteOffset: int, littleEndian?: boolean): number;
+    getInt32(byteOffset: int, littleEndian?: boolean): number;
+    getUint32(byteOffset: int, littleEndian?: boolean): number;
+    getFloat16(byteOffset: int, littleEndian?: boolean): number;
+    getFloat32(byteOffset: int, littleEndian?: boolean): number;
+    getFloat64(byteOffset: int, littleEndian?: boolean): number;
+    getBigInt64(byteOffset: int, littleEndian?: boolean): bigint;
+    getBigUint64(byteOffset: int, littleEndian?: boolean): bigint;
+    setInt8(byteOffset: int, value: number): void;
+    setUint8(byteOffset: int, value: number): void;
+    setInt16(byteOffset: int, value: number, littleEndian?: boolean): void;
+    setUint16(byteOffset: int, value: number, littleEndian?: boolean): void;
+    setInt32(byteOffset: int, value: number, littleEndian?: boolean): void;
+    setUint32(byteOffset: int, value: number, littleEndian?: boolean): void;
+    setFloat16(byteOffset: int, value: number, littleEndian?: boolean): void;
+    setFloat32(byteOffset: int, value: number, littleEndian?: boolean): void;
+    setFloat64(byteOffset: int, value: number, littleEndian?: boolean): void;
+    setBigInt64(byteOffset: int, value: bigint, littleEndian?: boolean): void;
+    setBigUint64(byteOffset: int, value: bigint, littleEndian?: boolean): void;
 }
 
 @final
@@ -785,4 +878,172 @@ declare namespace console {
     function warn(...data: string[]): void;
 
     function error(...data: string[]): void;
+}
+
+// Temporal's ISO 8601 part: see lib.ts. Each class lists its members in lib.ts's order: a program
+// calls them by their place in the class's table. `declare` on each class too, not only on the
+// namespace: without it a program defines the class's ..new and ..instanceOf itself, and a debug link
+// finds them twice.
+declare namespace Temporal {
+    @final
+    @owned
+    declare class Duration {
+        private fields: number[];
+
+        constructor(years?: number, months?: number, weeks?: number, days?: number, hours?: number, minutes?: number,
+            seconds?: number, milliseconds?: number, microseconds?: number, nanoseconds?: number);
+
+        static from(text: string): Duration;
+        static compare(one: Duration, two: Duration): int;
+        get years(): number;
+        get months(): number;
+        get weeks(): number;
+        get days(): number;
+        get hours(): number;
+        get minutes(): number;
+        get seconds(): number;
+        get milliseconds(): number;
+        get microseconds(): number;
+        get nanoseconds(): number;
+        get sign(): int;
+        get blank(): boolean;
+        negated(): Duration;
+        abs(): Duration;
+        add(other: Duration): Duration;
+        subtract(other: Duration): Duration;
+        total(unit: string): number;
+        toString(): string;
+        toJSON(): string;
+        __field(index: int): number;
+    }
+
+    @final
+    @owned
+    declare class Instant {
+        private epochSeconds: number;
+        private nanos: number;
+
+        constructor(epochNanoseconds: bigint);
+
+        static fromEpochMilliseconds(epochMilliseconds: number): Instant;
+        static fromEpochNanoseconds(epochNanoseconds: bigint): Instant;
+        static from(text: string): Instant;
+        static compare(one: Instant, two: Instant): int;
+        get epochMilliseconds(): number;
+        get epochNanoseconds(): bigint;
+        add(duration: Duration): Instant;
+        subtract(duration: Duration): Instant;
+        until(other: Instant): Duration;
+        since(other: Instant): Duration;
+        equals(other: Instant): boolean;
+        toString(): string;
+        toJSON(): string;
+    }
+
+    @final
+    @owned
+    declare class PlainDate {
+        private isoYear: int;
+        private isoMonth: int;
+        private isoDay: int;
+
+        constructor(year: int, month: int, day: int);
+
+        static from(text: string): PlainDate;
+        static compare(one: PlainDate, two: PlainDate): int;
+        get year(): int;
+        get month(): int;
+        get day(): int;
+        get monthCode(): string;
+        get calendarId(): string;
+        get dayOfWeek(): int;
+        get dayOfYear(): int;
+        get daysInMonth(): int;
+        get daysInYear(): int;
+        get daysInWeek(): int;
+        get monthsInYear(): int;
+        get inLeapYear(): boolean;
+        add(duration: Duration): PlainDate;
+        subtract(duration: Duration): PlainDate;
+        until(other: PlainDate): Duration;
+        since(other: PlainDate): Duration;
+        _with(fields: { year?: int, month?: int, day?: int }): PlainDate;
+        equals(other: PlainDate): boolean;
+        toPlainDateTime(time?: PlainTime): PlainDateTime;
+        toString(): string;
+        toJSON(): string;
+        __epochDays(): int;
+    }
+
+    @final
+    @owned
+    declare class PlainTime {
+        private parts: int[];
+
+        constructor(hour?: int, minute?: int, second?: int, millisecond?: int, microsecond?: int, nanosecond?: int);
+
+        static from(text: string): PlainTime;
+        static compare(one: PlainTime, two: PlainTime): int;
+        get hour(): int;
+        get minute(): int;
+        get second(): int;
+        get millisecond(): int;
+        get microsecond(): int;
+        get nanosecond(): int;
+        add(duration: Duration): PlainTime;
+        subtract(duration: Duration): PlainTime;
+        until(other: PlainTime): Duration;
+        since(other: PlainTime): Duration;
+        _with(fields: { hour?: int, minute?: int, second?: int, millisecond?: int, microsecond?: int, nanosecond?: int }): PlainTime;
+        equals(other: PlainTime): boolean;
+        toString(): string;
+        toJSON(): string;
+    }
+
+    @final
+    @owned
+    declare class PlainDateTime {
+        private date: PlainDate;
+        private time: PlainTime;
+
+        constructor(year: int, month: int, day: int, hour?: int, minute?: int, second?: int, millisecond?: int,
+            microsecond?: int, nanosecond?: int);
+
+        static from(text: string): PlainDateTime;
+        static compare(one: PlainDateTime, two: PlainDateTime): int;
+        get year(): int;
+        get month(): int;
+        get day(): int;
+        get hour(): int;
+        get minute(): int;
+        get second(): int;
+        get millisecond(): int;
+        get microsecond(): int;
+        get nanosecond(): int;
+        get monthCode(): string;
+        get calendarId(): string;
+        get dayOfWeek(): int;
+        get dayOfYear(): int;
+        get daysInMonth(): int;
+        get daysInYear(): int;
+        get inLeapYear(): boolean;
+        add(duration: Duration): PlainDateTime;
+        subtract(duration: Duration): PlainDateTime;
+        until(other: PlainDateTime): Duration;
+        since(other: PlainDateTime): Duration;
+        _with(fields: { year?: int, month?: int, day?: int, hour?: int, minute?: int, second?: int,
+            millisecond?: int, microsecond?: int, nanosecond?: int }): PlainDateTime;
+        equals(other: PlainDateTime): boolean;
+        toPlainDate(): PlainDate;
+        toPlainTime(): PlainTime;
+        toString(): string;
+        toJSON(): string;
+    }
+
+    declare namespace Now {
+        declare function instant(): Temporal.Instant;
+        declare function plainDateTimeISO(): Temporal.PlainDateTime;
+        declare function plainDateISO(): Temporal.PlainDate;
+        declare function plainTimeISO(): Temporal.PlainTime;
+    }
 }

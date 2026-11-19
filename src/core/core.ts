@@ -23,6 +23,20 @@ export class SyntaxError extends Error {
     }
 }
 
+export class ReferenceError extends Error {
+    public constructor(message?: string, filename?: string, line?: int) {
+        super(message, filename, line);
+    }
+}
+
+// An error thrown while another was already on its way out, as DisposableStack's dispose() throws
+// when more than one resource fails: `error` is the newer, `suppressed` the one it hid.
+export class SuppressedError extends Error {
+    public constructor(public error: any, public suppressed: any, message?: string) {
+        super(message);
+    }
+}
+
 // What a worker threw, as the thread that made it is told (MDN's ErrorEvent; `filename`, `lineno`
 // and `colno` are not here). Made from the message alone: the thrown object was the worker's.
 export class ErrorEvent {

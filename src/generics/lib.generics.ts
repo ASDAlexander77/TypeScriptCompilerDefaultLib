@@ -891,8 +891,8 @@ static class Array {
 // seen through the other. The elements are held through a Shared handle, so under -mm=own each window
 // holds a count of them and none owns them alone. The length is fixed, as in JavaScript: there is no
 // push, pop, shift, unshift or splice. Not here: set(array, offset), which the indexer's set(index,
-// value) takes the name of, as a class cannot overload a method; `buffer`, as there is no ArrayBuffer
-// under it; and the static from, of and BYTES_PER_ELEMENT, as Uint8Array and its kin are type names.
+// value) takes the name of, as a class cannot overload a method; `buffer`, as its elements are not
+// an ArrayBuffer's bytes (a DataView reads those); and the static from, of and BYTES_PER_ELEMENT, as Uint8Array and its kin are type names.
 class TypedArray<T> {
     private store: Shared<T[]>;
     private first: int;
@@ -1315,12 +1315,433 @@ type Float32Array = TypedArray<f32>;
 
 type Float64Array = TypedArray<f64>;
 
+// IEEE 754 binary16, the element of Float16Array and of DataView's getFloat16 and setFloat16, and
+// what Math.f16round rounds to. Converted here, bit by bit, not through an f16: LLVM lowers that to
+// the __truncsfhf2 and __extendhfsf2 helpers, which the MSVC runtime does not have. Generic only so
+// that a program that never uses them does not get them (see sleep).
+namespace __Float16 {
+    function bitsOf<X = int>(x: number): u64 {
+        let value: f64 = x;
+        let bits: u64 = 0;
+        memcpy(<Opaque>Ref(bits), <Opaque>Ref(value), 8);
+        return bits;
+    }
+
+    // the nearest binary16, ties to even, as JavaScript rounds: too large is Infinity, too small 0
+    function encode<X = int>(x: number): u16 {
+        const b = bitsOf(x);
+        const sign = <u16>((b >> 48) & 0x8000);
+        const exponent = <int>((b >> 52) & 0x7FF);
+        const fraction: u64 = b & 0xFFFFFFFFFFFFF;
+        if (exponent == 0x7FF) {
+            return fraction != 0 ? <u16>0x7E00 : sign | 0x7C00;
+        }
+
+        const e = exponent - 1023 + 15;
+        if (e >= 31) {
+            return sign | 0x7C00;
+        }
+
+        if (e <= 0) {
+            // a subnormal, or 0: the 53 bits, the leading 1 among them, shifted down to 10
+            const shift = 43 - e;
+            if (shift > 53) {
+                return sign;
+            }
+
+            const full: u64 = fraction | 0x10000000000000;
+            let h = full >> shift;
+            const rest = full & ((<u64>1 << shift) - 1);
+            const half = <u64>1 << (shift - 1);
+            if (rest > half || (rest == half && (h & 1) != 0)) h++;
+            return sign | <u16>h;
+        }
+
+        // a carry out of the fraction goes into the exponent, which is right: up to Infinity
+        let h: u64 = (<u64>e << 10) | (fraction >> 42);
+        const rest = fraction & 0x3FFFFFFFFFF;
+        if (rest > 0x20000000000 || (rest == 0x20000000000 && (h & 1) != 0)) h++;
+        return sign | <u16>h;
+    }
+
+    function decode<X = int>(bits: u16): number {
+        const e = (bits >> 10) & 0x1F;
+        const m = bits & 0x3FF;
+        let value: number;
+        if (e == 0) {
+            value = m * Math.pow(2, -24);
+        } else if (e == 31) {
+            value = m != 0 ? Number.NaN : Number.POSITIVE_INFINITY;
+        } else {
+            value = (1 + m / 1024) * Math.pow(2, e - 15);
+        }
+
+        // times -1, not -value: the compiler's unary minus is 0 - value, which makes -0 of 0
+        return (bits & 0x8000) != 0 ? value * -1 : value;
+    }
+}
+
+// A ConvertingTypedArray's element on the way in and out: S, the kept element, says which kind it
+// is (see ConvertingTypedArray). Functions here, not static methods: a generic class's static
+// generic method cannot be called.
+namespace __ConvertedElement {
+    function encode<E>(value: number): E {
+        if (sizeof<E>() == 1) {
+            // JavaScript's ToUint8Clamp
+            if (!(value > 0)) return <E>0;
+            if (value >= 255) return <E>255;
+            const floor = Math.floor(value);
+            const half = floor + 0.5;
+            if (value > half) return <E>(floor + 1);
+            if (value < half) return <E>floor;
+            return <E>(floor % 2 == 0 ? floor : floor + 1);
+        }
+
+        return <E>__Float16.encode(value);
+    }
+
+    function decode<E>(element: E): number {
+        if (sizeof<E>() == 1) {
+            return element;
+        }
+
+        return __Float16.decode(<u16>element);
+    }
+}
+
+// The two typed arrays whose element is not a C type: Uint8ClampedArray keeps a byte, and a number
+// written to it is clamped into 0..255 and rounded half to even, where Uint8Array wraps it;
+// Float16Array keeps the bits of a binary16 (see __Float16). Each element is a `number` to the
+// program, as in JavaScript, and is converted on the way in and out. S, the kept element, tells the
+// two apart: u8 is Uint8ClampedArray, u16 is Float16Array. Otherwise as TypedArray: a window that
+// subarray() shares, a fixed length, and the same methods, with `_with` for `with`.
+class ConvertingTypedArray<S> {
+    private elements: TypedArray<S>;
+
+    constructor(data: number[] = []) {
+        this.elements = new TypedArray<S>(data.length);
+        for (let i = 0; i < data.length; i++) {
+            this.elements[i] = __ConvertedElement.encode<S>(data[i]);
+        }
+    }
+
+    // `length` elements, each 0
+    constructor(length: int) {
+        this.elements = new TypedArray<S>(length);
+    }
+
+    // a copy of another's elements: the two share nothing
+    constructor(source: ConvertingTypedArray<S>) {
+        this.elements = new TypedArray<S>(source.elements);
+    }
+
+    public [index: int]: number;
+
+    // outside the window a read gives 0 and a write does nothing, as TypedArray's
+    public get(index: int): number {
+        return __ConvertedElement.decode<S>(this.elements[index]);
+    }
+
+    public set(index: int, value: number) {
+        this.elements[index] = __ConvertedElement.encode<S>(value);
+    }
+
+    public get length() {
+        return this.elements.length;
+    }
+
+    public get BYTES_PER_ELEMENT(): int {
+        return sizeof<S>();
+    }
+
+    public get byteLength(): int {
+        return this.elements.byteLength;
+    }
+
+    public get byteOffset(): int {
+        return this.elements.byteOffset;
+    }
+
+    // one of the same kind around `elements`
+    private __around(elements: TypedArray<S>): ConvertingTypedArray<S> {
+        const result = new ConvertingTypedArray<S>(0);
+        result.elements = elements;
+        return result;
+    }
+
+    private __clamp(index: int): int {
+        const count = this.elements.length;
+        if (index < 0) {
+            index = index + count;
+            return index < 0 ? 0 : index;
+        }
+
+        return index > count ? count : index;
+    }
+
+    public at(index: int): number | undefined {
+        if (index < 0) {
+            index = index + this.length;
+        }
+
+        if (index < 0 || index >= this.length) {
+            return undefined;
+        }
+
+        return this[index];
+    }
+
+    public copyWithin(target: int, start = 0, end = this.length): ConvertingTypedArray<S> {
+        this.elements.copyWithin(target, start, end);
+        return this;
+    }
+
+    @borrows("this")
+    public entries() {
+        return this.__entries();
+    }
+
+    @borrows("this")
+    public keys() {
+        return this.elements.keys();
+    }
+
+    @borrows("this")
+    public values() {
+        return this.__values();
+    }
+
+    @borrows("this")
+    public [Symbol.iterator]() {
+        return this.__values();
+    }
+
+    @borrows("this")
+    private *__entries() {
+        for (let i = 0; i < this.length; i++) {
+            const v = this[i];
+            yield [i, v];
+        }
+    }
+
+    @borrows("this")
+    private *__values() {
+        for (let i = 0; i < this.length; i++) {
+            yield this[i];
+        }
+    }
+
+    public every(func: (v: number, i: number) => boolean) {
+        for (let i = 0; i < this.length; i++) if (!func(this[i], i)) return false;
+        return true;
+    }
+
+    public some(func: (v: number, i: number) => boolean) {
+        for (let i = 0; i < this.length; i++) if (func(this[i], i)) return true;
+        return false;
+    }
+
+    // the value is converted once, as JavaScript does
+    public fill(value: number, start = 0, end = this.length): ConvertingTypedArray<S> {
+        this.elements.fill(__ConvertedElement.encode<S>(value), start, end);
+        return this;
+    }
+
+    public filter(func: (v: number, i: number) => boolean): ConvertingTypedArray<S> {
+        const data: number[] = [];
+        for (let i = 0; i < this.length; i++) {
+            const v = this[i];
+            if (func(v, i)) data.push(v);
+        }
+
+        return new ConvertingTypedArray<S>(data);
+    }
+
+    public find(func: (v: number, i: number) => boolean): number | undefined {
+        for (let i = 0; i < this.length; i++) if (func(this[i], i)) return this[i];
+        return undefined;
+    }
+
+    public findIndex(func: (v: number, i: number) => boolean) {
+        for (let i = 0; i < this.length; i++) if (func(this[i], i)) return i;
+        return -1;
+    }
+
+    public findLast(func: (v: number, i: number) => boolean): number | undefined {
+        for (let i = this.length - 1; i >= 0; i--) if (func(this[i], i)) return this[i];
+        return undefined;
+    }
+
+    public findLastIndex(func: (v: number, i: number) => boolean) {
+        for (let i = this.length - 1; i >= 0; i--) if (func(this[i], i)) return i;
+        return -1;
+    }
+
+    public forEach(func: (v: number, i: number) => void) {
+        for (let i = 0; i < this.length; i++) func(this[i], i);
+    }
+
+    // SameValueZero: NaN is found, where indexOf does not find it
+    public includes(searchElement: number, fromIndex = 0) {
+        for (let i = this.__clamp(fromIndex); i < this.length; i++) {
+            const v = this[i];
+            if (v == searchElement || (v != v && searchElement != searchElement)) return true;
+        }
+
+        return false;
+    }
+
+    public indexOf(searchElement: number, fromIndex = 0) {
+        for (let i = this.__clamp(fromIndex); i < this.length; i++) if (this[i] == searchElement) return i;
+        return -1;
+    }
+
+    public lastIndexOf(searchElement: number, fromIndex = this.length - 1) {
+        let i = fromIndex < 0 ? fromIndex + this.length : fromIndex;
+        if (i >= this.length) {
+            i = this.length - 1;
+        }
+
+        for (; i >= 0; i--) if (this[i] == searchElement) return i;
+        return -1;
+    }
+
+    public join(separator = ",") {
+        const parts: string[] = [];
+        for (let i = 0; i < this.length; i++) {
+            if (i > 0) {
+                parts.push(separator + this[i]);
+            } else {
+                parts.push("" + this[i]);
+            }
+        }
+
+        return "".concat(...parts);
+    }
+
+    public toString() {
+        return this.join();
+    }
+
+    public toLocaleString() {
+        return this.join();
+    }
+
+    // each result is converted as a write is: a Uint8ClampedArray's map clamps
+    public map(func: (v: number, i: number) => number): ConvertingTypedArray<S> {
+        const result = new ConvertingTypedArray<S>(this.length);
+        for (let i = 0; i < this.length; i++) result[i] = func(this[i], i);
+        return result;
+    }
+
+    public reduce<V = number>(func: (v: V, t: number) => V, initial?: V): V {
+        if (initial == undefined) {
+            if (this.length <= 0) {
+                throw new TypeError("Reduce of empty array with no initial value");
+            }
+
+            if (__is<V, number>(this[0])) {
+                let result = <V>this[0];
+                for (let i = 1; i < this.length; i++) result = func(result, this[i]);
+                return result;
+            }
+        }
+        else {
+            let result = initial;
+            for (let i = 0; i < this.length; i++) result = func(result, this[i]);
+            return result;
+        }
+    }
+
+    public reduceRight<V = number>(func: (v: V, t: number) => V, initial?: V): V {
+        if (initial == undefined) {
+            if (this.length <= 0) {
+                throw new TypeError("Reduce of empty array with no initial value");
+            }
+
+            if (__is<V, number>(this[0])) {
+                let result = <V>this[this.length - 1];
+                for (let i = this.length - 2; i >= 0; i--) result = func(result, this[i]);
+                return result;
+            }
+        }
+        else {
+            let result = initial;
+            for (let i = this.length - 1; i >= 0; i--) result = func(result, this[i]);
+            return result;
+        }
+    }
+
+    public reverse(): ConvertingTypedArray<S> {
+        this.elements.reverse();
+        return this;
+    }
+
+    public slice(start = 0, end = this.length): ConvertingTypedArray<S> {
+        return this.__around(this.elements.slice(start, end));
+    }
+
+    // a window onto the same elements: nothing is copied
+    public subarray(begin = 0, end = this.length): ConvertingTypedArray<S> {
+        return this.__around(this.elements.subarray(begin, end));
+    }
+
+    // By value with no compare function, NaN last; stable. The values are sorted, not the kept
+    // elements: a binary16's bits do not sort as its value does.
+    public sort(callbackfn?: (value1: number, value2: number) => int): ConvertingTypedArray<S> {
+        const data: number[] = [];
+        data.length = this.length;
+        for (let i = 0; i < this.length; i++) data[i] = this[i];
+        if (callbackfn) {
+            data.sort(callbackfn);
+        } else {
+            data.sort((a: number, b: number) => {
+                if (a < b) return -1;
+                if (a > b) return 1;
+                if (a == b) return 0;
+                if (a != a) return b != b ? 0 : 1;
+                return -1;
+            });
+        }
+
+        for (let i = 0; i < this.length; i++) this[i] = data[i];
+        return this;
+    }
+
+    public toReversed(): ConvertingTypedArray<S> {
+        return this.slice().reverse();
+    }
+
+    public toSorted(callbackfn?: (value1: number, value2: number) => int): ConvertingTypedArray<S> {
+        return this.slice().sort(callbackfn);
+    }
+
+    // `with`, which is a keyword here
+    public _with(index: int, value: number): ConvertingTypedArray<S> {
+        if (index < 0) {
+            index = index + this.length;
+        }
+
+        if (index < 0 || index >= this.length) {
+            throw new RangeError();
+        }
+
+        const copy = this.slice();
+        copy[index] = value;
+        return copy;
+    }
+}
+
+type Uint8ClampedArray = ConvertingTypedArray<u8>;
+
+type Float16Array = ConvertingTypedArray<u16>;
+
 // Atomic operations on an integer TypedArray's elements, each sequentially consistent, as in
 // JavaScript. Each is one LLVM atomic `load`, `store`, `atomicrmw` or `cmpxchg` on the element. The
 // operation codes are written out, not passed in: the builtins take them only as constants. The
 // value is a `number`, as in JavaScript, and wraps to the element's width (300 added to a Uint8Array
-// element adds 44). There is no SharedArrayBuffer, so an operation acts on the elements the array
-// shares with its subarrays: threads share the array itself (see Thread.spawn).
+// element adds 44). A TypedArray cannot view a SharedArrayBuffer, so an operation acts on the elements
+// the array shares with its subarrays: threads share the array itself (see Thread.spawn).
 // `waitAsync` is not here: there is no event loop to resolve its promise.
 namespace Atomics {
     // atomicrmw operations: 0 xchg, 1 add, 2 sub, 3 and, 5 or, 6 xor; ordering 7: seq_cst
@@ -3582,5 +4003,186 @@ class WeakSet<K extends object> {
 
     delete(value: K): boolean {
         return this.keys.delete(value);
+    }
+}
+
+// what a FinalizationRegistry keeps for each registration, beside its held value: the target and the
+// unregister token, both weakly
+class FinalizationEntry<T extends object> {
+    constructor(public target: WeakRef<T>, public token: WeakRef<T> | null) {
+    }
+}
+
+// Calls cleanupCallback with the held value of each registered target that has gone, as in
+// JavaScript, through the compiler's WeakRef: under gc, own and none, not rc. A target goes when the
+// collector frees it (gc), when its owner gives it up (own), or never (none, which frees nothing).
+// There is no event loop to run the callbacks on their own, and the collector cannot run TypeScript
+// in the middle of an allocation, so they run when the registry is next used: by register(),
+// unregister() or cleanupSome(), and never during one of the program's own statements. JavaScript
+// promises no more: a callback may run late, or not at all.
+// H is the held value's type and T the targets' class; the unregister token is a T too, often the
+// target itself, and is held weakly, as the target is.
+class FinalizationRegistry<H, T extends object> {
+    // entries[i] is registration i, heldValues[i] its held value: apart, so that under -mm=own a
+    // held value is moved out to its callback whole, not lent from an entry
+    private entries: FinalizationEntry<T>[] = [];
+    private heldValues: H[] = [];
+
+    constructor(private cleanupCallback: (heldValue: H) => void) {
+    }
+
+    public register(target: T, heldValue: H, unregisterToken?: T): void {
+        this.cleanupSome();
+        const token = unregisterToken != undefined ? new WeakRef(unregisterToken) : null;
+        this.entries.push(new FinalizationEntry<T>(new WeakRef(target), token));
+        this.heldValues.push(heldValue);
+    }
+
+    // forgets every registration made with this token, so its callback never runs; true if any
+    public unregister(unregisterToken: T): boolean {
+        this.cleanupSome();
+        let removed = false;
+        let i = 0;
+        while (i < this.entries.length) {
+            if (this.hasToken(i, unregisterToken)) {
+                this.removeAt(i);
+                removed = true;
+            } else {
+                i++;
+            }
+        }
+
+        return removed;
+    }
+
+    // Calls the callback, or `callback` when given, for each target that has gone (from the TC39
+    // proposal; not in every engine). The gone values are taken out first and called after, so a
+    // callback may register again.
+    public cleanupSome(callback?: (heldValue: H) => void): void {
+        const gone: H[] = [];
+        let i = 0;
+        while (i < this.entries.length) {
+            if (this.isGone(i)) {
+                gone.push(this.removeAt(i));
+            } else {
+                i++;
+            }
+        }
+
+        if (callback) {
+            while (gone.length > 0) callback(gone.shift());
+        } else {
+            while (gone.length > 0) this.cleanupCallback(gone.shift());
+        }
+    }
+
+    // in a method of its own, so that no pointer to a live target is left in the caller's frame,
+    // where the collector's conservative scan of the stack would find it and keep the target
+    private isGone(index: int): boolean {
+        return this.entries[index].target.deref() == undefined;
+    }
+
+    // whether the entry at `index` was made with this token; a method of its own, so that under
+    // -mm=own the entry is not borrowed past the test
+    private hasToken(index: int, unregisterToken: T): boolean {
+        const token = this.entries[index].token;
+        return token != null && token.deref() === unregisterToken;
+    }
+
+    // Registration `index` taken out, its held value given back: each array's element exchanged with
+    // its last and popped, which moves it (under -mm=own a copy would have two owners). The order of
+    // the rest does not matter.
+    private removeAt(index: int): H {
+        const last = this.entries.length - 1;
+        if (index != last) {
+            [this.entries[index], this.entries[last]] = [this.entries[last], this.entries[index]];
+            [this.heldValues[index], this.heldValues[last]] = [this.heldValues[last], this.heldValues[index]];
+        }
+
+        this.entries.pop();
+        return this.heldValues.pop();
+    }
+}
+
+// Resources disposed together, last added first, as in JavaScript: by `using stack = new
+// DisposableStack()` at the end of the block, or by dispose(). A resource that throws does not stop
+// the rest; when more than one throws, dispose() throws a SuppressedError that holds the newest
+// error and the one it hid. Once disposed, use, adopt, defer and move throw a ReferenceError.
+// X only keeps the class out of a program that does not use it (see sleep). Under -mm=own use() of
+// an object is refused, as it both keeps the object and gives it back; defer(), and adopt() of a
+// value that is copied, are there.
+class DisposableStack<X = int> {
+    // what disposing each resource calls, in the order they were added: under -mm=own defer() keeps
+    // its callback here as it is
+    private resources: (() => void)[] = [];
+    private isDisposed = false;
+
+    public get disposed(): boolean {
+        return this.isDisposed;
+    }
+
+    // `value`, to be disposed with the stack
+    public use<T>(value: T): T {
+        this.expectNotDisposed();
+        this.resources.push(() => value[Symbol.dispose]());
+        return value;
+    }
+
+    // `value`, given to onDispose when the stack is disposed: for what has no [Symbol.dispose]()
+    public adopt<T>(value: T, onDispose: (value: T) => void): T {
+        this.expectNotDisposed();
+        this.resources.push(() => onDispose(value));
+        return value;
+    }
+
+    // onDispose, called when the stack is disposed; the stack keeps it
+    @keeps("onDispose")
+    public defer(onDispose: () => void): void {
+        this.expectNotDisposed();
+        this.resources.push(onDispose);
+    }
+
+    // a new stack with all of this one's resources; this one is left disposed, with none
+    public move(): DisposableStack<X> {
+        this.expectNotDisposed();
+        const moved = new DisposableStack<X>();
+        moved.resources = this.resources;
+        this.resources = [];
+        this.isDisposed = true;
+        return moved;
+    }
+
+    // also [Symbol.dispose](), which is the method named `dispose` here: `using` calls this
+    public dispose(): void {
+        if (this.isDisposed) {
+            return;
+        }
+
+        this.isDisposed = true;
+        let failed = false;
+        let failure: any;
+        while (this.resources.length > 0) {
+            const dispose = this.resources.pop();
+            try {
+                dispose();
+            } catch (e) {
+                if (failed) {
+                    failure = new SuppressedError(e, failure, "An error was suppressed during disposal");
+                } else {
+                    failure = e;
+                    failed = true;
+                }
+            }
+        }
+
+        if (failed) {
+            throw failure;
+        }
+    }
+
+    private expectNotDisposed(): void {
+        if (this.isDisposed) {
+            throw new ReferenceError("DisposableStack already disposed");
+        }
     }
 }
