@@ -881,11 +881,13 @@ declare namespace console {
 }
 
 // Temporal's ISO 8601 part: see lib.ts. Each class lists its members in lib.ts's order: a program
-// calls them by their place in the class's table.
+// calls them by their place in the class's table. `declare` on each class too, not only on the
+// namespace: without it a program defines the class's ..new and ..instanceOf itself, and a debug link
+// finds them twice.
 declare namespace Temporal {
     @final
     @owned
-    class Duration {
+    declare class Duration {
         private fields: number[];
 
         constructor(years?: number, months?: number, weeks?: number, days?: number, hours?: number, minutes?: number,
@@ -917,7 +919,7 @@ declare namespace Temporal {
 
     @final
     @owned
-    class Instant {
+    declare class Instant {
         private epochSeconds: number;
         private nanos: number;
 
@@ -940,7 +942,7 @@ declare namespace Temporal {
 
     @final
     @owned
-    class PlainDate {
+    declare class PlainDate {
         private isoYear: int;
         private isoMonth: int;
         private isoDay: int;
@@ -975,7 +977,7 @@ declare namespace Temporal {
 
     @final
     @owned
-    class PlainTime {
+    declare class PlainTime {
         private parts: int[];
 
         constructor(hour?: int, minute?: int, second?: int, millisecond?: int, microsecond?: int, nanosecond?: int);
@@ -1000,7 +1002,7 @@ declare namespace Temporal {
 
     @final
     @owned
-    class PlainDateTime {
+    declare class PlainDateTime {
         private date: PlainDate;
         private time: PlainTime;
 
@@ -1038,10 +1040,10 @@ declare namespace Temporal {
         toJSON(): string;
     }
 
-    namespace Now {
-        function instant(): Temporal.Instant;
-        function plainDateTimeISO(): Temporal.PlainDateTime;
-        function plainDateISO(): Temporal.PlainDate;
-        function plainTimeISO(): Temporal.PlainTime;
+    declare namespace Now {
+        declare function instant(): Temporal.Instant;
+        declare function plainDateTimeISO(): Temporal.PlainDateTime;
+        declare function plainDateISO(): Temporal.PlainDate;
+        declare function plainTimeISO(): Temporal.PlainTime;
     }
 }
