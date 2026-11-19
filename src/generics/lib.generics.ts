@@ -4006,6 +4006,104 @@ class WeakSet<K extends object> {
     }
 }
 
+// what a FinalizationRegistry keeps for each registration, beside its held value: the target and the
+// unregister token, both weakly
+class FinalizationEntry<T extends object> {
+    constructor(public target: WeakRef<T>, public token: WeakRef<T> | null) {
+    }
+}
+
+// Calls cleanupCallback with the held value of each registered target that has gone, as in
+// JavaScript, through the compiler's WeakRef: under gc, own and none, not rc. A target goes when the
+// collector frees it (gc), when its owner gives it up (own), or never (none, which frees nothing).
+// There is no event loop to run the callbacks on their own, and the collector cannot run TypeScript
+// in the middle of an allocation, so they run when the registry is next used: by register(),
+// unregister() or cleanupSome(), and never during one of the program's own statements. JavaScript
+// promises no more: a callback may run late, or not at all.
+// H is the held value's type and T the targets' class; the unregister token is a T too, often the
+// target itself, and is held weakly, as the target is.
+class FinalizationRegistry<H, T extends object> {
+    // entries[i] is registration i, heldValues[i] its held value: apart, so that under -mm=own a
+    // held value is moved out to its callback whole, not lent from an entry
+    private entries: FinalizationEntry<T>[] = [];
+    private heldValues: H[] = [];
+
+    constructor(private cleanupCallback: (heldValue: H) => void) {
+    }
+
+    public register(target: T, heldValue: H, unregisterToken?: T): void {
+        this.cleanupSome();
+        const token = unregisterToken != undefined ? new WeakRef(unregisterToken) : null;
+        this.entries.push(new FinalizationEntry<T>(new WeakRef(target), token));
+        this.heldValues.push(heldValue);
+    }
+
+    // forgets every registration made with this token, so its callback never runs; true if any
+    public unregister(unregisterToken: T): boolean {
+        this.cleanupSome();
+        let removed = false;
+        let i = 0;
+        while (i < this.entries.length) {
+            if (this.hasToken(i, unregisterToken)) {
+                this.removeAt(i);
+                removed = true;
+            } else {
+                i++;
+            }
+        }
+
+        return removed;
+    }
+
+    // Calls the callback, or `callback` when given, for each target that has gone (from the TC39
+    // proposal; not in every engine). The gone values are taken out first and called after, so a
+    // callback may register again.
+    public cleanupSome(callback?: (heldValue: H) => void): void {
+        const gone: H[] = [];
+        let i = 0;
+        while (i < this.entries.length) {
+            if (this.isGone(i)) {
+                gone.push(this.removeAt(i));
+            } else {
+                i++;
+            }
+        }
+
+        if (callback) {
+            while (gone.length > 0) callback(gone.shift());
+        } else {
+            while (gone.length > 0) this.cleanupCallback(gone.shift());
+        }
+    }
+
+    // in a method of its own, so that no pointer to a live target is left in the caller's frame,
+    // where the collector's conservative scan of the stack would find it and keep the target
+    private isGone(index: int): boolean {
+        return this.entries[index].target.deref() == undefined;
+    }
+
+    // whether the entry at `index` was made with this token; a method of its own, so that under
+    // -mm=own the entry is not borrowed past the test
+    private hasToken(index: int, unregisterToken: T): boolean {
+        const token = this.entries[index].token;
+        return token != null && token.deref() === unregisterToken;
+    }
+
+    // Registration `index` taken out, its held value given back: each array's element exchanged with
+    // its last and popped, which moves it (under -mm=own a copy would have two owners). The order of
+    // the rest does not matter.
+    private removeAt(index: int): H {
+        const last = this.entries.length - 1;
+        if (index != last) {
+            [this.entries[index], this.entries[last]] = [this.entries[last], this.entries[index]];
+            [this.heldValues[index], this.heldValues[last]] = [this.heldValues[last], this.heldValues[index]];
+        }
+
+        this.entries.pop();
+        return this.heldValues.pop();
+    }
+}
+
 // Resources disposed together, last added first, as in JavaScript: by `using stack = new
 // DisposableStack()` at the end of the block, or by dispose(). A resource that throws does not stop
 // the rest; when more than one throws, dispose() throws a SuppressedError that holds the newest

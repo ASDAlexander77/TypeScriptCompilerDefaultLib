@@ -3,7 +3,8 @@
 #   ./tests.sh        the compiler's default memory model (gc)
 #   ./tests.sh rc     -mm=rc, against the default library built for it; also TSLANG_MM=rc
 # A test whose first line starts with "// gc only" is skipped under any other model, and one whose
-# first line starts with "// not own" under -mm=own.
+# first line starts with "// not own" under -mm=own, and one whose first line starts with "// not rc"
+# under -mm=rc.
 MODEL="${1:-$TSLANG_MM}"
 
 # The library paths the environment gives when the script starts. One it does not give is worked
@@ -123,6 +124,12 @@ function not_own() {
     head -n 1 "$1" | grep -q '^// not own'
 }
 
+# A test of what -mm=rc does not have says so on its first line ("// not rc: ..."), e.g. WeakRef,
+# which the compiler gives under gc, own and none.
+function not_rc() {
+    head -n 1 "$1" | grep -q '^// not rc'
+}
+
 function tests() {
     config="$1"
     mode="$2"
@@ -147,6 +154,12 @@ function tests() {
         if [ "$MODEL" = "own" ] && not_own "$file"; then
             skipped=$((skipped + 1))
             printf "\e[33mSkipped\e[0m   (not own)\n"
+            continue
+        fi
+
+        if [ "$MODEL" = "rc" ] && not_rc "$file"; then
+            skipped=$((skipped + 1))
+            printf "\e[33mSkipped\e[0m   (not rc)\n"
             continue
         fi
 
