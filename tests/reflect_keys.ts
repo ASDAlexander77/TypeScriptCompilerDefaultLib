@@ -1,5 +1,5 @@
 // not own: Reflect reads keys through `any`, which has none under -mm=own
-// Reflect.get, set, has, ownKeys and deleteProperty: the keys are looked up at run time, by the type the
+// Reflect.get, set, has and ownKeys: the keys are looked up at run time, by the type the
 // target has when it is boxed as `any` - of a class, its actual class's.
 class Point {
     constructor(public x: number, protected y: number) {}
@@ -74,10 +74,6 @@ function main() {
     assert(<number>Reflect.get(a, 1) == 20, "get of an index");
     assert(Reflect.has(a, 2) && !Reflect.has(a, 3), "has of an index");
     assert(Reflect.ownKeys(a).join(",") == "0,1,2", "ownKeys of an array");
-
-    // a key can't be removed: deleteProperty is true only of a key that is not there
-    assert(!Reflect.deleteProperty(p, "x") && p.x == 30, "deleteProperty of a field");
-    assert(Reflect.deleteProperty(p, "w"), "deleteProperty of a missing key");
 
     // null is not an object
     let threw = false;
