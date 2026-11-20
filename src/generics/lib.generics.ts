@@ -1759,6 +1759,88 @@ namespace Atomics {
     }
 }
 
+// The object operations of JavaScript's Reflect. A target is read through `any`: its keys are looked up
+// at run time by the type it had when it was boxed, as `x[k]`, `k in x` and `Object.keys(x)` of `any`
+// look them up - a class's public fields and accessors (its actual class's, a base's too) and its
+// methods, an object literal's or a tuple's fields, an array's or a string's indices. A key is a string
+// or a number; there are no symbol keys. Under -mm=own, where `any` has no keys, get, set, has,
+// ownKeys and deleteProperty are compile errors.
+// An object's keys are fixed when it is made, so none can be added or removed: isExtensible is false,
+// and set of a key the object does not have is false. There are no prototypes or property descriptors:
+// getPrototypeOf, setPrototypeOf, defineProperty and getOwnPropertyDescriptor are not here.
+namespace Reflect {
+    // null and undefined are not objects, a TypeError as in JavaScript. The target is not boxed: under
+    // -mm=own it stays the caller's.
+    function __checkObject<T>(target: T, method: string): void {
+        if (target == null) {
+            throw new TypeError("Reflect." + method + " called on non-object");
+        }
+    }
+
+    // the target as `any`, its keys then looked up at run time
+    function __object<T>(target: T, method: string): any {
+        __checkObject(target, method);
+        const value: any = target;
+        return value;
+    }
+
+    // the value of the key, undefined when the target has no such key; a method reads bound to its object
+    function get<T, K>(target: T, propertyKey: K): any {
+        return __object(target, "get")[propertyKey];
+    }
+
+    // false when the value can't be written: the target has no such key, the key's type does not take
+    // the value, or the target is held by value (an object literal or a tuple boxed as `any` is a copy)
+    function set<T, K, V>(target: T, propertyKey: K, value: V): boolean {
+        const object = __object(target, "set");
+        try {
+            object[propertyKey] = value;
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function has<T, K>(target: T, propertyKey: K): boolean {
+        return propertyKey in __object(target, "has");
+    }
+
+    // the keys Object.keys gives: a class's public fields, base class first, not its accessors or
+    // methods (an optional field only once it is set); an array's indices, without JavaScript's
+    // "length", which is not enumerable
+    function ownKeys<T>(target: T): string[] {
+        return Object.keys(__object(target, "ownKeys"));
+    }
+
+    // a key can't be removed: true only when there is none to remove
+    function deleteProperty<T, K>(target: T, propertyKey: K): boolean {
+        return !(propertyKey in __object(target, "deleteProperty"));
+    }
+
+    function isExtensible<T>(target: T): boolean {
+        __checkObject(target, "isExtensible");
+        return false;
+    }
+
+    // there is nothing to prevent: no object can gain a key
+    function preventExtensions<T>(target: T): boolean {
+        __checkObject(target, "preventExtensions");
+        return true;
+    }
+
+    // `target(...argumentsList)`. A function is not called with a `this` of the caller's choosing:
+    // thisArgument is not used, and a function that declares a `this` parameter is a compile error.
+    function apply<F, A, This>(target: F, thisArgument: This, argumentsList: A) {
+        return target(...argumentsList);
+    }
+
+    // `new target(...argumentsList)`. Under -mm=own the array is only lent, so a constructor can't keep
+    // a string or an object from it.
+    function construct<C, A>(target: C, argumentsList: A) {
+        return new target(...argumentsList);
+    }
+}
+
 // What a thread runs: the function, then its result or what it threw. The thread reaches it only
 // through the Opaque handed to the native side, so the ThreadHandle keeps it until join.
 class ThreadStart<R> {
