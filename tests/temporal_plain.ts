@@ -30,7 +30,7 @@ function main() {
     assert(date.since(from).toString() == "P19782D", "since");
     assert(Temporal.PlainDate.compare(from, date) == -1 && date.equals(Temporal.PlainDate.from("2024-02-29")),
         "compare and equals");
-    assert(date._with({ month: 4, day: 31 }).toString() == "2024-04-30", "with, constrained");
+    assert(date.with({ month: 4, day: 31 }).toString() == "2024-04-30", "with, constrained");
     assert(new Temporal.PlainDate(-44, 3, 15).toString() == "-000044-03-15", "an expanded year");
     assert(Temporal.PlainDate.from("1969-12-31").dayOfWeek == 3, "a Wednesday before 1970");
 
@@ -41,7 +41,7 @@ function main() {
     assert(time.add(Temporal.Duration.from("PT11H")).toString() == "00:45:30.25", "around midnight");
     assert(time.subtract(Temporal.Duration.from("PT14H")).toString() == "23:45:30.25", "back around midnight");
     assert(new Temporal.PlainTime(8).until(time).toString() == "PT5H45M30.25S", "until, in hours and smaller");
-    assert(time._with({ second: 0, millisecond: 0 }).toString() == "13:45:00", "with");
+    assert(time.with({ second: 0, millisecond: 0 }).toString() == "13:45:00", "with");
 
     const dt = Temporal.PlainDateTime.from("2024-12-31T23:30");
     assert(dt.year == 2024 && dt.hour == 23 && dt.minute == 30, "date and time fields");

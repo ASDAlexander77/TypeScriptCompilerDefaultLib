@@ -4272,8 +4272,8 @@ export namespace Temporal {
             return new Duration(0, 0, 0, this.__epochDays() - other.__epochDays());
         }
 
-        // `with`, which is a keyword here, as Array's is: a copy with the fields given replaced
-        public _with(fields: { year?: int, month?: int, day?: int }): PlainDate {
+        // a copy with the fields given replaced
+        public with(fields: { year?: int, month?: int, day?: int }): PlainDate {
             const year = fields.year != undefined ? fields.year : this.isoYear;
             const month = fields.month != undefined ? fields.month : this.isoMonth;
             let day = fields.day != undefined ? fields.day : this.isoDay;
@@ -4366,8 +4366,8 @@ export namespace Temporal {
             return spanOfTime(this).minus(spanOfTime(other)).toDuration(HOURS);
         }
 
-        // `with`, a copy with the fields given replaced
-        public _with(fields: { hour?: int, minute?: int, second?: int, millisecond?: int, microsecond?: int, nanosecond?: int }): PlainTime {
+        // a copy with the fields given replaced
+        public with(fields: { hour?: int, minute?: int, second?: int, millisecond?: int, microsecond?: int, nanosecond?: int }): PlainTime {
             return new PlainTime(
                 fields.hour != undefined ? fields.hour : this.parts[0],
                 fields.minute != undefined ? fields.minute : this.parts[1],
@@ -4470,8 +4470,8 @@ export namespace Temporal {
             return this.span().minus(other.span()).toDuration(DAYS);
         }
 
-        // `with`, a copy with the fields given replaced
-        public _with(fields: { year?: int, month?: int, day?: int, hour?: int, minute?: int, second?: int,
+        // a copy with the fields given replaced
+        public with(fields: { year?: int, month?: int, day?: int, hour?: int, minute?: int, second?: int,
             millisecond?: int, microsecond?: int, nanosecond?: int }): PlainDateTime {
             const year = fields.year != undefined ? fields.year : this.date.year;
             const month = fields.month != undefined ? fields.month : this.date.month;

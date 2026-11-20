@@ -185,8 +185,8 @@ Globals (`src/lib.ts`):
   (`error`, `suppressed`)
 - `Temporal`, the ISO 8601 calendar's part: `Duration`, `Instant`, `PlainDate`, `PlainTime`,
   `PlainDateTime` and `Now` (`instant`, `plainDateTimeISO`, `plainDateISO`, `plainTimeISO`), with
-  `from` (ISO 8601 text), `compare`, `add`, `subtract`, `until`, `since`, `equals`, `toString` and
-  `toJSON`, and `_with` for `with`, a keyword here. Not here: `ZonedDateTime`, `PlainYearMonth`,
+  `from` (ISO 8601 text), `compare`, `add`, `subtract`, `until`, `since`, `equals`, `toString`,
+  `toJSON` and `with`. Not here: `ZonedDateTime`, `PlainYearMonth`,
   `PlainMonthDay`, time zones other than UTC and the system's present offset, other calendars, and
   the options bags: `until` and `since` give their default largest unit, and an overflowing day is
   constrained to the month's last. Without a date to count from, a `Duration` with years, months or
