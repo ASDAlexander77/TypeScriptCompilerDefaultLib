@@ -967,7 +967,7 @@ declare namespace Temporal {
         subtract(duration: Duration): PlainDate;
         until(other: PlainDate): Duration;
         since(other: PlainDate): Duration;
-        _with(fields: { year?: int, month?: int, day?: int }): PlainDate;
+        with(fields: { year?: int, month?: int, day?: int }): PlainDate;
         equals(other: PlainDate): boolean;
         toPlainDateTime(time?: PlainTime): PlainDateTime;
         toString(): string;
@@ -994,7 +994,7 @@ declare namespace Temporal {
         subtract(duration: Duration): PlainTime;
         until(other: PlainTime): Duration;
         since(other: PlainTime): Duration;
-        _with(fields: { hour?: int, minute?: int, second?: int, millisecond?: int, microsecond?: int, nanosecond?: int }): PlainTime;
+        with(fields: { hour?: int, minute?: int, second?: int, millisecond?: int, microsecond?: int, nanosecond?: int }): PlainTime;
         equals(other: PlainTime): boolean;
         toString(): string;
         toJSON(): string;
@@ -1031,7 +1031,7 @@ declare namespace Temporal {
         subtract(duration: Duration): PlainDateTime;
         until(other: PlainDateTime): Duration;
         since(other: PlainDateTime): Duration;
-        _with(fields: { year?: int, month?: int, day?: int, hour?: int, minute?: int, second?: int,
+        with(fields: { year?: int, month?: int, day?: int, hour?: int, minute?: int, second?: int,
             millisecond?: int, microsecond?: int, nanosecond?: int }): PlainDateTime;
         equals(other: PlainDateTime): boolean;
         toPlainDate(): PlainDate;

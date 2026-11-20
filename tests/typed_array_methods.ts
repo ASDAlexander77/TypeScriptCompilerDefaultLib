@@ -44,7 +44,7 @@ function main() {
     assert(ints.filter((v) => v % 2 == 0).join() == "2,4", "filter");
     assert(ints.toReversed().join() == "4,3,2,1" && ints.join() == "1,2,3,4", "toReversed leaves it");
     assert(new Int32Array([3, 1, 2]).toSorted().join() == "1,2,3", "toSorted");
-    assert(ints._with(-1, 9).join() == "1,2,3,9" && ints[3] == 4, "with");
+    assert(ints.with(-1, 9).join() == "1,2,3,9" && ints[3] == 4, "with");
 
     // in place, each giving the array itself
     const g = new Int16Array([1, 2, 3, 4, 5]);

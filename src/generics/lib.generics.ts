@@ -675,20 +675,10 @@ class Array<T> {
             count = length - start;
         }
 
-        // The removed elements are moved out, not read: they go to the end, the first of them
-        // last, and are popped off in order. Two reversals take them there - of everything from
-        // `start`, then of what stays - where each used to be swapped down one place at a time.
-        const end: int = length;
+        // the built-in splice gives back the removed elements, which the array no longer owns
+        const removed = this.data.splice(start, count);
         const from: int = start;
-        const kept: int = end - count;
-        if (count > 0) {
-            __reverseRange(this.data, from, end);
-            __reverseRange(this.data, from, kept);
-        }
-
-        const removed: T[] = [];
-        for (let k = 0; k < count; k++)
-            removed.push(this.data.pop());
+        const kept: int = this.data.length;
 
         // a few items go in one at a time, as in unshift
         if (items.length < 8) {
@@ -861,7 +851,7 @@ class Array<T> {
     }
 
     @sharesElements
-    public _with(index: int, value: T) {
+    public with(index: int, value: T) {
         return this.data._with(index, value);
     }
 
@@ -1279,8 +1269,7 @@ class TypedArray<T> {
         return this.slice().sort(callbackfn);
     }
 
-    // `with`, which is a keyword here, as Array's is
-    public _with(index: int, value: T): TypedArray<T> {
+    public with(index: int, value: T): TypedArray<T> {
         if (index < 0) {
             index = index + this.count;
         }
@@ -1316,76 +1305,36 @@ type Float32Array = TypedArray<f32>;
 type Float64Array = TypedArray<f64>;
 
 // IEEE 754 binary16, the element of Float16Array and of DataView's getFloat16 and setFloat16, and
-// what Math.f16round rounds to. Converted here, bit by bit, not through an f16: LLVM lowers that to
-// the __truncsfhf2 and __extendhfsf2 helpers, which the MSVC runtime does not have. Generic only so
-// that a program that never uses them does not get them (see sleep).
+// what Math.f16round rounds to: an f16, kept as its bits. Generic only so that a program that never
+// uses them does not get them (see sleep).
 namespace __Float16 {
-    function bitsOf<X = int>(x: number): u64 {
-        let value: f64 = x;
-        let bits: u64 = 0;
-        memcpy(<Opaque>Ref(bits), <Opaque>Ref(value), 8);
+    // the nearest binary16, ties to even, as JavaScript rounds: too large is Infinity, too small 0
+    function encode<X = int>(x: number): u16 {
+        let half: f16 = <f16>x;
+        let bits: u16 = 0;
+        memcpy(<Opaque>Ref(bits), <Opaque>Ref(half), 2);
         return bits;
     }
 
-    // the nearest binary16, ties to even, as JavaScript rounds: too large is Infinity, too small 0
-    function encode<X = int>(x: number): u16 {
-        const b = bitsOf(x);
-        const sign = <u16>((b >> 48) & 0x8000);
-        const exponent = <int>((b >> 52) & 0x7FF);
-        const fraction: u64 = b & 0xFFFFFFFFFFFFF;
-        if (exponent == 0x7FF) {
-            return fraction != 0 ? <u16>0x7E00 : sign | 0x7C00;
-        }
-
-        const e = exponent - 1023 + 15;
-        if (e >= 31) {
-            return sign | 0x7C00;
-        }
-
-        if (e <= 0) {
-            // a subnormal, or 0: the 53 bits, the leading 1 among them, shifted down to 10
-            const shift = 43 - e;
-            if (shift > 53) {
-                return sign;
-            }
-
-            const full: u64 = fraction | 0x10000000000000;
-            let h = full >> shift;
-            const rest = full & ((<u64>1 << shift) - 1);
-            const half = <u64>1 << (shift - 1);
-            if (rest > half || (rest == half && (h & 1) != 0)) h++;
-            return sign | <u16>h;
-        }
-
-        // a carry out of the fraction goes into the exponent, which is right: up to Infinity
-        let h: u64 = (<u64>e << 10) | (fraction >> 42);
-        const rest = fraction & 0x3FFFFFFFFFF;
-        if (rest > 0x20000000000 || (rest == 0x20000000000 && (h & 1) != 0)) h++;
-        return sign | <u16>h;
-    }
-
     function decode<X = int>(bits: u16): number {
-        const e = (bits >> 10) & 0x1F;
-        const m = bits & 0x3FF;
-        let value: number;
-        if (e == 0) {
-            value = m * Math.pow(2, -24);
-        } else if (e == 31) {
-            value = m != 0 ? Number.NaN : Number.POSITIVE_INFINITY;
-        } else {
-            value = (1 + m / 1024) * Math.pow(2, e - 15);
-        }
-
-        // times -1, not -value: the compiler's unary minus is 0 - value, which makes -0 of 0
-        return (bits & 0x8000) != 0 ? value * -1 : value;
+        let given: u16 = bits;
+        let half: f16 = <f16>0;
+        memcpy(<Opaque>Ref(half), <Opaque>Ref(given), 2);
+        return <number>half;
     }
 }
 
-// A ConvertingTypedArray's element on the way in and out: S, the kept element, says which kind it
-// is (see ConvertingTypedArray). Functions here, not static methods: a generic class's static
-// generic method cannot be called.
-namespace __ConvertedElement {
-    function encode<E>(value: number): E {
+// The two typed arrays whose element is not a C type: Uint8ClampedArray keeps a byte, and a number
+// written to it is clamped into 0..255 and rounded half to even, where Uint8Array wraps it;
+// Float16Array keeps the bits of a binary16 (see __Float16). Each element is a `number` to the
+// program, as in JavaScript, and is converted on the way in and out. S, the kept element, tells the
+// two apart: u8 is Uint8ClampedArray, u16 is Float16Array. Otherwise as TypedArray: a window that
+// subarray() shares, a fixed length, and the same methods.
+class ConvertingTypedArray<S> {
+    private elements: TypedArray<S>;
+
+    // an element on the way in and out: E, the kept element, says which kind it is (see above)
+    private static encode<E>(value: number): E {
         if (sizeof<E>() == 1) {
             // JavaScript's ToUint8Clamp
             if (!(value > 0)) return <E>0;
@@ -1400,28 +1349,18 @@ namespace __ConvertedElement {
         return <E>__Float16.encode(value);
     }
 
-    function decode<E>(element: E): number {
+    private static decode<E>(element: E): number {
         if (sizeof<E>() == 1) {
             return element;
         }
 
         return __Float16.decode(<u16>element);
     }
-}
-
-// The two typed arrays whose element is not a C type: Uint8ClampedArray keeps a byte, and a number
-// written to it is clamped into 0..255 and rounded half to even, where Uint8Array wraps it;
-// Float16Array keeps the bits of a binary16 (see __Float16). Each element is a `number` to the
-// program, as in JavaScript, and is converted on the way in and out. S, the kept element, tells the
-// two apart: u8 is Uint8ClampedArray, u16 is Float16Array. Otherwise as TypedArray: a window that
-// subarray() shares, a fixed length, and the same methods, with `_with` for `with`.
-class ConvertingTypedArray<S> {
-    private elements: TypedArray<S>;
 
     constructor(data: number[] = []) {
         this.elements = new TypedArray<S>(data.length);
         for (let i = 0; i < data.length; i++) {
-            this.elements[i] = __ConvertedElement.encode<S>(data[i]);
+            this.elements[i] = ConvertingTypedArray.encode<S>(data[i]);
         }
     }
 
@@ -1439,11 +1378,11 @@ class ConvertingTypedArray<S> {
 
     // outside the window a read gives 0 and a write does nothing, as TypedArray's
     public get(index: int): number {
-        return __ConvertedElement.decode<S>(this.elements[index]);
+        return ConvertingTypedArray.decode<S>(this.elements[index]);
     }
 
     public set(index: int, value: number) {
-        this.elements[index] = __ConvertedElement.encode<S>(value);
+        this.elements[index] = ConvertingTypedArray.encode<S>(value);
     }
 
     public get length() {
@@ -1543,7 +1482,7 @@ class ConvertingTypedArray<S> {
 
     // the value is converted once, as JavaScript does
     public fill(value: number, start = 0, end = this.length): ConvertingTypedArray<S> {
-        this.elements.fill(__ConvertedElement.encode<S>(value), start, end);
+        this.elements.fill(ConvertingTypedArray.encode<S>(value), start, end);
         return this;
     }
 
@@ -1716,8 +1655,7 @@ class ConvertingTypedArray<S> {
         return this.slice().sort(callbackfn);
     }
 
-    // `with`, which is a keyword here
-    public _with(index: int, value: number): ConvertingTypedArray<S> {
+    public with(index: int, value: number): ConvertingTypedArray<S> {
         if (index < 0) {
             index = index + this.length;
         }

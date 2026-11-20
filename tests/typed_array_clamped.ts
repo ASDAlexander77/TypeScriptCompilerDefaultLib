@@ -35,7 +35,7 @@ function main() {
     assert(filled.join() == "255,255,255", "fill clamps");
     const doubled = given.map((v: number, i: number) => v * 2);
     assert(doubled.join() == "0,255,255", "map clamps");
-    const changed = given._with(0, 77.5);
+    const changed = given.with(0, 77.5);
     assert(changed[0] == 78 && given[0] == 0, "with clamps, and copies");
 
     // subarray shares the elements, slice copies them
