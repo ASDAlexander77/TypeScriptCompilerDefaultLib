@@ -1763,11 +1763,12 @@ namespace Atomics {
 // at run time by the type it had when it was boxed, as `x[k]`, `k in x` and `Object.keys(x)` of `any`
 // look them up - a class's public fields and accessors (its actual class's, a base's too) and its
 // methods, an object literal's or a tuple's fields, an array's or a string's indices. A key is a string
-// or a number; there are no symbol keys. Under -mm=own, where `any` has no keys, get, set, has,
-// ownKeys and deleteProperty are compile errors.
+// or a number; there are no symbol keys. Under -mm=own, where `any` has no keys, get, set, has and
+// ownKeys are compile errors.
 // An object's keys are fixed when it is made, so none can be added or removed: isExtensible is false,
-// and set of a key the object does not have is false. There are no prototypes or property descriptors:
-// getPrototypeOf, setPrototypeOf, defineProperty and getOwnPropertyDescriptor are not here.
+// and set of a key the object does not have is false. What can't be done throws a TypeError saying the
+// method is not available: deleteProperty (a key can't be removed), and, as there are no prototypes or
+// property descriptors, getPrototypeOf, setPrototypeOf, defineProperty and getOwnPropertyDescriptor.
 namespace Reflect {
     // null and undefined are not objects, a TypeError as in JavaScript. The target is not boxed: under
     // -mm=own it stays the caller's.
@@ -1812,9 +1813,29 @@ namespace Reflect {
         return Object.keys(__object(target, "ownKeys"));
     }
 
-    // a key can't be removed: true only when there is none to remove
+    // what has no counterpart here: a TypeError, so a program does not go on with a made-up answer
+    function __notAvailable<T = int>(method: string, reason: string): T {
+        throw new TypeError("Reflect." + method + " is not available: " + reason);
+    }
+
     function deleteProperty<T, K>(target: T, propertyKey: K): boolean {
-        return !(propertyKey in __object(target, "deleteProperty"));
+        return __notAvailable<boolean>("deleteProperty", "an object's keys are fixed when it is made");
+    }
+
+    function defineProperty<T, K, A>(target: T, propertyKey: K, attributes: A): boolean {
+        return __notAvailable<boolean>("defineProperty", "there are no property descriptors");
+    }
+
+    function getOwnPropertyDescriptor<T, K>(target: T, propertyKey: K): any {
+        return __notAvailable<any>("getOwnPropertyDescriptor", "there are no property descriptors");
+    }
+
+    function getPrototypeOf<T>(target: T): any {
+        return __notAvailable<any>("getPrototypeOf", "there are no prototypes");
+    }
+
+    function setPrototypeOf<T, P>(target: T, proto: P): boolean {
+        return __notAvailable<boolean>("setPrototypeOf", "there are no prototypes");
     }
 
     function isExtensible<T>(target: T): boolean {

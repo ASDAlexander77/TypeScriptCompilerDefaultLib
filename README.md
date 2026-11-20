@@ -243,15 +243,16 @@ Generics (`src/generics/lib.generics.ts`):
 - `Atomics`: `add`, `sub`, `and`, `or`, `xor`, `exchange`, `compareExchange`, `load`,
   `store`, `isLockFree` over the integer typed arrays, and `wait`/`notify` over an
   `Int32Array` or a `BigInt64Array` (no `waitAsync`)
-- `Reflect`: `get`, `set`, `has`, `ownKeys`, `deleteProperty`, `isExtensible`, `preventExtensions`,
-  `apply`, `construct`. A target's keys are looked up at run time, as those of a value of type `any`:
+- `Reflect`: `get`, `set`, `has`, `ownKeys`, `isExtensible`, `preventExtensions`, `apply`,
+  `construct`. A target's keys are looked up at run time, as those of a value of type `any`:
   a class's public fields, accessors and methods (of its actual class), an object literal's or a
   tuple's fields, an array's indices; `get` gives an `any`. `ownKeys` gives what `Object.keys` does
   (no accessors, methods or `"length"`). No object can gain or lose a key, so `set` of a key it does
   not have, or of a value its type does not take, is `false`, as is `set` of an object literal (boxed
-  as `any`, it is a copy); `isExtensible` is `false`, and `deleteProperty` is `true` only of a key that
-  is not there. `apply` does not use `thisArgument`. There are no prototypes or property descriptors:
-  no `getPrototypeOf`, `setPrototypeOf`, `defineProperty`, `getOwnPropertyDescriptor`. The key
+  as `any`, it is a copy); `isExtensible` is `false`. `apply` does not use `thisArgument`. What can't
+  be done throws a `TypeError` saying the method is not available: `deleteProperty` (keys are fixed),
+  and, as there are no prototypes or property descriptors, `getPrototypeOf`, `setPrototypeOf`,
+  `defineProperty`, `getOwnPropertyDescriptor`. The key
   operations need the compiler's run-time keys of `any`, so they are not under `-mm=own`; there
   `construct` is lent its arguments array, so a constructor can't keep a string or an object from it.
 - `Thread`: `Thread.spawn(fn)` runs `fn` on a new native thread and returns a `ThreadHandle<R>`
