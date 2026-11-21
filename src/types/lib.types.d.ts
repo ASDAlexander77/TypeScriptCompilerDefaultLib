@@ -13,10 +13,12 @@ interface ClassIterator<T> {
 // TypeScript's iteration types, as far as a generator here can be one. A generator function returns
 // an object with next(), and for...of takes any object with next(), so here an Iterable is such an
 // object too (not one with [Symbol.iterator]): `function* g(): Generator<number>`, and a generator
-// given to an Iterable<T> or Iterator<T> parameter, work. TReturn and TNext are taken but not used:
-// next() takes no value, and a returned value is one more value. IteratorResult is an alias, not an
-// interface, so a generator's next() matches it.
-// Not yet (compiler): an array or a string as an Iterable<T>, next(value), return() and throw().
+// given to an Iterable<T> or Iterator<T> parameter, work, and so does an array or a string given to an
+// Iterable<T>. next(value) of a Generator<T, TReturn, TNext> is what the `yield` it resumes evaluates
+// to; a generator whose next() takes no value is a Generator too. A returned value of a type other
+// than T is an error. return(value) and throw(e) resume a paused generator finishing (its finally blocks
+// run) or throwing at its yield. IteratorResult is an alias, not an interface, so a generator's next()
+// matches it.
 type IteratorResult<T, TReturn = any> = IterateResult<T>;
 
 interface Iterable<T> {
@@ -28,7 +30,11 @@ interface IterableIterator<T> {
 }
 
 interface Generator<T = unknown, TReturn = any, TNext = any> {
-    next: () => IterateResult<T>;
+    next: (value?: TNext) => IterateResult<T>;
+    // a generator declared to return a Generator has them (-mm=own: return() only for a T that owns nothing, a
+    // number or a boolean); one declared otherwise, or not at all, is a Generator without them
+    return?: (value: T) => IterateResult<T>;
+    throw?: (e: any) => IterateResult<T>;
 }
 
 // Promise<T> is T: an async generator's next() gives the result itself
