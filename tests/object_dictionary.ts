@@ -1,4 +1,3 @@
-// not own: until a released compiler has the fix for a parameter moved on paths that exclude each other (set)
 // ObjectDictionary<T>: the value of a string index signature, `{ [key: string]: T }`. Its entries by keys
 // known at run time: written, overwritten, deleted by writing undefined, and an absent key reads undefined.
 class P {
