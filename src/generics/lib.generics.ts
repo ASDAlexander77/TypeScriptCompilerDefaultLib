@@ -3847,6 +3847,93 @@ class Set<V = any> {
     }
 }
 
+// The value of a string index signature, `{ [key: string]: T }`, and of an object literal with a key known
+// only at run time (`{ [m]: v }`): its entries, by key, in the order they were added. The compiler reads
+// `d[k]`, `d["name"]` and `d.name` as `get` (T | undefined: undefined for a key it does not hold) and
+// writes them with `set`; outside this class they are always entries, never these members (@dictionary).
+// Under -mm=own it owns its values: a value written in moves in, one read borrows, one overwritten or
+// deleted is dropped. The keys are its own copies.
+@dictionary
+class ObjectDictionary<T = any> {
+    private index: Map<string, int>;
+    private _keys: string[];
+    private _values: T[];
+
+    constructor() {
+        this.index = new Map<string, int>();
+        this._keys = [];
+        this._values = [];
+    }
+
+    get size() {
+        return this._keys.length;
+    }
+
+    get(key: string): T | undefined {
+        const i = this.index.get(key);
+        if (i === undefined) {
+            return undefined;
+        }
+
+        return this._values[i];
+    }
+
+    // writing undefined deletes the entry
+    set(key: string, value: T | undefined) {
+        if (value === undefined) {
+            this.delete(key);
+            return;
+        }
+
+        const i = this.index.get(key);
+        if (i === undefined) {
+            // a copy of the key: the caller's stays the caller's
+            this.index.set("" + key, this._values.length);
+            this._keys.push("" + key);
+            this._values.push(value);
+            return;
+        }
+
+        this._values[i] = value;
+    }
+
+    [key: string]: T | undefined;
+
+    has(key: string): boolean {
+        return this.index.has(key);
+    }
+
+    delete(key: string): boolean {
+        const i = this.index.get(key);
+        if (i === undefined) {
+            return false;
+        }
+
+        this.index.delete(key);
+        this._keys.splice(i, 1);
+        this._values.splice(i, 1);
+        for (let j = i; j < this._keys.length; j++) {
+            this.index.set(this._keys[j], j);
+        }
+
+        return true;
+    }
+
+    keys(): string[] {
+        return this._keys.slice(0);
+    }
+}
+
+// `{ ...source }` where the object made is a dictionary: source's entries copied into target, in order (the
+// compiler calls it for a spread of a dictionary). A function of its own, not a member: it is made only for
+// the types it is used with, so under -mm=own a dictionary of objects, which can't be copied, fails only
+// where one is spread.
+function objectDictionaryAssign<T>(target: ObjectDictionary<T>, source: ObjectDictionary<T>) {
+    for (const k in source) {
+        target[k] = source[k];
+    }
+}
+
 namespace __Iterator
 {
     // example how to restrict to iterators only
