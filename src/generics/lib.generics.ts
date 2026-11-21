@@ -16,6 +16,22 @@ type OmitThisParameterType<T> = T extends (this: never, ...args: infer A) => inf
 
 type ThisType<T> = T;
 
+// The options toLocaleString takes (Intl's number and date-time options, the ones in common use).
+// Taken so such calls compile; there is no locale data to apply them with.
+interface ToLocaleStringOptions {
+    localeMatcher?: string;
+    style?: string;
+    currency?: string;
+    currencyDisplay?: string;
+    unit?: string;
+    useGrouping?: boolean;
+    minimumIntegerDigits?: number;
+    minimumFractionDigits?: number;
+    maximumFractionDigits?: number;
+    timeZone?: string;
+    hour12?: boolean;
+}
+
 function __is<V extends T, T>(t: T): t is V {
     return true;
 }
@@ -161,6 +177,12 @@ namespace __Array {
     }
 
     function toString<T>(this: T[]) {
+        return this.join();
+    }
+
+    // the elements' text joined by ",". The locale and its options are taken, as JavaScript takes
+    // them, but not applied: there is no locale data, so it is the text toString gives.
+    function toLocaleString<T>(this: T[], locales?: string | string[], options?: ToLocaleStringOptions) {
         return this.join();
     }
 
@@ -1163,7 +1185,8 @@ class TypedArray<T> {
         return this.join();
     }
 
-    public toLocaleString() {
+    // the locale and its options are taken but not applied, as for an array
+    public toLocaleString(locales?: string | string[], options?: ToLocaleStringOptions) {
         return this.join();
     }
 
@@ -1562,7 +1585,8 @@ class ConvertingTypedArray<S> {
         return this.join();
     }
 
-    public toLocaleString() {
+    // the locale and its options are taken but not applied, as for an array
+    public toLocaleString(locales?: string | string[], options?: ToLocaleStringOptions) {
         return this.join();
     }
 
@@ -2824,13 +2848,20 @@ class TextDecoder<T = u8> {
 // and these are the functions over such values. A rejected promise is a thrown exception. There is
 // no `then`: a value has no methods. Each is generic, as `isLockFree` is above.
 namespace Promise {
-    function resolve<T>(value: T): T {
+    // with no value: a settled promise of nothing, for `await Promise.resolve()`
+    function resolve<T = undefined>(value?: T): T {
         return value;
     }
 
     // throws the reason: what awaiting a rejected promise does. The reason keeps its own type, so a
-    // `catch (e: Error)` catches an Error.
-    function reject<T = never, R = Error>(reason: R): T {
+    // `catch (e: Error)` catches an Error. With no reason it throws undefined, as JavaScript does
+    // (in an any: undefined itself can't be thrown).
+    function reject<T = never, R = Error>(reason?: R): T {
+        if (reason === undefined) {
+            const nothing: any = undefined;
+            throw nothing;
+        }
+
         throw reason;
     }
 

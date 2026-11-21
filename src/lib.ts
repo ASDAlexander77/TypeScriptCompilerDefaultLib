@@ -1143,7 +1143,7 @@ namespace __String {
         return regexp.search(this);
     }
 
-    export function slice(this: string, indexStart: int, indexEnd: int = this.length): string {
+    export function slice(this: string, indexStart: int = 0, indexEnd: int = this.length): string {
 
         const len: int = this.length;
         if (indexStart < 0) {
@@ -1539,7 +1539,7 @@ export class String {
         return this.value.search(regexp);
     }
 
-    public slice(indexStart: int, indexEnd?: int): string {
+    public slice(indexStart?: int, indexEnd?: int): string {
         return this.value.slice(indexStart, indexEnd);
     }
 
