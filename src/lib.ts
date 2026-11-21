@@ -1539,7 +1539,7 @@ export class String {
         return this.value.search(regexp);
     }
 
-    public slice(indexStart: int, indexEnd?: int): string {
+    public slice(indexStart?: int, indexEnd?: int): string {
         return this.value.slice(indexStart, indexEnd);
     }
 
