@@ -358,7 +358,7 @@ declare namespace __String {
     
     function search(this: string, regexp: RegExp): int;
 
-    function slice(this: string, indexStart: int, indexEnd?: int): string;
+    function slice(this: string, indexStart?: int, indexEnd?: int): string;
 
     function split(this: string, separator?: string | RegExp, limit?: int): string[];
 
@@ -441,7 +441,7 @@ declare class String {
     
     search(this: string, regexp: RegExp): int;
 
-    slice(this: string, indexStart: int, indexEnd?: int): string;
+    slice(this: string, indexStart?: int, indexEnd?: int): string;
 
     split(this: string, separator?: string | RegExp, limit?: int): string[];
 
