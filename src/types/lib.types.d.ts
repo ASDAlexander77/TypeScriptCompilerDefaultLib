@@ -28,11 +28,9 @@ interface IterableIterator<T> {
 }
 
 interface Generator<T = unknown, TReturn = any, TNext = any> {
-    // next() takes no value here: a Generator is given to an Iterable<T> as it is, so their next() must be one
-    // function type - `(value?: TNext) =>` called as an Iterable's `() =>` was a call of another signature (wasm's
-    // "function signature mismatch"; natively the yield read a value never given). Not declared here yet:
-    // next(value) (TSLANG 153).
-    next: () => IterateResult<T>;
+    // next(value) is what the `yield` it resumes evaluates to. Given to an Iterable<T> or an Iterator<T>, whose
+    // next() takes none, a Generator is iterated by a generator over its values (the compiler makes it).
+    next: (value?: TNext) => IterateResult<T>;
     // a generator declared to return a Generator has them (-mm=own: return() only for a T that owns nothing, a
     // number or a boolean); one declared otherwise, or not at all, is a Generator without them
     return?: (value: T) => IterateResult<T>;
