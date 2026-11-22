@@ -14,9 +14,7 @@ interface ClassIterator<T> {
 // an object with next(), and for...of takes any object with next(), so here an Iterable is such an
 // object too (not one with [Symbol.iterator]): `function* g(): Generator<number>`, and a generator
 // given to an Iterable<T> or Iterator<T> parameter, work, and so does an array or a string given to an
-// Iterable<T>. next(value) of a Generator<T, TReturn, TNext> is what the `yield` it resumes evaluates
-// to; a generator whose next() takes no value is a Generator too. A returned value of a type other
-// than T is an error. return(value) and throw(e) resume a paused generator finishing (its finally blocks
+// Iterable<T>. A returned value of a type other than T is an error. return(value) and throw(e) resume a paused generator finishing (its finally blocks
 // run) or throwing at its yield. IteratorResult is an alias, not an interface, so a generator's next()
 // matches it.
 type IteratorResult<T, TReturn = any> = IterateResult<T>;
@@ -30,7 +28,11 @@ interface IterableIterator<T> {
 }
 
 interface Generator<T = unknown, TReturn = any, TNext = any> {
-    next: (value?: TNext) => IterateResult<T>;
+    // next() takes no value here: a Generator is given to an Iterable<T> as it is, so their next() must be one
+    // function type - `(value?: TNext) =>` called as an Iterable's `() =>` was a call of another signature (wasm's
+    // "function signature mismatch"; natively the yield read a value never given). Not declared here yet:
+    // next(value) (TSLANG 153).
+    next: () => IterateResult<T>;
     // a generator declared to return a Generator has them (-mm=own: return() only for a T that owns nothing, a
     // number or a boolean); one declared otherwise, or not at all, is a Generator without them
     return?: (value: T) => IterateResult<T>;
