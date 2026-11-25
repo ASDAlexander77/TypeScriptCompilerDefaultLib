@@ -1,7 +1,10 @@
 type Record<K extends string | number | symbol, T> = { [P in K]: T; };
 type Partial<T> = { [P in keyof T]?: T[P] | undefined; }
-type Required<T> = { [P in keyof T]-?: T[P]; }
-type Readonly<T> = { readonly [P in keyof T]: T[P]; }
+// A class is kept as it is: mapped, it would become an object of its fields, a copy without its methods.
+// Nothing is lost - a class's fields are always there, and readonly is only checked when compiling.
+// (`extends abstract new` is true of a class itself in tslang, not only of its constructor.)
+type Required<T> = T extends abstract new (...args: any) => any ? T : { [P in keyof T]-?: T[P]; }
+type Readonly<T> = T extends abstract new (...args: any) => any ? T : { readonly [P in keyof T]: T[P]; }
 type Pick<T, K extends keyof T> = { [P in K]: T[P]; }
 type Exclude<T, U> = T extends U ? never : T;
 type Extract<T, U> = T extends U ? T : never;
