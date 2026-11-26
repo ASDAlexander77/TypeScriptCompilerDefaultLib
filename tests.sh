@@ -104,6 +104,22 @@ function test_script() {
     if [[ "$run_output" != *"ALL DONE"* ]]; then
         echo -e "\e[31mRun Error (no 'ALL DONE' marker)\e[0m"
         echo "Output: $run_output"
+        # The exit code tells a crash (128 + the signal: 139 a segfault, 134 an abort) from a run that ended on its
+        # own. A crash as the process exits leaves no output at all: stdout to a pipe is flushed only at exit.
+        # (array_class_splice.ts -mm=rc debug/jit, release run of 2026-11-26: twice on ubuntu-22.04/24.04, never
+        # reproduced in ~700 runs of the same package.) Run it once more under gdb for a backtrace; the test
+        # stays failed either way.
+        echo "Exit code: $run_code"
+        if [ $run_code -gt 128 ] && command -v gdb > /dev/null; then
+            if [ "$mode" == "jit" ]; then
+                rerun=( "$TOOL_PATH/$TOOL" $DBG $OPTIONS --shared-libs="$RUNTIME" --emit=jit "$SRC/tests/$test.ts" )
+            else
+                rerun=( "$SRC/tests/$test" )
+            fi
+            echo "Again under gdb:"
+            timeout 300 gdb -q -batch -ex "set pagination off" -ex run -ex "thread apply all bt 30" \
+                --args "${rerun[@]}" < "$stdin_file" 2>&1 | tail -n 120
+        fi
         return 1
     fi
 
