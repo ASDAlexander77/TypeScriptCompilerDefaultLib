@@ -1,5 +1,5 @@
 // Reflect.apply and Reflect.construct: a call and a `new` with their arguments given as an array,
-// of one type or several; isExtensible and preventExtensions, as no object can gain a key.
+// of one type or several; isExtensible and preventExtensions of an object, whose keys are fixed when it is made.
 class Counter {
     constructor(public n: number, public up: boolean) {}
 }

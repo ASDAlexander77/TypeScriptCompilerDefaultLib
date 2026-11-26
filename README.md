@@ -243,18 +243,32 @@ Generics (`src/generics/lib.generics.ts`):
 - `Atomics`: `add`, `sub`, `and`, `or`, `xor`, `exchange`, `compareExchange`, `load`,
   `store`, `isLockFree` over the integer typed arrays, and `wait`/`notify` over an
   `Int32Array` or a `BigInt64Array` (no `waitAsync`)
-- `Reflect`: `get`, `set`, `has`, `ownKeys`, `isExtensible`, `preventExtensions`, `apply`,
-  `construct`. A target's keys are looked up at run time, as those of a value of type `any`:
-  a class's public fields, accessors and methods (of its actual class), an object literal's or a
-  tuple's fields, an array's indices; `get` gives an `any`. `ownKeys` gives what `Object.keys` does
-  (no accessors, methods or `"length"`). No object can gain or lose a key, so `set` of a key it does
-  not have, or of a value its type does not take, is `false`, as is `set` of an object literal (boxed
-  as `any`, it is a copy); `isExtensible` is `false`. `apply` does not use `thisArgument`. What can't
-  be done throws a `TypeError` saying the method is not available: `deleteProperty` (keys are fixed),
-  and, as there are no prototypes or property descriptors, `getPrototypeOf`, `setPrototypeOf`,
-  `defineProperty`, `getOwnPropertyDescriptor`. The key
-  operations need the compiler's run-time keys of `any`, so they are not under `-mm=own`; there
-  `construct` is lent its arguments array, so a constructor can't keep a string or an object from it.
+- `ObjectDictionary<T>`, the value of a string index signature (`{ [key: string]: T }`) and of an
+  object literal with a key known only at run time: the one object that gains and loses keys. The
+  compiler's `Object` functions take it: `Object.keys`, `getOwnPropertyNames`, `values` and
+  `entries` give its entries in the order they were added, `Object.hasOwn(d, k)` is `k in d`,
+  `Object.assign(d, ...sources)` copies each source's fields or entries into it, and
+  `Object.fromEntries(pairs)` makes one of an array of `[key, value]` pairs.
+  `Object.preventExtensions`, `seal` and `freeze` close it, and `Object.isExtensible`, `isSealed`
+  and `isFrozen` say how far; a write it no longer takes then throws a `TypeError`, as in
+  JavaScript's strict mode. Any other object's keys are fixed when it is made, as a sealed object's
+  are: `Object.isSealed` of it is `true`, `isExtensible` `false`, and `Object.freeze` of it is the
+  object itself (not frozen). An array grows, so it is extensible; a number or a string is frozen.
+- `Reflect`: `get`, `set`, `has`, `ownKeys`, `deleteProperty`, `isExtensible`,
+  `preventExtensions`, `apply`, `construct`. A target's keys are looked up at run time, as those of
+  a value of type `any`: a class's public fields, accessors and methods (of its actual class), an
+  object literal's or a tuple's fields, an array's indices, a dictionary's entries; `get` gives an
+  `any`. `ownKeys` gives what `Object.keys` does (no accessors, methods or `"length"`). A
+  dictionary gains a key by `set` and loses one by `deleteProperty`, until `preventExtensions` (or
+  `Object.seal`, `Object.freeze`) closes it. Any other object is sealed: `set` of a key it does not
+  have, or of a value its type does not take, is `false`, as is `set` of an object literal (boxed
+  as `any`, it is a copy), and `deleteProperty` of a key it has; `isExtensible` is `false`. An array
+  is extensible but can't be closed: `preventExtensions` of one is `false`. `apply` does not use
+  `thisArgument`. What can't be done throws a `TypeError` saying the method is not available: as
+  there are no prototypes or property descriptors, `getPrototypeOf`, `setPrototypeOf`,
+  `defineProperty`, `getOwnPropertyDescriptor`. The key operations (`deleteProperty` too) need the
+  compiler's run-time keys of `any`, so they are not under `-mm=own`; there `construct` is lent its
+  arguments array, so a constructor can't keep a string or an object from it.
 - `Thread`: `Thread.spawn(fn)` runs `fn` on a new native thread and returns a `ThreadHandle<R>`
   whose `join()` waits for it and gives back `fn`'s result, or throws an `Error` with the message
   of what `fn` threw. `Thread.hardwareConcurrency()` says how many threads the machine runs at
