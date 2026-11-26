@@ -1790,12 +1790,15 @@ namespace Atomics {
 // at run time by the type it had when it was boxed, as `x[k]`, `k in x` and `Object.keys(x)` of `any`
 // look them up - a class's public fields and accessors (its actual class's, a base's too) and its
 // methods, an object literal's or a tuple's fields, an array's or a string's indices. A key is a string
-// or a number; there are no symbol keys. Under -mm=own, where `any` has no keys, get, set, has and
-// ownKeys are compile errors.
-// An object's keys are fixed when it is made, so none can be added or removed: isExtensible is false,
-// and set of a key the object does not have is false. What can't be done throws a TypeError saying the
-// method is not available: deleteProperty (a key can't be removed), and, as there are no prototypes or
-// property descriptors, getPrototypeOf, setPrototypeOf, defineProperty and getOwnPropertyDescriptor.
+// or a number; there are no symbol keys. Under -mm=own, where `any` has no keys, get, set, has, ownKeys
+// and deleteProperty are compile errors.
+// A dictionary (`{ [key: string]: T }`, ObjectDictionary) gains and loses keys: set adds one, deleteProperty
+// removes one, and it is extensible until preventExtensions (or Object.seal, Object.freeze) closes it. Any
+// other object's keys are fixed when it is made, as a sealed object's are: isExtensible is false, set of a
+// key it does not have is false, and so is deleteProperty of a key it has. An array is extensible (it grows
+// by one past its end) but can't be closed: preventExtensions of one is false. What can't be done throws a
+// TypeError saying the method is not available: as there are no prototypes or property descriptors,
+// getPrototypeOf, setPrototypeOf, defineProperty and getOwnPropertyDescriptor.
 namespace Reflect {
     // null and undefined are not objects, a TypeError as in JavaScript. The target is not boxed: under
     // -mm=own it stays the caller's.
@@ -1845,8 +1848,20 @@ namespace Reflect {
         throw new TypeError("Reflect." + method + " is not available: " + reason);
     }
 
+    // true when the target no longer has the key: a dictionary's entry is deleted, unless it is sealed or
+    // frozen (false); any other object is sealed, false for a key it has
     function deleteProperty<T, K>(target: T, propertyKey: K): boolean {
-        return __notAvailable<boolean>("deleteProperty", "an object's keys are fixed when it is made");
+        const object = __object(target, "deleteProperty");
+        if (!(propertyKey in object)) {
+            return true;
+        }
+
+        if (Object.isSealed(object)) {
+            return false;
+        }
+
+        delete object[propertyKey];
+        return true;
     }
 
     function defineProperty<T, K, A>(target: T, propertyKey: K, attributes: A): boolean {
@@ -1865,15 +1880,18 @@ namespace Reflect {
         return __notAvailable<boolean>("setPrototypeOf", "there are no prototypes");
     }
 
+    // by the target's own type, not through `any`: a dictionary that is not closed, or an array
     function isExtensible<T>(target: T): boolean {
         __checkObject(target, "isExtensible");
-        return false;
+        return Object.isExtensible(target);
     }
 
-    // there is nothing to prevent: no object can gain a key
+    // true when the target can't gain a key now: a dictionary is closed, an object with fixed keys already
+    // is; an array can't be (false)
     function preventExtensions<T>(target: T): boolean {
         __checkObject(target, "preventExtensions");
-        return true;
+        Object.preventExtensions(target);
+        return !Object.isExtensible(target);
     }
 
     // `target(...argumentsList)`. A function is not called with a `this` of the caller's choosing:
@@ -3856,16 +3874,36 @@ class Set<V = any> {
 // writes them with `set`; outside this class they are always entries, never these members (@dictionary).
 // Under -mm=own it owns its values: a value written in moves in, one read borrows, one overwritten or
 // deleted is dropped. The keys are its own copies.
+// It is the one object that gains and loses keys, so the one Object.preventExtensions, Object.seal and
+// Object.freeze close (the compiler calls `close`; `closed` answers Object.isExtensible, isSealed and
+// isFrozen): then a write it no longer takes throws a TypeError, as JavaScript's strict mode does.
 @dictionary
 class ObjectDictionary<T = any> {
     private index: Map<string, int>;
     private _keys: string[];
     private _values: T[];
+    // how far it is closed: 0 open, 1 no key added (preventExtensions), 2 nor deleted (seal), 3 nor any
+    // value written (freeze)
+    private _closed: int;
 
     constructor() {
         this.index = new Map<string, int>();
         this._keys = [];
         this._values = [];
+        this._closed = 0;
+    }
+
+    // closes it as far as `level` (closed no less than it was: a frozen dictionary stays frozen)
+    close(level: int) {
+        if (level > this._closed) {
+            this._closed = level;
+        }
+    }
+
+    // how far it is closed, as JavaScript reports it: one that takes no key and has none is sealed and
+    // frozen too
+    closed(): int {
+        return this._closed > 0 && this._keys.length == 0 ? 3 : this._closed;
     }
 
     get size() {
@@ -3890,11 +3928,19 @@ class ObjectDictionary<T = any> {
 
         const i = this.index.get(key);
         if (i === undefined) {
+            if (this._closed > 0) {
+                throw new TypeError("Cannot add property " + key + ", object is not extensible");
+            }
+
             // a copy of the key: the caller's stays the caller's
             this.index.set("" + key, this._values.length);
             this._keys.push("" + key);
             this._values.push(value);
             return;
+        }
+
+        if (this._closed == 3) {
+            throw new TypeError("Cannot assign to read only property '" + key + "' of object");
         }
 
         this._values[i] = value;
@@ -3910,6 +3956,10 @@ class ObjectDictionary<T = any> {
         const i = this.index.get(key);
         if (i === undefined) {
             return false;
+        }
+
+        if (this._closed >= 2) {
+            throw new TypeError("Cannot delete property '" + key + "' of object");
         }
 
         this.index.delete(key);
@@ -3935,6 +3985,38 @@ function objectDictionaryAssign<T>(target: ObjectDictionary<T>, source: ObjectDi
     for (const k in source) {
         target[k] = source[k];
     }
+}
+
+// `Object.values(d)` and `Object.entries(d)` of a dictionary: its values, or its [key, value] pairs, in the
+// order its entries were added (the compiler calls them). Functions of their own, as objectDictionaryAssign,
+// so that under -mm=own a dictionary of objects, which can't be copied out, fails only where one is used.
+function objectDictionaryValues<T>(d: ObjectDictionary<T>): T[] {
+    const r: T[] = [];
+    for (const k in d) {
+        r.push(<T>d[k]);
+    }
+
+    return r;
+}
+
+function objectDictionaryEntries<T>(d: ObjectDictionary<T>): [string, T][] {
+    const r: [string, T][] = [];
+    for (const k in d) {
+        r.push([k, <T>d[k]]);
+    }
+
+    return r;
+}
+
+// `Object.fromEntries(entries)`: a dictionary of the [key, value] pairs, in their order, a later value of a
+// key in place of an earlier one (the compiler calls it, T the pairs' value type). A key is its text.
+function objectDictionaryFromEntries<T, E>(entries: E): ObjectDictionary<T> {
+    const d = new ObjectDictionary<T>();
+    for (const e of entries) {
+        d["" + e[0]] = <T>e[1];
+    }
+
+    return d;
 }
 
 namespace __Iterator
