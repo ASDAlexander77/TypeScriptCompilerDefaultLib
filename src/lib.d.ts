@@ -1040,6 +1040,10 @@ declare namespace Temporal {
         toJSON(): string;
     }
 
+    // @owned as every other declaration here (see the top of this file): without it these four were the
+    // library's only heap results the compiler could say nothing of, and under -mm=rc no call through a
+    // function value in any program gave its result back (a callback's, an object literal's method's)
+    @owned
     declare namespace Now {
         declare function instant(): Temporal.Instant;
         declare function plainDateTimeISO(): Temporal.PlainDateTime;
