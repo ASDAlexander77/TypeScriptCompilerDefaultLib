@@ -4,11 +4,13 @@
 /// <reference path="generics/lib.generics.ts" />
 
 // @owned: lib.ts defines what this file declares, compiled under the program's own memory model, so
-// under -mm=rc each function here returns a reference its caller owns, as an imported function does.
-// Without it the compiler can say nothing of these results: every call kept its +1 for good, and one
-// declaration with a heap result was enough to stop any call through a function value from giving
-// its result back. Never on a C function, nor on one that returns a pointer into a buffer
-// (core/core.os.d.ts's convertNumber, timestamp_to_string, ...).
+// under -mm=rc and -mm=own each function here returns a value its caller owns, as an imported function
+// does - except where a declaration says it lends its result (`@lends`, or a result type `this`),
+// which -mm=own goes by. Without it the compiler can say nothing of these results: under rc every call
+// kept its +1 for good, and one declaration with a heap result was enough to stop any call through a
+// function value from giving its result back; under own no result was ever given back. Never on a C
+// function, nor on one that returns a pointer into a buffer (core/core.os.d.ts's convertNumber,
+// timestamp_to_string, ...). A function lib.ts makes lend its result must say `@lends` here too.
 
 @owned
 declare function parseInt(val: string, radix?: int): int;

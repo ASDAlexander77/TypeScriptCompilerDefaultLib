@@ -3,7 +3,7 @@
 // under -mm=own so is every Date method that calls one: a global Date lent to `d.getMonth()` was an
 // error. The scalar ones too: a scalar declaration is taken as no-drops only in a module no function
 // value can escape from, and the library, which declares non-scalar functions, is not one.
-// @owned: these return a string their caller owns under -mm=rc - each body returns `s`, a view of
+// @owned: these return a string their caller owns under -mm=rc and -mm=own - each body returns `s`, a view of
 // its local char[], and a view the function returns is copied there (#481), so the caller is given
 // a string of its own at +1. Unmarked, they were C functions to their callers: the result was
 // copied again and the function's own string never given back (`toFixed` leaked one per call).
